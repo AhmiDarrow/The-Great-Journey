@@ -1,0 +1,33 @@
+{
+  "name": "The Hunter's Crouch",
+  "icon": "warriorcats_events:mouse",
+  "category": "clanlands:lionheart",
+  "sortnum": 10,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Greetings, young warrior. I am Lionheart. Hunting begins with patience. Crouch low, keep your tail still, and creep forward. Prey feels your pawsteps before it sees you.",
+      "title": "Stalking"
+    },
+    {
+      "type": "patchouli:entity",
+      "entity": "warriorcats_events:mouse",
+      "rotate": false,
+      "default_rotation": -30,
+      "text": "Mice hide in grass and herbs. They are the easiest prey to catch, perfect for a new hunter."
+    },
+    {
+      "type": "patchouli:entity",
+      "entity": "warriorcats_events:squirrel",
+      "rotate": false,
+      "default_rotation": -30,
+      "text": "Squirrels stay near logs and are very fast. Do not scare one, or you will be chasing it up a tree!"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Pigeons react quickly and often fly off. Catching them takes practice. $(br2)Lizards are training prey for kits and apprentices. Chase them for fun, but do not count on them to feed the Clan.",
+      "title": "Pigeons and Lizards"
+    }
+  ],
+  "priority": true
+}

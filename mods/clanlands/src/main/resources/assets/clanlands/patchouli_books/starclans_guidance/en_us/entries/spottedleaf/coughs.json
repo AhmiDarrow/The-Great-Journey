@@ -1,0 +1,25 @@
+{
+  "name": "Coughs of Leaf-bare",
+  "icon": "warriorcats_events:catmint_leaves",
+  "category": "clanlands:spottedleaf",
+  "sortnum": 6,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Cold, damp weather brings coughs, most of all in leaf-bare. $(br2)$(l)Whitecough$() makes a cat weak, but it is rarely deadly. Left untreated, it can turn into $(l)greencough$(), which is far worse.",
+      "title": "Whitecough and Greencough"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:catmint_leaves",
+      "text": "Catmint is the best cure for both coughs, and the only one for greencough. It is so tasty you must be careful not to eat it all yourself!",
+      "title": "Catmint"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:juniper_berries",
+      "text": "Juniper berries help with whitecough and with chills. They are not as tasty as catmint, but they work.",
+      "title": "Juniper"
+    }
+  ]
+}

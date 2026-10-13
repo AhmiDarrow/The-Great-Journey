@@ -1,0 +1,17 @@
+{
+  "name": "The Running Strike",
+  "icon": "minecraft:feather",
+  "category": "clanlands:lionheart",
+  "sortnum": 13,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Your speed is a weapon. A blow struck while running, or at the end of a leap, lands harder than one from standing still. $(br2)A sprinting strike hits a little harder. A leaping strike hits much harder.",
+      "title": "Speed as a Weapon"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Use this in a hunt, not to bully. A warrior who charges blindly into a badger will not live to brag about it."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Ceremonies and Names",
+  "icon": "warriorcats_events:warrior_nametag",
+  "category": "clanlands:bluestar",
+  "sortnum": 3,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "A Clan cat's name grows with them. $(br2)A kit is born with a name ending in -kit. At six moons they become an apprentice and their name ends in -paw. When their mentor judges them ready, they earn a warrior name of their own.",
+      "title": "Names"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "When a warrior becomes leader, StarClan gives them nine lives and their name ends in -star. $(br2)Choose your own name with care, young one. It will be spoken at Gatherings for many moons."
+    }
+  ]
+}

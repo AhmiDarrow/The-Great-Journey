@@ -1,0 +1,1114 @@
+[
+  {
+    "name": "[EMF] Entity Model Features [Fabric & Forge]",
+    "projectId": 844662,
+    "fileId": 9064942,
+    "fileName": "entity_model_features-3.3.11-1.21-neoforge.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "fc551f0a284a5864fbc1a11fde5e27ab0ac95f43",
+    "origin": 844662,
+    "deps": [
+      568563
+    ]
+  },
+  {
+    "name": "[ETF] Entity Texture Features - [Fabric & Forge]",
+    "projectId": 568563,
+    "fileId": 9055219,
+    "fileName": "entity_texture_features-7.2.5-1.21-neoforge.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "ae5d4d282221a455ccd87bef7cd0f5122685426d",
+    "origin": 568563,
+    "deps": []
+  },
+  {
+    "name": "Achievements Optimizer",
+    "projectId": 912788,
+    "fileId": 6897792,
+    "fileName": "AchievementOptimizer-neoforge-1.21.1-2.1.0.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "691c4686c52c8740cba6beff392cbc3fbface5b0",
+    "origin": 912788,
+    "deps": []
+  },
+  {
+    "name": "Alex's Mobs (Unofficial Port)",
+    "projectId": 1415721,
+    "fileId": 7528193,
+    "fileName": "alexsmobs-1.22.17.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "5070e8070f60650d773bfd9f1d031496f8f50259",
+    "origin": 426558,
+    "deps": [
+      1415723
+    ]
+  },
+  {
+    "name": "Alternative Rain Sounds",
+    "projectId": 858484,
+    "fileId": 6515919,
+    "fileName": "[Compressed] Alternative Rain Sounds 1.21-1.21.1.zip",
+    "classId": 12,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "f8da5b4f65f0cdd78d0da3bc40e69db8e9bb2939",
+    "origin": 858484,
+    "deps": []
+  },
+  {
+    "name": "AppleSkin",
+    "projectId": 248787,
+    "fileId": 7854442,
+    "fileName": "appleskin-neoforge-mc1.21-3.0.9.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "81cf0e668f991f83ac8820c386fbd6c9c3602246",
+    "origin": 248787,
+    "deps": []
+  },
+  {
+    "name": "Architectury API",
+    "projectId": 419699,
+    "fileId": 8492726,
+    "fileName": "architectury-13.0.11-neoforge.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "008656a0702801174b8ec245ed7aad1921d6e9f1",
+    "origin": 419699,
+    "deps": []
+  },
+  {
+    "name": "bad packets",
+    "projectId": 615134,
+    "fileId": 6067146,
+    "fileName": "badpackets-neo-0.8.2.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "6a29963a30afd7fa8993b97e4f870460b3f51323",
+    "origin": 615134,
+    "deps": []
+  },
+  {
+    "name": "BadOptimizations",
+    "projectId": 949555,
+    "fileId": 7338300,
+    "fileName": "BadOptimizations-2.4.1-1.21.1.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "1461d8e46391efd32a3085150e86094c9f6f5c9d",
+    "origin": 949555,
+    "deps": []
+  },
+  {
+    "name": "Balm",
+    "projectId": 531761,
+    "fileId": 8969738,
+    "fileName": "balm-neoforge-1.21.1-21.0.66.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "dd3606a349f4a3c8fb5bd0ab22905675c02b0d74",
+    "origin": 531761,
+    "deps": []
+  },
+  {
+    "name": "Better Days",
+    "projectId": 895618,
+    "fileId": 7978626,
+    "fileName": "betterdays-1.21.1-3.3.6.3-NEOFORGE.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "0beeb796055f8abdebb9304fe26b655068a52a9c",
+    "origin": 895618,
+    "deps": []
+  },
+  {
+    "name": "Better Fps - Render Distance",
+    "projectId": 551520,
+    "fileId": 8319712,
+    "fileName": "betterfpsdist-1.21.1-6.1.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "9c499f5133ebeed43da4ce42d48bf747cead6d24",
+    "origin": 551520,
+    "deps": [
+      326652
+    ]
+  },
+  {
+    "name": "Better Lanterns",
+    "projectId": 618339,
+    "fileId": 5424501,
+    "fileName": "Better+Lanterns+v1.2(mc-1.21).zip",
+    "classId": 12,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "fa1e0dc78b535df918dca5ba453ebbdb6415ce48",
+    "origin": 618339,
+    "deps": []
+  },
+  {
+    "name": "Biomes O' Plenty",
+    "projectId": 220318,
+    "fileId": 8288121,
+    "fileName": "BiomesOPlenty-neoforge-1.21.1-21.1.0.14.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "6a12e1a249d074fb18f07d1f141b80ca2885e2be",
+    "origin": 220318,
+    "deps": [
+      955399,
+      940057
+    ]
+  },
+  {
+    "name": "BiomeSpy",
+    "projectId": 1376024,
+    "fileId": 7488072,
+    "fileName": "biomespy-neoforge-1.21.1-1.3.3.jar",
+    "classId": 6,
+    "side": "server",
+    "releaseType": 1,
+    "sha1": "079f612d2b3eed5502896c7cd691969f33b7ab1c",
+    "origin": 1376024,
+    "deps": []
+  },
+  {
+    "name": "Block Factory's Biomes - Add new vanilla+ biomes",
+    "projectId": 1247719,
+    "fileId": 6885537,
+    "fileName": "bf_biomes-1.1.0-neoforge-1.21.1.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "b977fb80668837ab8e5c6299734e3079594d68b7",
+    "origin": 1247719,
+    "deps": []
+  },
+  {
+    "name": "Citadel (Unofficial Port)",
+    "projectId": 1415723,
+    "fileId": 7982052,
+    "fileName": "citadel-1.21.1-2.7.6.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "e0392370117ec16a721f8d65728944398de77607",
+    "origin": 331936,
+    "deps": []
+  },
+  {
+    "name": "Cloth Config API (Fabric/Forge/NeoForge)",
+    "projectId": 348521,
+    "fileId": 5729127,
+    "fileName": "cloth-config-15.0.140-neoforge.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "c3e5733ba4503b102589a026000fd5ce0212f6f2",
+    "origin": 348521,
+    "deps": []
+  },
+  {
+    "name": "Collective",
+    "projectId": 342584,
+    "fileId": 9138799,
+    "fileName": "collective-1.21.1-8.46.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "c8f363192002602f4ef8ab32b21370b2d7aaa780",
+    "origin": 342584,
+    "deps": []
+  },
+  {
+    "name": "Continuity",
+    "projectId": 531351,
+    "fileId": 5981335,
+    "fileName": "continuity-3.0.0+1.21.neoforge.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "0aecd2d043ac25299254623fafdd9129ab2ba9c2",
+    "origin": 531351,
+    "deps": []
+  },
+  {
+    "name": "CorgiLib",
+    "projectId": 693313,
+    "fileId": 9113612,
+    "fileName": "Corgilib-NeoForge-1.21.1-5.0.0.10.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "78a1b2f0b4e2b816aeffb0e6a2cc0062aa343e46",
+    "origin": 693313,
+    "deps": []
+  },
+  {
+    "name": "CoroUtil",
+    "projectId": 237749,
+    "fileId": 7796187,
+    "fileName": "coroutil-neoforge-1.21.0-1.3.9.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "0f5a6309ce8394721b97740e6f3e45665f13b8de",
+    "origin": 237749,
+    "deps": []
+  },
+  {
+    "name": "CraftedCore",
+    "projectId": 923377,
+    "fileId": 7575403,
+    "fileName": "craftedcore-5.8.2.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "4215877e2366d0be5e159470b6ecdce33d34a0fb",
+    "origin": 923377,
+    "deps": []
+  },
+  {
+    "name": "Cristel Lib",
+    "projectId": 856996,
+    "fileId": 8241767,
+    "fileName": "cristellib-neoforge-1.21.1-3.1.7.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "d250804b7ecea365bc736ec36ec6fc3f933917f1",
+    "origin": 856996,
+    "deps": [
+      348521
+    ]
+  },
+  {
+    "name": "Cupboard",
+    "projectId": 326652,
+    "fileId": 8889050,
+    "fileName": "cupboard-1.21.1-4.2.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "6c2d786a161f49470dad92b2edaefdac38a1e79b",
+    "origin": 326652,
+    "deps": []
+  },
+  {
+    "name": "Dynamic FPS",
+    "projectId": 335493,
+    "fileId": 7546938,
+    "fileName": "dynamic-fps-3.11.4+minecraft-1.21.0-neoforge.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "35b17e95b2b65930116ccc83e0cc358ac1bfcf9e",
+    "origin": 335493,
+    "deps": []
+  },
+  {
+    "name": "Dynamic Waters: Realistic Flowing Rivers",
+    "projectId": 1505834,
+    "fileId": 8446581,
+    "fileName": "dynamicwaters-11.1.2.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "7f219bac36ef22ed0ce699f77c367f8ef64e3326",
+    "origin": 1505834,
+    "deps": []
+  },
+  {
+    "name": "Entity Culling Fabric/Forge",
+    "projectId": 448233,
+    "fileId": 9100286,
+    "fileName": "entityculling-neoforge-1.11.3-mc1.21.1.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "f122f84f329793675b2625d51b77f990d7de3579",
+    "origin": 448233,
+    "deps": []
+  },
+  {
+    "name": "FallingTree",
+    "projectId": 349559,
+    "fileId": 6835168,
+    "fileName": "FallingTree-1.21.1-1.21.1.11.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "626e7ec3a979dcc15d8e65c53207572c41c1b255",
+    "origin": 349559,
+    "deps": []
+  },
+  {
+    "name": "Fancy Block Particles - Renewed",
+    "projectId": 937011,
+    "fileId": 7270748,
+    "fileName": "FancyBlockParticles-1.21.1-neoforge-21.1.6.0.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "e27f4641138331f4b3371923dc4853c7cac4707f",
+    "origin": 937011,
+    "deps": []
+  },
+  {
+    "name": "FancyMenu",
+    "projectId": 367706,
+    "fileId": 9002957,
+    "fileName": "fancymenu_neoforge_3.9.14_MC_1.21.1.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "cafbef98afb4f60adea426b950c5452655040c40",
+    "origin": 367706,
+    "deps": [
+      938643,
+      410295
+    ]
+  },
+  {
+    "name": "FerriteCore ((Neo)Forge)",
+    "projectId": 429235,
+    "fileId": 7524151,
+    "fileName": "ferritecore-7.0.3-neoforge.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "9563692efb708b6b568df27a01ec52f6311928ef",
+    "origin": 429235,
+    "deps": []
+  },
+  {
+    "name": "fix GPU memory leak",
+    "projectId": 882495,
+    "fileId": 5513549,
+    "fileName": "gpumemleakfix-1.21-1.8.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "1894d2f0dd0c275aea0f1a6265ebd5715569c208",
+    "origin": 882495,
+    "deps": [
+      326652
+    ]
+  },
+  {
+    "name": "Flerovium",
+    "projectId": 1142875,
+    "fileId": 8430037,
+    "fileName": "flerovium-neoforge-1.21.1-1.1.2-all.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "31491e08947da57d4af6c48e8d3237cc6d4009c1",
+    "origin": 1142875,
+    "deps": [
+      394468
+    ]
+  },
+  {
+    "name": "Forgified Fabric API",
+    "projectId": 889079,
+    "fileId": 8726480,
+    "fileName": "forgified-fabric-api-0.116.15+2.3.5+1.21.1.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "87b28db4ef88268fbbaea2c0ca7e3dfcc27961a8",
+    "origin": 889079,
+    "deps": []
+  },
+  {
+    "name": "Fresh Animations",
+    "projectId": 453763,
+    "fileId": 7670377,
+    "fileName": "FreshAnimations_v1.10.4.zip",
+    "classId": 12,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "73db740a6868e043c5e615c036fca2c912615b6e",
+    "origin": 453763,
+    "deps": []
+  },
+  {
+    "name": "Fresh Animations: Extensions",
+    "projectId": 813608,
+    "fileId": 7953813,
+    "fileName": "FA+All_Extensions-v1.8.1.zip",
+    "classId": 12,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "d39eefcb1d3a24debc979bbf7aa3e42b92cc5a80",
+    "origin": 813608,
+    "deps": []
+  },
+  {
+    "name": "Fresh Moves",
+    "projectId": 990406,
+    "fileId": 6105672,
+    "fileName": "-1.21.2 Fresh Moves v3.1 (With Animated Eyes).zip",
+    "classId": 12,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "7049cc12935ff4be20173c908ad946f530861a4c",
+    "origin": 990406,
+    "deps": []
+  },
+  {
+    "name": "Gabou's Libs",
+    "projectId": 1367332,
+    "fileId": 8774265,
+    "fileName": "gaboulibs-neoforge-1.9.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "aa39c5645c0479dbd7a485432e9694c78ad6082a",
+    "origin": 1367332,
+    "deps": [
+      419699
+    ]
+  },
+  {
+    "name": "GeckoLib",
+    "projectId": 388172,
+    "fileId": 8893490,
+    "fileName": "geckolib-neoforge-1.21.1-4.9.3.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "5cfe835472a5c5457ae9ac192d9d7b317454d5ac",
+    "origin": 388172,
+    "deps": []
+  },
+  {
+    "name": "GeckolibBetterFPS",
+    "projectId": 1455983,
+    "fileId": 8582640,
+    "fileName": "gbf-1.21.1-1.0.2.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 2,
+    "sha1": "ba81bef24bce6b0c89e26a35cf62ef6d06aa51b2",
+    "origin": 1455983,
+    "deps": [
+      388172
+    ]
+  },
+  {
+    "name": "Geophilic \u2013 Vanilla Biome Overhauls",
+    "projectId": 711216,
+    "fileId": 8966202,
+    "fileName": "Geophilic v3.7.mod.jar",
+    "classId": 6,
+    "side": "server",
+    "releaseType": 1,
+    "sha1": "4d668978e18b450c030ed4be096fce52d3a9ceca",
+    "origin": 711216,
+    "deps": []
+  },
+  {
+    "name": "GlitchCore",
+    "projectId": 955399,
+    "fileId": 8109792,
+    "fileName": "GlitchCore-neoforge-1.21.1-2.1.0.2.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "a31c3f36330f19aa538add3d727782a62c9c30ad",
+    "origin": 955399,
+    "deps": []
+  },
+  {
+    "name": "Hoofprint",
+    "projectId": 1402895,
+    "fileId": 7617616,
+    "fileName": "hoofprint-1.3.0+1.21.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "d2395ad821239db36507fc6946d185fd10e81d3c",
+    "origin": 1402895,
+    "deps": [
+      306612,
+      1391592,
+      1402884
+    ]
+  },
+  {
+    "name": "ImmediatelyFast",
+    "projectId": 686911,
+    "fileId": 8875640,
+    "fileName": "ImmediatelyFast-NeoForge-1.6.14+1.21.1.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "fee59af2f39c66d09c4c09f441c799e76af70f97",
+    "origin": 686911,
+    "deps": []
+  },
+  {
+    "name": "Immersive Minimaps",
+    "projectId": 1545227,
+    "fileId": 8527575,
+    "fileName": "immersiveminimaps-1.2.4+1.21.1-fabric.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "7c3593c34c20096ad9b35b6e95ac9e85eca30f73",
+    "origin": 1545227,
+    "deps": [
+      669659,
+      1391592,
+      306612,
+      890127,
+      1402895
+    ]
+  },
+  {
+    "name": "Immersive Optimization",
+    "projectId": 1163206,
+    "fileId": 8429464,
+    "fileName": "immersive_optimization-neoforge-1.21.1-0.2.0.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "7e6693dae264f9185b8b12cf99e8407e7e532041",
+    "origin": 1163206,
+    "deps": []
+  },
+  {
+    "name": "Jade \ud83d\udd0d",
+    "projectId": 324717,
+    "fileId": 8591319,
+    "fileName": "Jade-1.21.1-NeoForge-15.10.6.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "88ee316e68900080b017f60c12162e2731924cf8",
+    "origin": 324717,
+    "deps": []
+  },
+  {
+    "name": "Just Enough Items (JEI)",
+    "projectId": 238222,
+    "fileId": 8792638,
+    "fileName": "jei-1.21.1-neoforge-19.51.0.418.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "d19552586f686eae4ef5e7199f31604d1d3cfca7",
+    "origin": 238222,
+    "deps": []
+  },
+  {
+    "name": "Just Enough Resources (JER)",
+    "projectId": 240630,
+    "fileId": 6174588,
+    "fileName": "JustEnoughResources-NeoForge-1.21.1-1.6.0.12.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "36dadee431118e7b7912cf8981d4afa7992dc93d",
+    "origin": 240630,
+    "deps": []
+  },
+  {
+    "name": "Konkrete",
+    "projectId": 410295,
+    "fileId": 5453385,
+    "fileName": "konkrete_neoforge_1.9.9_MC_1.21.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "97771eb287d5ac7fe667d1df9493d5e54c8ca1fa",
+    "origin": 410295,
+    "deps": []
+  },
+  {
+    "name": "LightSpeedRe - Launch optimizations",
+    "projectId": 1388941,
+    "fileId": 9086499,
+    "fileName": "lightspeed-1.21.1-2.0.2hotx2.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "5e71647d5b82b545371d215f464f2d7774afc53b",
+    "origin": 1388941,
+    "deps": []
+  },
+  {
+    "name": "Lithium (Fabric/NeoForge)",
+    "projectId": 360438,
+    "fileId": 8330365,
+    "fileName": "lithium-neoforge-0.15.4+mc1.21.1.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "97212e45c963730bbfc7c44780df99317814c21b",
+    "origin": 665658,
+    "deps": []
+  },
+  {
+    "name": "Load My F***ing Tags",
+    "projectId": 656346,
+    "fileId": 7084444,
+    "fileName": "lmft-1.1.1+1.21.9-neoforge.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "492d597ca216f9d099be112e77a9a5c7ed138770",
+    "origin": 656346,
+    "deps": []
+  },
+  {
+    "name": "McQoy",
+    "projectId": 1402884,
+    "fileId": 7372152,
+    "fileName": "mcqoy-0.4.1+neo-1.21.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "98a771b14c1f4ead12ffcd99a90b1c91b25cca8d",
+    "origin": 1402884,
+    "deps": [
+      667299
+    ]
+  },
+  {
+    "name": "Melody",
+    "projectId": 938643,
+    "fileId": 5453382,
+    "fileName": "melody_neoforge_1.0.10_MC_1.21.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "e83052a92c4ca0016bcfe7f0207273983dc84698",
+    "origin": 938643,
+    "deps": []
+  },
+  {
+    "name": "ModernFix",
+    "projectId": 790626,
+    "fileId": 9101836,
+    "fileName": "modernfix-neoforge-5.27.26+mc1.21.1.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "69d468b70e53f6a014c778a81116a41a38fbab33",
+    "origin": 790626,
+    "deps": []
+  },
+  {
+    "name": "Moonlight Lib",
+    "projectId": 499980,
+    "fileId": 9122548,
+    "fileName": "moonlight-1.21.1-3.7.2-neoforge.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "0da45e6bc941f4b9b18dda24f8d047431ddc7226",
+    "origin": 499980,
+    "deps": []
+  },
+  {
+    "name": "MRU",
+    "projectId": 669659,
+    "fileId": 9004036,
+    "fileName": "mru-1.0.41+1.21.1-neoforge.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "c06ebac32fb438a1efc705a9d367c425cc86fa18",
+    "origin": 669659,
+    "deps": []
+  },
+  {
+    "name": "Mystic's Biomes",
+    "projectId": 397962,
+    "fileId": 8022733,
+    "fileName": "mysticsbiomes-neoforge-1.21.1-3.5.3.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "1b1b7a1449c932b053576b581731fbda89826ba2",
+    "origin": 397962,
+    "deps": [
+      940057
+    ]
+  },
+  {
+    "name": "Naturalist",
+    "projectId": 627986,
+    "fileId": 9004373,
+    "fileName": "naturalist-2.0.5-neoforge-1.21.1.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "ea9ebf082eb978dcf583255e8fca1004a8114ab6",
+    "origin": 627986,
+    "deps": [
+      388172
+    ]
+  },
+  {
+    "name": "Oh The Biomes We've Gone",
+    "projectId": 1070751,
+    "fileId": 9114631,
+    "fileName": "Oh-The-Biomes-Weve-Gone-NeoForge-2.6.3.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "693292b80590ea4cf3b4d3e180a6532eac71f546",
+    "origin": 1070751,
+    "deps": [
+      693313,
+      388172,
+      940057,
+      962544
+    ]
+  },
+  {
+    "name": "Oh The Trees You'll Grow",
+    "projectId": 962544,
+    "fileId": 9113653,
+    "fileName": "Oh-The-Trees-Youll-Grow-neoforge-1.21.1-5.3.5.jar",
+    "classId": 6,
+    "side": "server",
+    "releaseType": 1,
+    "sha1": "19e8cf3c1bd7abbcbb9f6e5152e2824723fa25ce",
+    "origin": 962544,
+    "deps": []
+  },
+  {
+    "name": "OptiLeaves",
+    "projectId": 1191403,
+    "fileId": 9017782,
+    "fileName": "OptiLeaves-neoforge-1.21.1-2.0.1.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "c626f3f4d802127b8dbe17166864248182857031",
+    "origin": 1191403,
+    "deps": []
+  },
+  {
+    "name": "Patchouli",
+    "projectId": 306770,
+    "fileId": 7730942,
+    "fileName": "Patchouli-1.21.1-93-NEOFORGE.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "5413bb9b8fc35ebe46b06b48bf9afafbd8471140",
+    "origin": 306770,
+    "deps": []
+  },
+  {
+    "name": "Polymorph",
+    "projectId": 388800,
+    "fileId": 6794589,
+    "fileName": "polymorph-neoforge-1.1.0+1.21.1.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "84f8c539fa326dc723ae62b7a6916d6b01982d07",
+    "origin": 388800,
+    "deps": []
+  },
+  {
+    "name": "Project Atmosphere: Realistic Climate & Weather",
+    "projectId": 1258344,
+    "fileId": 8541023,
+    "fileName": "NeoForge-projectatmosphere-0.9.1.2.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "a8e2c9b380623315b51e0c5bd4341080a2a45ab5",
+    "origin": 1258344,
+    "deps": [
+      291874,
+      1121215,
+      1367332,
+      895618
+    ]
+  },
+  {
+    "name": "Realistic Bees",
+    "projectId": 410743,
+    "fileId": 9033074,
+    "fileName": "realisticbees-1.21.1-4.4.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "a68c5796c9e5ced3102d88379f49aee1c09aa813",
+    "origin": 410743,
+    "deps": [
+      342584
+    ]
+  },
+  {
+    "name": "Resourceful Config",
+    "projectId": 714059,
+    "fileId": 6467772,
+    "fileName": "resourcefulconfig-neoforge-1.21-3.0.11.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "6bf2b6ea9c071c00a2abcdc552667fb6f7d21031",
+    "origin": 714059,
+    "deps": []
+  },
+  {
+    "name": "Resourceful Lib",
+    "projectId": 570073,
+    "fileId": 5973188,
+    "fileName": "resourcefullib-neoforge-1.21-3.0.12.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "24389c8e48ff0e8594e4686b750c494c66a5f8df",
+    "origin": 570073,
+    "deps": []
+  },
+  {
+    "name": "Serene Seasons",
+    "projectId": 291874,
+    "fileId": 6182596,
+    "fileName": "SereneSeasons-neoforge-1.21.1-10.1.0.3.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "8b9034d4c43f880b1f1ebdd3943219de0b0bc4c5",
+    "origin": 291874,
+    "deps": [
+      955399
+    ]
+  },
+  {
+    "name": "Serene Seasons: Colorful Seasons",
+    "projectId": 1543537,
+    "fileId": 8107791,
+    "fileName": "NeoForge-1.21.1-ColorfulSeasons-1.1.0.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "731cab4467c1055489970d7605ac70cf9c80e1cc",
+    "origin": 1543537,
+    "deps": [
+      291874
+    ]
+  },
+  {
+    "name": "Shoulder Surfing Reloaded",
+    "projectId": 243190,
+    "fileId": 9013811,
+    "fileName": "ShoulderSurfing-NeoForge-1.21.1-5.2.0.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "b889e1671b02f262fc4520a46b8140c3b1371585",
+    "origin": 243190,
+    "deps": []
+  },
+  {
+    "name": "Simple Clouds",
+    "projectId": 1121215,
+    "fileId": 6928979,
+    "fileName": "simpleclouds-0.7.3+1.21.1-all.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "b796263392bb5fce4a3c77c45273af3a1e63423c",
+    "origin": 1121215,
+    "deps": []
+  },
+  {
+    "name": "Sinytra Connector",
+    "projectId": 890127,
+    "fileId": 8654089,
+    "fileName": "connector-2.0.0-beta.17+1.21.1-full.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "ba08b534af7982d0bd25a25b45cb654c09ffec8f",
+    "origin": 890127,
+    "deps": [
+      889079
+    ]
+  },
+  {
+    "name": "Sodium",
+    "projectId": 394468,
+    "fileId": 8756580,
+    "fileName": "sodium-neoforge-0.8.13+mc1.21.1.jar",
+    "classId": 6,
+    "side": "client",
+    "releaseType": 1,
+    "sha1": "1757289be21ed18db5b0d90703fa3db1b2de5693",
+    "origin": 908741,
+    "deps": []
+  },
+  {
+    "name": "Sound Physics Remastered",
+    "projectId": 535489,
+    "fileId": 6352946,
+    "fileName": "sound-physics-remastered-neoforge-1.21.1-1.4.10.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "fc95715050152d1869284a25fccf0e742a1a98af",
+    "origin": 535489,
+    "deps": []
+  },
+  {
+    "name": "spark",
+    "projectId": 361579,
+    "fileId": 6225208,
+    "fileName": "spark-1.10.124-neoforge.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "9430cc2ab64ff89d698be593769fb9f9ee4efae6",
+    "origin": 361579,
+    "deps": []
+  },
+  {
+    "name": "Stay True",
+    "projectId": 353554,
+    "fileId": 6534716,
+    "fileName": "Stay True 1.21.5.zip",
+    "classId": 12,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "b752181fa17cf99a67bc46a2c1569be621021493",
+    "origin": 353554,
+    "deps": []
+  },
+  {
+    "name": "Structure Layout Optimizer",
+    "projectId": 1087831,
+    "fileId": 7439136,
+    "fileName": "structure_layout_optimizer-neoforge-1.0.12.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "052c31cb9881c04c17d949345539aa8684f474bf",
+    "origin": 1087831,
+    "deps": [
+      714059
+    ]
+  },
+  {
+    "name": "Surveyor Map Framework",
+    "projectId": 1391592,
+    "fileId": 8067329,
+    "fileName": "surveyor-1.2.4+1.21.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "77e9d3996c11eed104fe224c3ba706be1c759303",
+    "origin": 1391592,
+    "deps": [
+      306612,
+      1402884
+    ]
+  },
+  {
+    "name": "TerraBlender (NeoForge)",
+    "projectId": 940057,
+    "fileId": 6054947,
+    "fileName": "TerraBlender-neoforge-1.21.1-4.1.0.8.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 2,
+    "sha1": "2016eed89eac0eb0510d2190c3b0b80bf4346191",
+    "origin": 563928,
+    "deps": []
+  },
+  {
+    "name": "Visual Health",
+    "projectId": 1473785,
+    "fileId": 8943482,
+    "fileName": "visualhealth-neoforge-1.21.1-2.0.4.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "b73b29c81933d3891a76361d8da949413c57fc3e",
+    "origin": 1473785,
+    "deps": []
+  },
+  {
+    "name": "Warrior Cats Events",
+    "projectId": 1388582,
+    "fileId": 8711494,
+    "fileName": "warriorcats_events-neoforge-1.21.1-1.12.2.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "dcdcd334183456112e5f21961586eda0709ff815",
+    "origin": 1388582,
+    "deps": [
+      868922,
+      388172,
+      923377,
+      306770
+    ]
+  },
+  {
+    "name": "Weather, Storms & Tornadoes",
+    "projectId": 237746,
+    "fileId": 8140264,
+    "fileName": "weather2-neoforge-1.21.0-2.8.7.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "a091ee91c7f4644e3bf6811007bbf29d268d906a",
+    "origin": 237746,
+    "deps": []
+  },
+  {
+    "name": "Woodwalkers",
+    "projectId": 868922,
+    "fileId": 8753263,
+    "fileName": "walkers-5.8.13.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "e55e5c3c3cc6ab838479c372e1ea135fe32b9587",
+    "origin": 868922,
+    "deps": [
+      923377
+    ]
+  },
+  {
+    "name": "YetAnotherConfigLib",
+    "projectId": 667299,
+    "fileId": 7437845,
+    "fileName": "yet_another_config_lib_v3-3.8.2+1.21.1-neoforge.jar",
+    "classId": 6,
+    "side": "both",
+    "releaseType": 1,
+    "sha1": "fe270c9f6e0a8142cf316944087f5109cef08bbb",
+    "origin": 667299,
+    "deps": []
+  }
+]

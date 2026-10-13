@@ -1,0 +1,14 @@
+{
+  "values": [
+    "minecraft:fox",
+    "minecraft:wolf",
+    "minecraft:polar_bear",
+    {"id": "warriorcats_events:badger", "required": false},
+    {"id": "warriorcats_events:golden_eagle", "required": false},
+    {"id": "alexsmobs:grizzly_bear", "required": false},
+    {"id": "alexsmobs:raccoon", "required": false},
+    {"id": "alexsmobs:coyote", "required": false},
+    {"id": "naturalist:bear", "required": false},
+    {"id": "naturalist:coyote", "required": false}
+  ]
+}

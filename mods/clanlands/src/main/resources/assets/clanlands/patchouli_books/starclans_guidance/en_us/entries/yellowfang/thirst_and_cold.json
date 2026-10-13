@@ -1,0 +1,17 @@
+{
+  "name": "Thirst and Leaf-bare",
+  "icon": "minecraft:water_bucket",
+  "category": "clanlands:yellowfang",
+  "sortnum": 19,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "A cat can starve, and a cat can thirst. Drink at streams and the lake whenever you pass. If you dry out, you will grow weak and die. $(br2)Crouch at the water's edge, look at the water and lap it up.",
+      "title": "Thirst"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Leaf-bare is the hardest season. Prey is scarce, snow hides the herbs and the coughs spread. Stock the fresh-kill pile and the herb store in leaf-fall, or the Clan will suffer."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "Traveling Herbs",
+  "icon": "warriorcats_events:traveling_herbs",
+  "category": "clanlands:spottedleaf",
+  "sortnum": 9,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Before a long journey, a medicine cat gives traveling herbs. $(br2)$(li)$(l)Sorrel$() eases hunger and thirst.$(li)$(l)Burnet$() gives strength.$(li)$(l)Chamomile$() calms the heart.$(li)$(l)Daisy$() soothes aching joints.",
+      "title": "For the Journey"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:traveling_herbs",
+      "text": "Bundle all four in dock leaves on an Herb Rock. If you walk to the old forest, take some with you!",
+      "title": "Traveling Herbs"
+    }
+  ]
+}

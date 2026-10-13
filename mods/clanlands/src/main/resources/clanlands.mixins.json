@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.ninjacat.greatjourney.clanlands.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "RegistryDataLoaderMixin",
+    "MultiNoiseBiomeSourceMixin",
+    "ChunkAccessMixin",
+    "WorldDimensionsMixin",
+    "ChunkGeneratorMixin",
+    "CanyonWorldCarverMixin",
+    "DynamicWatersHydrologyMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

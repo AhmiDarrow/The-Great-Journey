@@ -1,0 +1,24 @@
+{
+  "name": "Fever and Chills",
+  "icon": "warriorcats_events:feverfew_leaves",
+  "category": "clanlands:spottedleaf",
+  "sortnum": 7,
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:feverfew_leaves",
+      "text": "Feverfew has a sharp smell. It cools a cat with a fever and warms a cat with chills.",
+      "title": "Feverfew"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:poppy_seeds",
+      "text": "Poppy seeds calm a cat in shock and help them sleep. They can also ease chills. Shake the seeds out on an Herb Rock.",
+      "title": "Poppy Seeds"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "A fever is often a sign of something else. If a Clanmate is feverish, check them with your Whiskers to see what else might be wrong."
+    }
+  ]
+}

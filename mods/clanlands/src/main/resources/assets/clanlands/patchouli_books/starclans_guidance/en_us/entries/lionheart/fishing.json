@@ -1,0 +1,13 @@
+{
+  "name": "Fishing",
+  "icon": "minecraft:cod",
+  "category": "clanlands:lionheart",
+  "sortnum": 11,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "RiverClan cats will tell you only they can fish. Do not believe them. $(br2)Look at deep water in a river or the lake, hold your $(l)Claws$(), crouch and use them. Shallow puddles will not do.",
+      "title": "Fishing with Claws"
+    }
+  ]
+}

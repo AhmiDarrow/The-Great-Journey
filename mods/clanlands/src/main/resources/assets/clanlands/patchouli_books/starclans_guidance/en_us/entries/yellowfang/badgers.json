@@ -1,0 +1,20 @@
+{
+  "name": "Badgers",
+  "icon": "warriorcats_events:badger_skull",
+  "category": "clanlands:yellowfang",
+  "sortnum": 16,
+  "pages": [
+    {
+      "type": "patchouli:entity",
+      "entity": "warriorcats_events:badger",
+      "rotate": false,
+      "default_rotation": -30,
+      "text": "A badger. Long claws, a bad temper, and no fear of cats at all."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Badgers roam forests and plains and will attack any cat they meet. Even a strong warrior struggles to drive one off. $(br2)If you meet one alone, run. Come back with a patrol, or not at all.",
+      "title": "Run, Kit, Run"
+    }
+  ]
+}

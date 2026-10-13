@@ -1,0 +1,18 @@
+{
+  "name": "Welcome, Young One",
+  "icon": "minecraft:nether_star",
+  "category": "clanlands:bluestar",
+  "sortnum": 0,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Welcome, little one. I am Bluestar. Once I led ThunderClan; now I hunt among the stars of Silverpelt with all of StarClan. $(br2)We have watched you since before your eyes opened. These pages hold what we wish we had known when we were young.",
+      "title": "Bluestar Speaks"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Each of us has written what we know best. Spottedleaf teaches herbs, Lionheart teaches the hunt, and Yellowfang... well, Yellowfang teaches you what NOT to do. $(br2)Read a little at a time. A good warrior learns with their paws as much as with their ears."
+    }
+  ],
+  "priority": true
+}

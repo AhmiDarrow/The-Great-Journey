@@ -1,0 +1,17 @@
+{
+  "name": "Twolegs and the Thunderpath",
+  "icon": "minecraft:black_concrete",
+  "category": "clanlands:yellowfang",
+  "sortnum": 18,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Twolegs build stone nests and keep kittypets who never learn to hunt. Their monsters roar along the Thunderpath, the hard black path that smells of smoke.",
+      "title": "Twolegs"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Cross a Thunderpath only when it is quiet, and cross it fast. Many good cats were lost on that stinking stone. $(br2)Twoleg nests near the territories can hide useful things, but do not linger."
+    }
+  ]
+}

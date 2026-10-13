@@ -1,0 +1,17 @@
+{
+  "name": "Gatherings and the Truce",
+  "icon": "minecraft:clock",
+  "category": "clanlands:bluestar",
+  "sortnum": 4,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "When the moon is full, the four Clans meet in peace on the island in the lake. Leaders share news from their territories, and old friends from different Clans may share tongues.",
+      "title": "The Full-Moon Truce"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "During a Gathering there is no fighting. Ever. If clouds cover the moon, it is a sign that StarClan is angry. $(br2)Look up on a clear night. Every star you see is a warrior watching over you."
+    }
+  ]
+}

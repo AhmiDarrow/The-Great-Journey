@@ -1,0 +1,17 @@
+{
+  "item.clanlands.journal": "Clan Journal",
+  "key.clanlands.journal": "Open the Clan Journal",
+  "key.categories.greatjourney": "The Great Journey",
+  "screen.clanlands.dialogue": "Conversation",
+  "screen.clanlands.journal": "Clan Journal",
+  "menu.clanlands.campaign": "Campaign",
+  "menu.clanlands.campaign.tip": "The story of the Clans, from Fourtrees to the lake",
+  "menu.clanlands.campaign.world": "The Great Journey",
+  "menu.clanlands.free": "Free Mode",
+  "menu.clanlands.free.tip": "Live in the Clans' world your own way",
+  "menu.clanlands.free.world": "Free Mode",
+  "menu.clanlands.load": "Load World",
+  "menu.clanlands.load.tip": "Carry on in a world you have already started",
+  "death.attack.clanlands.monster": "%1$s was struck down by a monster on the Thunderpath",
+  "death.attack.clanlands.monster.player": "%1$s fled from %2$s onto the Thunderpath, and a monster struck them down"
+}

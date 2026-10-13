@@ -1,0 +1,30 @@
+{
+  "name": "Sore Pads and Broken Legs",
+  "icon": "warriorcats_events:comfrey_leaves",
+  "category": "clanlands:spottedleaf",
+  "sortnum": 8,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Run too far, climb too much or walk on hot stone, and your pads will grow sore. A cat with sore pads cannot leap or climb well.",
+      "title": "Sore Pads"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:dock_poultice",
+      "text": "A dock poultice soothes sore pads and small scratches. You can also use it to heal a hurt Clan cat.",
+      "title": "Dock Poultice"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:yarrow_poultice",
+      "text": "Yarrow tastes dreadful, but chewed into a poultice it heals sore pads too.",
+      "title": "Yarrow Poultice"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "A long fall can break a leg. Broken bones do not heal by themselves. Hold the leg steady with a $(l)Leg Wrap$(), then a $(l)comfrey poultice$() helps the bone mend faster. Every Clan should keep comfrey!",
+      "title": "Broken Legs"
+    }
+  ]
+}

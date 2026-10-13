@@ -1,0 +1,17 @@
+{
+  "name": "Growing Stronger",
+  "icon": "minecraft:experience_bottle",
+  "category": "clanlands:lionheart",
+  "sortnum": 14,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Every hunt, every fight and every patrol teaches your body. Open your skill tree from your inventory to grow your health, speed, jumping, claws, pelt and stealth. $(br2)What you learn stays with you, even if StarClan calls you home.",
+      "title": "Your Skills"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Stealth is the hardest skill to learn. A truly stealthy warrior can slip past enemies like a shadow at moonhigh."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+The Great Journey
+=================
+
+A Warrior Cats modpack for Minecraft 1.21.1 (NeoForge). Every world is built around the
+Clan territories from the books: the lake territories where you start, and the old forest
+with Fourtrees a long journey away. Four living Clans, a StarClan dream to learn the ways
+of the warrior, and three ways to begin: kittypet, Clan apprentice or loner.
+
+Credits
+-------
+- Warrior Cats is created by Erin Hunter. This is a free, unofficial fan project; it is not
+  affiliated with or endorsed by the authors or publishers of the books.
+- The Great Journey Core (Clanlands and Clanwild) is written by AhmiDarrow.
+- Warrior Cats Events by Klyonstar is the heart of the cat gameplay.
+- Every other mod is downloaded from CurseForge by the launcher and stays under its own
+  author's license. See modlist.html for the full list.
+
+Configuration
+-------------
+Every config this pack ships is the mod's own default with a few documented changes
+(listed, with reasons, in the pack's config-choices.json). Mods not listed run on their
+own defaults.

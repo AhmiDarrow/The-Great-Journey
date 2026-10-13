@@ -1,0 +1,113 @@
+{
+  "_comment": "Every config value The Great Journey changes from a mod's own default, and why. tools/apply_config_choices.py applies these to the defaults the mods generate (build/config-defaults, from a clean server boot) and writes only these files into pack/overrides/config. No config is inherited from any other pack. Keys are 'section' + 'key' exactly as in the generated TOML.",
+  "files": {
+    "config/dynamicwaters-common.toml": [
+      {
+        "section": "Generation",
+        "key": "enableMountainRivers",
+        "value": false,
+        "why": "Dynamic Waters' mountain-river planning held new-world creation for many minutes"
+      }
+    ],
+    "config/warriorcats_events-server.toml": [
+      {
+        "section": "wce_server",
+        "key": "allowTeleport",
+        "value": false,
+        "why": "new cats begin where The Great Journey's start puts them (kittypet garden, Clan camp or lake shore), not at a random biome"
+      },
+      {
+        "section": "wce_server.wce_territories",
+        "key": "placeBreakBlocks",
+        "value": false,
+        "why": "the four Clans hold the whole lake map; kittypets, loners and visitors can still build and dig there (the territory HUD still shows whose land it is)"
+      }
+    ],
+    "config/warriorcats_events-prey_items.toml": [
+      {
+        "section": "items",
+        "key": "items",
+        "value": [
+          "minecraft:salmon",
+          "minecraft:cod",
+          "naturalist:bass",
+          "naturalist:catfish",
+          "alexsmobs:raw_catfish",
+          "naturalist:morsel",
+          "naturalist:lizard_tail"
+        ],
+        "why": "prey from the pack's wildlife mods feeds a cat like Warrior Cats Events' own prey (docs/clanwild.md)"
+      }
+    ],
+    "config/alexsmobs-common.toml": [
+      {
+        "section": "general",
+        "keys": [
+          "giveBookOnStartup"
+        ],
+        "value": false,
+        "why": "Every new player started holding the Animal Dictionary, and right-clicking a Clan cat with it opens the dictionary instead of talking to the cat (found by the playtest harness). The guide and journal are The Great Journey's books."
+      },
+      {
+        "section": "spawning",
+        "keys": [
+          "anteaterSpawnWeight",
+          "bisonSpawnWeight",
+          "capuchinMonkeySpawnWeight",
+          "elephantSpawnWeight",
+          "emuSpawnWeight",
+          "gazelleSpawnWeight",
+          "gorillaSpawnWeight",
+          "jerboaSpawnWeight",
+          "kangarooSpawnWeight",
+          "komodoDragonSpawnWeight",
+          "manedWolfSpawnWeight",
+          "mooseSpawnWeight",
+          "platypusSpawnWeight",
+          "rattlesnakeSpawnWeight",
+          "rhinocerosSpawnWeight",
+          "roadrunnerSpawnWeight",
+          "skunkSpawnWeight",
+          "snowLeopardSpawnWeight",
+          "sugarGliderSpawnWeight",
+          "tasmanianDevilSpawnWeight",
+          "tigerSpawnWeight",
+          "toucanSpawnWeight",
+          "tusklinSpawnWeight",
+          "caimanSpawnWeight",
+          "crocodileSpawnWeight",
+          "anacondaSpawnWeight",
+          "geladaMonkeySpawnWeight",
+          "potooSpawnWeight",
+          "sunbirdSpawnWeight",
+          "hummingbirdSpawnWeight",
+          "shoebillSpawnWeight",
+          "blueJaySpawnWeight",
+          "raccoonSpawnWeight",
+          "bananaSlugSpawnWeight",
+          "cockroachSpawnWeight",
+          "tarantulaHawkSpawnWeight",
+          "mungusSpawnWeight",
+          "grizzlyBearSpawnWeight",
+          "rainFrogSpawnWeight",
+          "alligatorSnappingTurtleSpawnWeight",
+          "terrapinSpawnWeight",
+          "mudskipperSpawnWeight",
+          "dropbearSpawnWeight",
+          "froststalkerSpawnWeight",
+          "rockyRollerSpawnWeight"
+        ],
+        "value": 0,
+        "why": "animals from other continents do not live in the Clans' woods and moors; crows, seagulls, fish and the ocean, Nether and End creatures keep their spawns"
+      }
+    ],
+    "config/Weather2/Tornado.toml": [
+      {
+        "section": "general",
+        "key": "Storm_NoTornadosOrCyclones",
+        "value": true,
+        "why": "no tornadoes or hurricanes tearing up the territories; rain, thunder, wind and storms stay"
+      }
+    ]
+  }
+}

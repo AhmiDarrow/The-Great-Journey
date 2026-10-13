@@ -1,0 +1,13 @@
+{
+  "type": "neoforge:add_table",
+  "conditions": [
+    {
+      "condition": "minecraft:inverted",
+      "term": {
+        "condition": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    }
+  ],
+  "table": "minecraft:chests/simple_dungeon"
+}

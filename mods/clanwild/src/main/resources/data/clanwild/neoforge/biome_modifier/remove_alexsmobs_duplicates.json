@@ -1,0 +1,21 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "naturalist"
+    },
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "alexsmobs"
+    }
+  ],
+  "type": "neoforge:remove_spawns",
+  "biomes": {
+    "type": "neoforge:any"
+  },
+  "entity_types": [
+    "alexsmobs:komodo_dragon",
+    "alexsmobs:tiger",
+    "alexsmobs:blobfish"
+  ]
+}

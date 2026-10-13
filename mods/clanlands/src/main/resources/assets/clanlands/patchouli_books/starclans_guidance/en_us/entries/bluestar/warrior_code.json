@@ -1,0 +1,21 @@
+{
+  "name": "The Warrior Code",
+  "icon": "minecraft:writable_book",
+  "category": "clanlands:bluestar",
+  "sortnum": 1,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The warrior code is what makes a Clan cat different from a rogue. It is not a cage, young one. It is a path we walk together.",
+      "title": "The Warrior Code"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(li)Defend your Clan, even with your life.$(li)Never hunt on another Clan's land.$(li)Elders, queens and kits are fed first.$(li)Respect your leader's word.$(li)Honor the full-moon truce at Gatherings.$(li)A true warrior does not need to kill to win a fight."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Those are my own words, not a list to learn by heart. When you are unsure what is right, ask yourself: would this keep my Clan safe and strong? $(br2)If the answer is yes, StarClan will walk beside you."
+    }
+  ]
+}

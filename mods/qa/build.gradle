@@ -1,0 +1,29 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.146'
+    id 'idea'
+}
+
+// TEST ONLY: the playtest harness (tools/playtest.py) loads this jar next to the full pack. It is never shipped:
+// build_core_jar.py and export_curseforge.py refuse it.
+ext {
+    mod_id = 'greatjourney_qa'
+    mod_name = 'The Great Journey QA (test only)'
+    mod_description = 'TEST ONLY, never shipped. Plays The Great Journey by itself in a background window and checks the game: the playtest harness.'
+}
+apply from: rootProject.file('neoforge-mod.gradle')
+
+repositories {
+    exclusiveContent {
+        forRepository { maven { url = 'https://cursemaven.com' } }
+        filter { includeGroup 'curse.maven' }
+    }
+}
+
+dependencies {
+    compileOnly project(':clanlands')
+    compileOnly 'curse.maven:warriorcats-events-1388582:8711494'
+    compileOnly 'curse.maven:geckolib-388172:8893490'
+    compileOnly 'curse.maven:walkers-868922:8753263'
+    compileOnly 'curse.maven:craftedcore-923377:7575403'
+}

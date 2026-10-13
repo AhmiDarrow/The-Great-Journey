@@ -1,0 +1,81 @@
+[wce_server]
+	#The radius in which the Wild Cats will wander (min: 8, max: 100)
+	# Default: 16
+	# Range: 8 ~ 64
+	wanderRadius = 16
+	#The time in minutes it takes until she-cats give birth (min: 1, max: 120)
+	# Default: 10
+	# Range: 1 ~ 120
+	kittingMinutes = 10
+	#The time in minutes it takes for a kit to grow from kit to warrior (min: 10, max: 960)
+	# Default: 120
+	# Range: 10 ~ 960
+	kitGrowthMinutes = 120
+	#Whether Wild Cats' names have a different color depending on their rank
+	coloredNames = true
+	#The cost multiplier that will define the skill's cost (min: 0.2, max: 3)
+	# Default: 1.0
+	# Range: 0.2 ~ 3.0
+	skillCostValue = 1.0
+	#Should wolves and foxes ignore their own behaviour and be aggressive towards Wild Cats and players instead?
+	aggroAnimals = true
+	#Whether morph names should be visible
+	visibleMorphName = true
+	#Whether leaping is enabled in this server/world
+	serverLeap = true
+	#Whether skills are enabled in this server/world
+	serverSkills = true
+	#Whether eating raw meats will feed you better
+	rawFoodBonus = true
+	#Whether players can choose where to spawn when they join the world
+	allowTeleport = false
+	#Whether eagles can be tamed
+	canEaglesBeTamed = true
+	#Whether thirst is enabled
+	thirst = true
+	#Whether the disease system is enabled
+	diseases = true
+	#Whether creating clans is available for everyone, or only for server operators.
+	canAnyoneCreateClans = true
+
+	[wce_server.wce_territories]
+		#The time in minutes it takes for a territory marker to fade.
+		# Default: 240
+		# Range: > 10
+		fadingTime = 240
+		#The fraction of the max time that will determine the cooldown for the Tree Stumps.
+		# Default: 0.125
+		# Range: 0.0 ~ 1.0
+		treeStumpCD = 0.125
+		#The max number of chunks a clan can possess.
+		#Increasing this number while having too many clans could be dangerous.
+		# Default: 169
+		# Range: > 9
+		maxTerritory = 169
+		#Whether territories should be enforced.
+		#If true, rules configured below will be enforced.
+		#If false, all rules will be ignored, enforcement wont be set.
+		enforceTerritories = true
+		#Whether blocks are protected by clan territory.
+		placeBreakBlocks = false
+		#Whether containers are protected by clan territory.
+		manageContainers = true
+
+	[wce_server.wce_skills]
+		#The multipliers for each skill.
+		#This defines how much the skill will increase or decrease its attributes
+		# Default: 1.0
+		# Range: 0.1 ~ 2.0
+		speed_Multiplier = 1.0
+		# Default: 1.0
+		# Range: 0.1 ~ 2.0
+		HP_Multiplier = 1.0
+		# Default: 1.0
+		# Range: 0.1 ~ 2.0
+		damage_Multiplier = 1.0
+		# Default: 1.0
+		# Range: 0.1 ~ 2.0
+		jump_Multiplier = 1.0
+		# Default: 1.0
+		# Range: 0.1 ~ 2.0
+		armor_Multiplier = 1.0

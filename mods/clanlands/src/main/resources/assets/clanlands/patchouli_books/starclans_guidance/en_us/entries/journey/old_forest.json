@@ -1,0 +1,21 @@
+{
+  "name": "The Old Forest",
+  "icon": "minecraft:spruce_sapling",
+  "category": "clanlands:journey",
+  "sortnum": 23,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Long before the lake, the Clans lived in a forest far away to the $(l)south-east$(). Twolegs came, and the Clans made a great journey to find a new home. $(br2)The old forest is still there, many thousands of tail-lengths away.",
+      "title": "Where We Were Born"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "In its heart is $(l)Fourtrees$(): a deep hollow with four great oaks and the Great Rock, where the Clans once gathered. $(br2)Look for the Thunderpath, the river and its gorge, Sunningrocks on the riverbank, and Snakerocks deep in ThunderClan's old woods."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Far to the west of the old forest stand $(l)Highstones$(), three rocky peaks. Inside one is $(l)Mothermouth$(), a dark tunnel leading down to the $(l)Moonstone$(), where leaders once spoke with StarClan. $(br2)On the way, look for a farm where kind loners live."
+    }
+  ]
+}

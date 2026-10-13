@@ -1,0 +1,65 @@
+{
+  "_comment": "How each 1.20.1 project of the original pack (docs/original-manifest-1.20.1.json) maps to 1.21.1 NeoForge. Projects not listed keep their own CurseForge project. tools/resolve_mods.py reads this.",
+  "swap": {
+    "665658": {
+      "to": 360438,
+      "why": "Canary is a Forge-only Lithium port; Lithium itself ships NeoForge 1.21.1"
+    },
+    "563928": {
+      "to": 940057,
+      "why": "TerraBlender's NeoForge builds live in a separate CurseForge project"
+    },
+    "426558": {
+      "to": 1415721,
+      "why": "Alex's Mobs has no official 1.21.1 build; Raguto's unofficial port keeps the alexsmobs mod id"
+    },
+    "331936": {
+      "to": 1415723,
+      "why": "the Alex's Mobs port is built against Raguto's Citadel port"
+    },
+    "908741": {
+      "to": 394468,
+      "why": "Flerovium needs Sodium on 1.21.1, and Sodium ships official NeoForge builds"
+    }
+  },
+  "drop": {
+    "1150228": "Alex's Mobs - Naturalist Compat has no 1.21.1 build; Clanwild (our Core) removes the duplicates instead",
+    "790312": "Dynamo has no 1.21.1 build; Clanwild (our Core) has its own speed-strike",
+    "1002819": "JJThunder To The Max has no CurseForge 1.21.1 build and is All Rights Reserved; the giant mountains were not wanted, and Clanlands (our Core) builds the Clan territories from the books instead",
+    "303570": "Time Control is Forge 1.20 only; Better Days already runs the day/night clock",
+    "1072978": "VMinus is Forge 1.20.1 only and no config in the pack used it",
+    "1400281": "Chunk Optimization is Forge 1.20.1 only; Lithium and ModernFix cover performance",
+    "503839": "Embellished Stone is a skin for Advancement Plaques, which the pack never included",
+    "245755": "Waystones: teleporting stones undercut the Great Journey, which is meant to be walked",
+    "508933": "Distant Horizons: its rendering was switched off in the original pack, so it only cost memory and disk",
+    "602059": "Friends&Foes: its fantasy vanilla-style mobs (moobloom, glare, rascal...) do not belong in the Clans' world",
+    "882133": "Boss Refreshed (resource pack): no bosses in a Warrior Cats world",
+    "580036": "Enhanced Boss Bars (resource pack): no bosses in a Warrior Cats world",
+    "322713": "Blinking Ender Eyes (resource pack): not part of the Clans' world",
+    "1242659": "The Rename Compat Project (resource pack): not needed"
+  },
+  "fabric_via_connector": [
+    1545227
+  ],
+  "pin_old_version_ok": {
+    "_comment": "Resource packs with no 1.21 file: keep the 1.20 file (they are optional and off by default).",
+    "projects": [
+      353554
+    ]
+  },
+  "add": [
+    {
+      "id": 348521,
+      "why": "Cristel Lib requires Cloth Config on 1.21.1"
+    }
+  ],
+  "notes": [
+    "Terralith shipped in the instance's datapacks/ folder, which nothing loaded, so it was never active; it stays out."
+  ],
+  "equivalent_deps": {
+    "306612": {
+      "by": 889079,
+      "why": "Fabric API for Connector-loaded mods is provided by Forgified Fabric API"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+#Prey Items Config
+[items]
+	#Items that are considered prey and should feed more than usual
+	#Use the same format shown below
+	items = ["minecraft:salmon", "minecraft:cod", "naturalist:bass", "naturalist:catfish", "alexsmobs:raw_catfish", "naturalist:morsel", "naturalist:lizard_tail"]

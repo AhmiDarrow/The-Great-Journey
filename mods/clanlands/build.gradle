@@ -1,0 +1,44 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.146'
+    id 'idea'
+}
+
+ext {
+    mod_id = 'clanlands'
+    mod_name = 'Clanlands'
+    mod_description = 'Clanlands for The Great Journey: every world is built around the Clan territories from the books. The lake territories surround spawn, and the old forest with Fourtrees lies a long journey away. Each world draws its own shorelines, borders and landmark spots, so no two are the same.'
+}
+apply from: rootProject.file('neoforge-mod.gradle')
+
+repositories {
+    // Warrior Cats Events and the mods it needs, compiled against and loaded in dev runs only. Clanlands calls WCE's
+    // public classes (it has no API); nothing from these jars is shipped inside clanlands.
+    exclusiveContent {
+        forRepository { maven { url = 'https://cursemaven.com' } }
+        filter { includeGroup 'curse.maven' }
+    }
+}
+
+dependencies {
+    compileOnly 'curse.maven:warriorcats-events-1388582:8711494'
+    compileOnly 'curse.maven:walkers-868922:8753263'
+    compileOnly 'curse.maven:craftedcore-923377:7575403'
+    compileOnly 'curse.maven:geckolib-388172:8893490'
+    localRuntime 'curse.maven:warriorcats-events-1388582:8711494'
+    localRuntime 'curse.maven:walkers-868922:8753263'
+    localRuntime 'curse.maven:craftedcore-923377:7575403'
+    localRuntime 'curse.maven:geckolib-388172:8893490'
+    localRuntime 'curse.maven:patchouli-306770:7730942'
+}
+
+neoForge {
+    runs {
+        verification {
+            type = 'gameTestServer'
+            gameDirectory = project.file('build/verification')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'clanlands'
+        }
+    }
+}

@@ -1,0 +1,18 @@
+{
+  "desc.sereneseasons.spring": "Newleaf",
+  "desc.sereneseasons.early_spring": "Early newleaf",
+  "desc.sereneseasons.mid_spring": "Mid newleaf",
+  "desc.sereneseasons.late_spring": "Late newleaf",
+  "desc.sereneseasons.summer": "Greenleaf",
+  "desc.sereneseasons.early_summer": "Early greenleaf",
+  "desc.sereneseasons.mid_summer": "Mid greenleaf",
+  "desc.sereneseasons.late_summer": "Late greenleaf",
+  "desc.sereneseasons.autumn": "Leaf-fall",
+  "desc.sereneseasons.early_autumn": "Early leaf-fall",
+  "desc.sereneseasons.mid_autumn": "Mid leaf-fall",
+  "desc.sereneseasons.late_autumn": "Late leaf-fall",
+  "desc.sereneseasons.winter": "Leaf-bare",
+  "desc.sereneseasons.early_winter": "Early leaf-bare",
+  "desc.sereneseasons.mid_winter": "Mid leaf-bare",
+  "desc.sereneseasons.late_winter": "Late leaf-bare"
+}

@@ -1,0 +1,8 @@
+# Pack metadata, read by tools/export_curseforge.py. The mod list lives in pack/mods.json (tools/resolve_mods.py).
+name = "The Great Journey"
+author = "AhmiDarrow"
+version = "0.1.0"
+
+[versions]
+minecraft = "1.21.1"
+neoforge = "21.1.249"

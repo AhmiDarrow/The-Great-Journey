@@ -1,0 +1,17 @@
+**/build/
+**/.gradle/
+**/run/
+**/out/
+*.class
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+*.log
+.idea/
+.vscode/
+dist/
+pack/mods/
+tools/secrets/*
+!tools/secrets/.env.example
+**/__pycache__/
+pack/resourcepacks-cache/
+pack/mods-stale/

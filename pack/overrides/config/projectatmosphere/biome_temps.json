@@ -1,0 +1,257 @@
+{
+  "biomes": {
+    "biomeswevegone:skyris_vale": {
+      "spring": {
+        "min": -3.0,
+        "max": 11.0
+      },
+      "summer": {
+        "min": 6.0,
+        "max": 20.0
+      },
+      "autumn": {
+        "min": -3.0,
+        "max": 11.0
+      },
+      "winter": {
+        "min": -14.0,
+        "max": 0.0
+      }
+    },
+    "mysticsbiomes:autumnal_grove": {
+      "spring": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "summer": {
+        "min": 10.0,
+        "max": 25.0
+      },
+      "autumn": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "winter": {
+        "min": -10.0,
+        "max": 5.0
+      }
+    },
+    "mysticsbiomes:bamboo_blossom_forest": {
+      "spring": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "summer": {
+        "min": 10.0,
+        "max": 25.0
+      },
+      "autumn": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "winter": {
+        "min": -10.0,
+        "max": 5.0
+      }
+    },
+    "mysticsbiomes:lavender_meadow": {
+      "spring": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "summer": {
+        "min": 10.0,
+        "max": 25.0
+      },
+      "autumn": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "winter": {
+        "min": -10.0,
+        "max": 5.0
+      }
+    },
+    "mysticsbiomes:strawberry_fields": {
+      "spring": {
+        "min": 8.0,
+        "max": 22.0
+      },
+      "summer": {
+        "min": 16.0,
+        "max": 30.0
+      },
+      "autumn": {
+        "min": 8.0,
+        "max": 22.0
+      },
+      "winter": {
+        "min": 0.0,
+        "max": 14.0
+      }
+    },
+    "mysticsbiomes:tropics": {
+      "spring": {
+        "min": 14.0,
+        "max": 28.0
+      },
+      "summer": {
+        "min": 20.0,
+        "max": 34.0
+      },
+      "autumn": {
+        "min": 14.0,
+        "max": 28.0
+      },
+      "winter": {
+        "min": 6.0,
+        "max": 20.0
+      }
+    },
+    "mysticsbiomes:lagoon": {
+      "spring": {
+        "min": 14.0,
+        "max": 28.0
+      },
+      "summer": {
+        "min": 20.0,
+        "max": 34.0
+      },
+      "autumn": {
+        "min": 14.0,
+        "max": 28.0
+      },
+      "winter": {
+        "min": 6.0,
+        "max": 20.0
+      }
+    },
+    "mysticsbiomes:lush_oasis": {
+      "spring": {
+        "min": 15.0,
+        "max": 32.0
+      },
+      "summer": {
+        "min": 25.0,
+        "max": 42.0
+      },
+      "autumn": {
+        "min": 15.0,
+        "max": 32.0
+      },
+      "winter": {
+        "min": 5.0,
+        "max": 22.0
+      }
+    },
+    "bf_biomes:maple_forest": {
+      "spring": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "summer": {
+        "min": 10.0,
+        "max": 25.0
+      },
+      "autumn": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "winter": {
+        "min": -10.0,
+        "max": 5.0
+      }
+    },
+    "bf_biomes:baobab_forest": {
+      "spring": {
+        "min": 15.0,
+        "max": 32.0
+      },
+      "summer": {
+        "min": 25.0,
+        "max": 42.0
+      },
+      "autumn": {
+        "min": 15.0,
+        "max": 32.0
+      },
+      "winter": {
+        "min": 5.0,
+        "max": 22.0
+      }
+    },
+    "bf_biomes:ginkgo_forest": {
+      "spring": {
+        "min": 14.0,
+        "max": 28.0
+      },
+      "summer": {
+        "min": 20.0,
+        "max": 34.0
+      },
+      "autumn": {
+        "min": 14.0,
+        "max": 28.0
+      },
+      "winter": {
+        "min": 6.0,
+        "max": 20.0
+      }
+    },
+    "bf_biomes:magnolia_forest": {
+      "spring": {
+        "min": 14.0,
+        "max": 28.0
+      },
+      "summer": {
+        "min": 20.0,
+        "max": 34.0
+      },
+      "autumn": {
+        "min": 14.0,
+        "max": 28.0
+      },
+      "winter": {
+        "min": 6.0,
+        "max": 20.0
+      }
+    },
+    "biomesoplenty:origin_valley": {
+      "spring": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "summer": {
+        "min": 10.0,
+        "max": 25.0
+      },
+      "autumn": {
+        "min": 0.0,
+        "max": 15.0
+      },
+      "winter": {
+        "min": -10.0,
+        "max": 5.0
+      }
+    },
+    "biomesoplenty:wintry_origin_valley": {
+      "spring": {
+        "min": -12.0,
+        "max": 2.0
+      },
+      "summer": {
+        "min": -2.0,
+        "max": 12.0
+      },
+      "autumn": {
+        "min": -12.0,
+        "max": 2.0
+      },
+      "winter": {
+        "min": -25.0,
+        "max": -8.0
+      }
+    }
+  },
+  "_note": "Add your biome ids under 'biomes'. Provide either per-season min/max or an 'all' min/max to apply to all seasons. Temperatures are in Celsius."
+}

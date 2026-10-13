@@ -1,0 +1,25 @@
+{
+  "name": "Foxes, Dogs and Eagles",
+  "icon": "warriorcats_events:golden_eagle_meat",
+  "category": "clanlands:yellowfang",
+  "sortnum": 17,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Foxes are sly and hungry. Dogs are loud and stupid, but big. Neither belongs in Clan territory, so chase them out together, never alone.",
+      "title": "Foxes and Dogs"
+    },
+    {
+      "type": "patchouli:entity",
+      "entity": "warriorcats_events:golden_eagle{OnGround:0b}",
+      "rotate": false,
+      "default_rotation": -30,
+      "text": "Golden eagles snatch cats from open ground, kits most of all. Keep to cover on the moor."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Some eagles are calmer than others. A patient cat might even win one's trust. Do not ask me how. I would never try such a thing.",
+      "title": "Strange Friends"
+    }
+  ]
+}

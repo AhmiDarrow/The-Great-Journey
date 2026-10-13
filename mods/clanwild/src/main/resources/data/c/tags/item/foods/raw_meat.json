@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "alexsmobs:kangaroo_meat",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:moose_ribs",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:lobster_tail",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "Gathering Herbs",
+  "icon": "warriorcats_events:dock_leaves",
+  "category": "clanlands:spottedleaf",
+  "sortnum": 5,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Hello, little one. I am Spottedleaf. Herbs grow in small patches in forests and plains, so keep your nose open as you walk. $(br2)Pick them gently. A herb taken carefully will always grow back.",
+      "title": "Finding Herbs"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Bring herbs to an $(l)Herb Rock$() to mix them into poultices and bundles. Store them in a $(l)Stone Cleft$() so they stay fresh. $(br2)A wise medicine cat collects herbs in greenleaf, before leaf-bare comes."
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:dock_leaves",
+      "text": "Dock leaves are the most common herb of all. Wrap other herbs in them, or chew them into a poultice for scratches and sore pads.",
+      "title": "Dock"
+    }
+  ],
+  "priority": true
+}

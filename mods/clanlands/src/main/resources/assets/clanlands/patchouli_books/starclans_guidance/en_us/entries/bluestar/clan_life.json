@@ -1,0 +1,21 @@
+{
+  "name": "Life in a Clan",
+  "icon": "warriorcats_events:moss_bed",
+  "category": "clanlands:bluestar",
+  "sortnum": 2,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Every cat has a place. $(br2)$(li)The $(l)leader$() guides the Clan and takes a name ending in -star.$(li)The $(l)deputy$() sends out patrols.$(li)The $(l)medicine cat$() heals.$(li)$(l)Warriors$() hunt and guard.$(li)$(l)Apprentices$() learn.$(li)$(l)Queens$() raise the kits, and $(l)elders$() share old stories.",
+      "title": "Clan Ranks"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "In camp you will find nests of soft moss, the fresh-kill pile and the medicine cat's den. $(br2)Bring your catches to the fresh-kill pile so the whole Clan can eat. A full pile in leaf-bare is a gift greater than any victory."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Your Whiskers tell you about any cat near you: their name, their Clan, their rank and how they feel. Use them often. A good warrior knows their Clanmates."
+    }
+  ]
+}

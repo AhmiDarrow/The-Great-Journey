@@ -1,0 +1,17 @@
+{
+  "name": "The Lake Territories",
+  "icon": "minecraft:water_bucket",
+  "category": "clanlands:journey",
+  "sortnum": 21,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "The four Clans live around a great lake. $(br2)$(li)$(l)ThunderClan$(): oak woods to the north-east, their camp in a stone hollow.$(li)$(l)ShadowClan$(): dark pines and marsh to the north-west.$(li)$(l)RiverClan$(): streams and reeds to the south-west.$(li)$(l)WindClan$(): open moor to the south-east.",
+      "title": "Who Lives Where"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The lake shore belongs to no Clan. Walk close to the water and you trespass on no one. $(br2)Watch the words near your hotbar: they tell you whose land you have entered. Twoleg horses graze in fields between RiverClan and WindClan."
+    }
+  ]
+}

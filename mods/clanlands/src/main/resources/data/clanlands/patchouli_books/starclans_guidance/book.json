@@ -1,0 +1,14 @@
+{
+  "name": "StarClan's Guidance",
+  "landing_text": "These pages were written by cats of StarClan for every young cat starting out. $(br2)Bluestar, Spottedleaf, Lionheart and Yellowfang each share what they know best. Read a little at a time, and keep this book close.",
+  "subtitle": "Words from the cats of StarClan",
+  "version": 1,
+  "book_texture": "patchouli:textures/gui/book_blue.png",
+  "model": "patchouli:book_blue",
+  "creative_tab": "minecraft:tools_and_utilities",
+  "use_resource_pack": true,
+  "show_progress": false,
+  "show_toasts": false,
+  "pause_game": false,
+  "i18n": false
+}

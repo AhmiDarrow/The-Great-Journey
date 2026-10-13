@@ -1,0 +1,17 @@
+{
+  "name": "Leaping",
+  "icon": "minecraft:rabbit_foot",
+  "category": "clanlands:lionheart",
+  "sortnum": 12,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Hold crouch to gather your strength, then strike to leap. $(br2)The stronger your Jump and Claws skills, the farther and harder you leap.",
+      "title": "The Leap"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "When you grow very fast, you can leap straight out of a sprint. Run until the new bar fills, then spring! $(br2)A leap on a fleeing rabbit is a thing of beauty."
+    }
+  ]
+}

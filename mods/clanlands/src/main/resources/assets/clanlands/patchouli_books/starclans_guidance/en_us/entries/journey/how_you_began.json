@@ -1,0 +1,22 @@
+{
+  "name": "How You Began",
+  "icon": "minecraft:nether_star",
+  "category": "clanlands:journey",
+  "sortnum": 20,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Your first night was a dream, and we were the cats in it. When you woke, you chose your own path:",
+      "title": "Your First Steps"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "$(li)As a $(l)kittypet$() in a Twoleg garden at the edge of ThunderClan's woods, until a patrol found you.$(li)As an $(l)apprentice$() in the Clan of your choosing.$(li)As a $(l)loner$() by the lake, free to visit any camp and ask to join, or to stay free."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Whichever path you chose, the Clans will notice you. Be brave, be kind, and keep the warrior code in your heart."
+    }
+  ],
+  "priority": true
+}

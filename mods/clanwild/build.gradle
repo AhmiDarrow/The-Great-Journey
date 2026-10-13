@@ -1,0 +1,39 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.146'
+    id 'idea'
+}
+
+ext {
+    mod_id = 'clanwild'
+    mod_name = 'Clanwild'
+    mod_description = 'Clanwild for The Great Journey. A running or leaping strike hits harder, the Alex\'s Mobs and Naturalist animals that overlap spawn only once, and their prey counts as prey for Warrior Cats Events.'
+}
+apply from: rootProject.file('neoforge-mod.gradle')
+
+repositories {
+    // verification runtime only: the real Naturalist and Alex's Mobs jars the pack pins, so the spawn removals are
+    // tested against what they actually add. Nothing from here is shipped inside clanwild.
+    exclusiveContent {
+        forRepository { maven { url = 'https://cursemaven.com' } }
+        filter { includeGroup 'curse.maven' }
+    }
+}
+
+dependencies {
+    localRuntime 'curse.maven:naturalist-627986:9004373'
+    localRuntime 'curse.maven:geckolib-388172:8893490'
+    localRuntime 'curse.maven:alexs-mobs-unofficial-port-1415721:7528193'
+    localRuntime 'curse.maven:citadel-unofficial-port-1415723:7982052'
+}
+
+neoForge {
+    runs {
+        verification {
+            type = 'gameTestServer'
+            gameDirectory = project.file('build/verification')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'clanwild'
+        }
+    }
+}

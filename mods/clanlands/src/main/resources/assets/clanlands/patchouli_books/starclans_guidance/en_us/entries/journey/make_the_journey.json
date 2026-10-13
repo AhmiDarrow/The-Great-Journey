@@ -1,0 +1,17 @@
+{
+  "name": "Make the Journey",
+  "icon": "warriorcats_events:traveling_herbs",
+  "category": "clanlands:journey",
+  "sortnum": 24,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "One day, young warrior, you may want to see where it all began. $(br2)Pack traveling herbs. Fill your belly and drink before you leave. Head south-east, and keep going when your paws ache.",
+      "title": "Your Own Great Journey"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "The road is long and the world beyond the territories is wild. But you will not walk alone. $(br2)Look up at night. We are always there. $(br2)$(o)May StarClan light your path.$()"
+    }
+  ]
+}

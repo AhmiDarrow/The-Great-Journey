@@ -1,0 +1,37 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "naturalist:bird",
+      "required": false
+    },
+    {
+      "id": "naturalist:rat",
+      "required": false
+    },
+    {
+      "id": "naturalist:mole",
+      "required": false
+    },
+    {
+      "id": "naturalist:duck",
+      "required": false
+    },
+    {
+      "id": "naturalist:lizard",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:crow",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:blue_jay",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:jerboa",
+      "required": false
+    }
+  ]
+}

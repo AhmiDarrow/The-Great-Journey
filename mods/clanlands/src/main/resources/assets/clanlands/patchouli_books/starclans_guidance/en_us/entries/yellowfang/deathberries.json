@@ -1,0 +1,20 @@
+{
+  "name": "Deathberries",
+  "icon": "warriorcats_events:deathberries",
+  "category": "clanlands:yellowfang",
+  "sortnum": 15,
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Listen well, you mouse-brained furball, because I will only say this once. I am Yellowfang. Those red berries are $(l)deathberries$(). Never eat them. Never give them to a kit. NEVER.",
+      "title": "Yellowfang Warns You"
+    },
+    {
+      "type": "patchouli:spotlight",
+      "item": "warriorcats_events:yarrow_leaves",
+      "text": "If a cat does eat them, give them yarrow at once. It makes them sick up the poison. You may have only moments.",
+      "title": "Yarrow"
+    }
+  ],
+  "priority": true
+}

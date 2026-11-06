@@ -209,6 +209,7 @@ public final class RouteLife {
         cat.setCustomName(Component.literal(name + (gender == 0 ? " ♂" : " ♀")));
         cat.setAgeInMoons(Math.min(com.ninjacat.greatjourney.clanlands.life.BookClans.ADULT_MOONS, moons));   // WCE draws past 12 moons giant and headless
         cat.setPersistenceRequired();
+        com.ninjacat.greatjourney.clanlands.life.BookLooks.routeCat(cat, name);
         level.addFreshEntity(cat);
         cat.mode = WCatEntity.CatMode.WANDER;
         return cat;

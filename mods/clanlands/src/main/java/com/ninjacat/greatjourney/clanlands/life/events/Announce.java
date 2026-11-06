@@ -52,4 +52,11 @@ final class Announce {
     static void tell(ServerLevel level, Clan c, BlockPos where, Line... lines) {
         tell(level, c, where, List.of(lines));
     }
+
+    /** A scene only for those there to see it (an elder's story): played to witnesses, and no news to anyone else. */
+    static void witnesses(ServerLevel level, BlockPos where, List<Line> lines) {
+        for (ServerPlayer p : level.players()) {
+            if (p.blockPosition().distSqr(where) <= WITNESS * WITNESS) Dialog.play(p, lines);
+        }
+    }
 }

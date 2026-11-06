@@ -421,11 +421,9 @@ final class Camps {
         });
     }
 
-    /** The nest spots of a den (left bare for the Clan's moss nests). */
+    /** The nest spots of a den, every one of them (left bare for the Clan's moss nests). */
     static double[][] nests(CampPlan plan, Den den) {
-        double[][] out = new double[4][];
-        for (int i = 0; i < 4; i++) out[i] = plan.nest(den.kind(), i);
-        return out;
+        return plan.nests(den.kind()).toArray(double[][]::new);
     }
 
     static boolean nestAt(double[][] nests, int x, int z) {

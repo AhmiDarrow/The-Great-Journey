@@ -1,0 +1,14 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.ninjacat.greatjourney.clanlore.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "TraitCoatRedrawMixin",
+    "TraitEarsMixin",
+    "TraitLimpMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

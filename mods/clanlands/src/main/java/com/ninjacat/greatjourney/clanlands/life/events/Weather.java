@@ -415,7 +415,7 @@ final class Weather {
         double dx = lake.centreX() - camp.getX(), dz = lake.centreZ() - camp.getZ(), len = Math.max(1, Math.hypot(dx, dz));
         BlockPos safe = Cats.surface(ow, (int) (camp.getX() + dx / len * Math.min(80, len * 0.6)), (int) (camp.getZ() + dz / len * Math.min(80, len * 0.6)));
         List<WCatEntity> go = new ArrayList<>(Cats.withRank(cats, WCatEntity.Rank.KIT));
-        cats.stream().filter(x -> x.getRank() != WCatEntity.Rank.KIT && x.getAgeInMoons() >= EventsConfig.OLD_AGE_MOONS.get() * 0.7)
+        cats.stream().filter(x -> x.getRank() != WCatEntity.Rank.KIT && com.ninjacat.greatjourney.clanlore.traits.Traits.moons(x) >= EventsConfig.OLD_AGE_MOONS.get() * 0.7)
                 .forEach(go::add);
         for (WCatEntity cat : go) {
             if (cat.wanderCenter != null) d.moved.put(cat.getUUID(), cat.wanderCenter.asLong());

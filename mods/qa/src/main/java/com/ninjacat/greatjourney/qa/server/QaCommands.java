@@ -259,11 +259,16 @@ public final class QaCommands {
             return n;
         }));
         Portraits.register(qa);
+        Watch.register(qa);
         d.register(qa);
     }
 
     static void note(ServerPlayer p, String check, String detail) {
         line("NOTE", p, check, detail);
+    }
+
+    static void pass(ServerPlayer p, String check, String detail) {
+        line("PASS", p, check, detail);
     }
 
     static void fail(ServerPlayer p, String check, String detail) {
@@ -430,7 +435,7 @@ public final class QaCommands {
                 return found.isEmpty() ? null : "structures: " + found;
             }
             default -> {
-                return "unknown check '" + a[0] + "'";
+                return Watch.check(p, a[0], arg);              // the walking scenarios' checks (nests, leads, monsters...)
             }
         }
     }

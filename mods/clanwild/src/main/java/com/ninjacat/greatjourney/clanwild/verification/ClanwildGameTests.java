@@ -1,6 +1,8 @@
 package com.ninjacat.greatjourney.clanwild.verification;
 
+import com.ninjacat.greatjourney.clanwild.NoMonsters;
 import com.ninjacat.greatjourney.clanwild.SpeedStrike;
+import com.ninjacat.greatjourney.clanwild.Wildlife;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
@@ -14,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.biome.Biome;
@@ -22,12 +25,15 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
-/** Clanwild in a real server: the speed strike, the spawn removals, and the Warrior Cats Events tag entries. */
+/** Clanwild in a real server: the speed strike, the spawn removals, no monsters, and the Warrior Cats Events tag entries. */
 @GameTestHolder("clanwild")
 @PrefixGameTestTemplate(false)
 public final class ClanwildGameTests {
     private static final Set<String> REMOVED = Set.of("naturalist:bear", "naturalist:rhino", "naturalist:elephant",
-            "naturalist:catfish", "alexsmobs:komodo_dragon", "alexsmobs:tiger", "alexsmobs:blobfish");
+            "naturalist:catfish", "alexsmobs:komodo_dragon", "alexsmobs:tiger", "alexsmobs:blobfish",
+            // big game that doesn't belong in the Clans' woods
+            "naturalist:tiger", "naturalist:lion", "naturalist:zebra", "naturalist:giraffe", "naturalist:hippo",
+            "naturalist:mammoth", "naturalist:ostrich");
 
     private ClanwildGameTests() {}
 
@@ -136,8 +142,57 @@ public final class ClanwildGameTests {
         if (both) {
             // the kept side still spawns, so the removals were not vacuous
             h.assertTrue(grizzly, "Alex's Mobs grizzly bears still spawn somewhere");
-            h.assertTrue(blackBear, "Naturalist black bears still spawn somewhere");
         }
+        // black bears were the kept side until Kiki met too many dangerous animals (2026-10-18): now out of place
+        if (ModList.get().isLoaded("naturalist")) h.assertFalse(blackBear, "Naturalist black bears no longer spawn");
+        // too few rabbits on the moor (playtest 2026-10-19): the Clans' open land and woods get more
+        for (String b : List.of("minecraft:meadow", "minecraft:plains", "minecraft:forest")) {
+            int weight = 0;
+            for (var data : biomes.get(id(b)).getMobSettings().getMobs(MobCategory.CREATURE).unwrap()) {
+                if (data.type == net.minecraft.world.entity.EntityType.RABBIT) weight += data.getWeight().asInt();
+            }
+            h.assertTrue(weight >= 6, "rabbits spawn often in " + b + " (weight " + weight + ")");
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void onlyWarriorCatsCreaturesSpawn(GameTestHelper h) {
+        var level = h.getLevel();
+        for (EntityType<?> monster : List.of(EntityType.ZOMBIE, EntityType.SKELETON, EntityType.CREEPER, EntityType.SPIDER, EntityType.PHANTOM, EntityType.PILLAGER)) {
+            for (MobSpawnType how : List.of(MobSpawnType.NATURAL, MobSpawnType.CHUNK_GENERATION, MobSpawnType.SPAWNER, MobSpawnType.PATROL, MobSpawnType.REINFORCEMENT)) {
+                h.assertTrue(NoMonsters.blocked(monster, level, how), monster.getDescriptionId() + " is turned away (" + how + ")");
+            }
+            h.assertFalse(NoMonsters.blocked(monster, level, MobSpawnType.COMMAND), "a command still summons " + monster.getDescriptionId());
+            h.assertFalse(NoMonsters.blocked(monster, level, MobSpawnType.SPAWN_EGG), "a spawn egg still hatches " + monster.getDescriptionId());
+        }
+        for (EntityType<?> kept : List.of(EntityType.FOX, EntityType.WOLF, EntityType.RABBIT, EntityType.COD)) {
+            h.assertFalse(NoMonsters.blocked(kept, level, MobSpawnType.NATURAL), kept.getDescriptionId() + " still spawns");
+        }
+        var badger = BuiltInRegistries.ENTITY_TYPE.getOptional(id("warriorcats_events:badger"));
+        badger.ifPresent(t -> h.assertFalse(NoMonsters.blocked(t, level, MobSpawnType.NATURAL), "badgers still spawn"));
+        if (ModList.get().isLoaded("naturalist")) {
+            h.assertTrue(BuiltInRegistries.ENTITY_TYPE.get(id("naturalist:tiger")).is(NoMonsters.OUT_OF_PLACE), "a saved tiger is removed on load");
+            h.assertFalse(BuiltInRegistries.ENTITY_TYPE.get(id("naturalist:deer")).is(NoMonsters.OUT_OF_PLACE), "deer stay");
+        }
+        var nether = level.getServer().getLevel(net.minecraft.world.level.Level.NETHER);
+        if (nether != null) h.assertFalse(NoMonsters.blocked(EntityType.ZOMBIFIED_PIGLIN, nether, MobSpawnType.NATURAL), "the Nether keeps its own");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void dangerousAnimalsKeepTheirDistance(GameTestHelper h) {
+        h.assertTrue(EntityType.WOLF.is(Wildlife.DANGEROUS) && EntityType.FOX.is(Wildlife.DANGEROUS), "wolves and foxes are dangerous");
+        h.assertFalse(EntityType.RABBIT.is(Wildlife.DANGEROUS), "rabbits are prey, not a danger");
+        if (ModList.get().isLoaded("naturalist")) {
+            for (String big : List.of("naturalist:bear", "naturalist:black_bear", "naturalist:alligator", "naturalist:komodo_dragon")) {
+                h.assertTrue(BuiltInRegistries.ENTITY_TYPE.get(id(big)).is(NoMonsters.OUT_OF_PLACE), big + " does not belong in the Clans' woods");
+            }
+        }
+        BlockPos at = h.absolutePos(new BlockPos(1, 2, 1));
+        h.assertFalse(Wildlife.crowded(h.getLevel(), at.getX() + 0.5, at.getZ() + 0.5 + 4000), "open woods far from any danger");
+        h.spawn(EntityType.WOLF, new BlockPos(1, 2, 1));
+        h.assertTrue(Wildlife.crowded(h.getLevel(), at.getX() + 20.5, at.getZ() + 0.5), "no second danger beside a wolf");
         h.succeed();
     }
 

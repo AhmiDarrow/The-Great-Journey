@@ -32,6 +32,8 @@ public final class QuestLog {
             quests.add(new JournalView.Quest(t.kind.name().toLowerCase(java.util.Locale.ROOT) + (t.giverId == null ? "" : ":" + t.giverId),
                     t.title, t.giverName, t.description, obj, t.story, false));
         }
+        JournalView.Quest seek = com.ninjacat.greatjourney.clanlands.life.Starts.seekQuest(p);   // a clanless cat looking for a camp
+        if (seek != null) quests.add(0, seek);
         List<JournalView.Place> places = new ArrayList<>();
         Set<String> found = QuestState.places(p);
         for (Places.Place pl : Places.all()) places.add(new JournalView.Place(pl.name(), found.contains(pl.id()), pl.hint()));
@@ -85,14 +87,21 @@ public final class QuestLog {
 
     private static String nextGoal(ServerPlayer p, ClanData.Clan wc) {
         if (wc == null) {
+            var seeking = com.ninjacat.greatjourney.clanlands.life.Starts.seeking(p);
+            if (seeking != null) return "Find the " + seeking.title + " camp.";
             return Journey.start(p) == Journey.Start.KITTYPET
                     ? "Explore the woods beyond your garden. Wild cats live there..."
                     : "Visit a Clan camp if you wish to join a Clan.";
         }
         int step = QuestState.storyStep(p);
-        if (step == 0) return "Go to your camp and meet your mentor.";
-        if (step <= 6) return "Earn your warrior name: " + Tasks.STORY_TITLES[step] + ".";
-        if (step == QuestState.CEREMONY) return "Go back to camp for your warrior ceremony.";
+        if (step == 0) return "Go to your camp and meet your mentor. Your leader can talk with you about your place in the Clan.";
+        boolean healer = QuestState.path(p) == QuestState.Path.MEDICINE;
+        if (step <= 6) return (healer ? "Earn your medicine cat name: " : "Earn your warrior name: ") + Tasks.title(QuestState.path(p), step) + ".";
+        if (step == QuestState.CEREMONY) return healer ? "Go back to camp, where your mentor will name you a medicine cat." : "Go back to camp for your warrior ceremony.";
+        ClanData.ClanPlayerRank r = wc.members.get(p.getUUID());
+        if (r == ClanData.ClanPlayerRank.ELDER) return "Rest in the elders' den and share your stories. Ask your leader if you want your old duties back.";
+        if (r == ClanData.ClanPlayerRank.QUEEN) return "Help raise the Clan's kits in the nursery. Ask your leader if you want to go back to your duties.";
+        if (healer) return "Heal your Clan: gather herbs, tend the sick, and share tongues with StarClan at the half moon.";
         return "Serve your Clan: talk to your Clanmates for duties, and make the journey to the old forest.";
     }
 }

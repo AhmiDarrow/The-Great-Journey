@@ -89,7 +89,7 @@ final class Talk {
 
         // reporting back on something this cat asked for
         for (Task t : QuestState.active(p)) {
-            if (cat.getUUID().equals(t.giverId)) {
+            if (Story.answers(p, cat, t)) {
                 lines.add(Line.say(name, colour, t.readyToHandIn() || hasDeliveries(p, t)
                         ? "Back already, " + you + "? Let's see what you have."
                         : remind(t)).speakerEntity(cat).withChoices(
@@ -100,10 +100,13 @@ final class Talk {
                 return;
             }
         }
-        lines.add(Line.say(name, colour, greeting(role, name, you)).speakerEntity(cat).withChoices(
+        List<Choice> choices = new ArrayList<>(List.of(
                 Choice.of("Do you need help?", "greatjourney quest help " + cat.getId()),
-                Choice.of("Tell me about the Clan", "greatjourney quest clan " + cat.getId()),
-                Choice.of("Goodbye", "greatjourney quest bye")));
+                Choice.of("Tell me about the Clan", "greatjourney quest clan " + cat.getId())));
+        // the leader decides a cat's place in the Clan: a medicine cat's path, the elders' den, the nursery (Paths)
+        if (role == Role.LEADER) choices.add(Choice.of("About my place in the Clan", "greatjourney quest place " + cat.getId()));
+        choices.add(Choice.of("Goodbye", "greatjourney quest bye"));
+        lines.add(Line.say(name, colour, greeting(role, name, you)).speakerEntity(cat).withChoices(choices.toArray(Choice[]::new)));
         Dialog.play(p, lines);
     }
 
@@ -145,13 +148,20 @@ final class Talk {
         String name = Kin.name(cat);
         int colour = Kin.colour(p);
         long day = p.level().getDayTime() / 24000L;
-        Task duty = Tasks.dutyFor(role, Kin.bookClan(p), name, cat.getUUID(), day);
+        Task duty = dutyFor(p, role, name, cat, day);
         if (duty == null) {
             Dialog.play(p, Line.say(name, colour, switch (role) {
                 case LEADER -> "My deputy sees to the patrols. Ask them, and serve your Clan well.";
                 case KIT -> "Help? Play moss-ball with me! ...No? Ask the deputy then.";
                 default -> "Not today, thank you. Ask the deputy if you want something to do.";
             }).speakerEntity(cat));
+            return;
+        }
+        var ow = p.serverLevel().getServer().overworld();
+        if (Tasks.keptIn(ow, duty.kind)) {
+            Dialog.play(p, Line.say(name, colour, Tasks.night(ow)
+                    ? "At this hour? The Clan is asleep, " + Joining.catName(p) + ". Go to your nest, and ask me again at dawn."
+                    : "In this rain? The scents are washed out and the prey has gone to ground. Ask me again when it clears.").speakerEntity(cat));
             return;
         }
         if (QuestState.duties(p).size() >= QuestState.MAX_DUTIES) {
@@ -167,14 +177,22 @@ final class Talk {
                 Choice.of("Not now", "greatjourney quest bye")));
     }
 
+    /** This cat's duty for the player today: a warrior's work, or a medicine cat's for one on that path. */
+    private static Task dutyFor(ServerPlayer p, Role role, String name, WCatEntity cat, long day) {
+        return Paths.healer(p) ? Tasks.healerDutyFor(role, Kin.bookClan(p), name, cat.getUUID(), day)
+                : Tasks.dutyFor(role, Kin.bookClan(p), name, cat.getUUID(), day);
+    }
+
     static void accept(ServerPlayer p, WCatEntity cat) {
         LifeData life = LifeData.get(p.serverLevel().getServer().overworld());
         String name = Kin.name(cat);
         long day = p.level().getDayTime() / 24000L;
-        Task duty = Tasks.dutyFor(Kin.role(cat, life), Kin.bookClan(p), name, cat.getUUID(), day);
+        Task duty = dutyFor(p, Kin.role(cat, life), name, cat, day);
         if (duty == null || QuestState.duties(p).size() >= QuestState.MAX_DUTIES) return;
+        if (Tasks.keptIn(p.serverLevel().getServer().overworld(), duty.kind)) return;      // night fell, or rain, since it was offered
         List<Task> d = QuestState.duties(p);
         for (Task t : d) if (cat.getUUID().equals(t.giverId)) return;
+        if (duty.kind == Task.Kind.TEND) duty = Patients.prepare(p, cat, duty);     // the sick are chosen now
         d.add(duty);
         QuestState.setDuties(p, d);
         if (duty.kind == Task.Kind.BORDER_PATROL) Patrols.sendAlong(p, cat, duty);
@@ -185,7 +203,7 @@ final class Talk {
     /** Hands in whatever the player owes this cat (a duty, or the apprentice path's current step). */
     static void handIn(ServerPlayer p, WCatEntity cat) {
         for (Task t : QuestState.active(p)) {
-            if (!cat.getUUID().equals(t.giverId)) continue;
+            if (!Story.answers(p, cat, t)) continue;
             if (!hasDeliveries(p, t)) {
                 Dialog.play(p, Line.say(Kin.name(cat), Kin.colour(p), remind(t)).speakerEntity(cat));
                 return;
@@ -193,6 +211,8 @@ final class Talk {
             for (Task.Objective o : t.objectives) {
                 if (o.type == Task.Objective.Type.BRING) Bag.take(p, o.key, o.goal);
             }
+            // a step taken by another cat (the mentor was gone): that cat teaches the player from now on
+            if (t.story && !cat.getUUID().equals(t.giverId)) QuestState.setMentor(p, Kin.name(cat), cat.getUUID());
             Rewards.complete(p, t, cat);
             return;
         }

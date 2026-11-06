@@ -78,6 +78,19 @@ public final class DreamClearing {
             if (found.isEmpty()) {
                 spawnTeacher(level, t);
             } else {
+                if (found.get(0) instanceof WCatEntity cat) {
+                    if (!cat.getTags().contains(com.ninjacat.greatjourney.clanlands.life.BookLooks.TAG)) {
+                        com.ninjacat.greatjourney.clanlands.life.BookLooks.teacher(cat, t.name());   // an older world's teacher: their book coat, once
+                    }
+                    if (cat.hasEffect(MobEffects.GLOWING)) {
+                        // an older world's teacher: no glowing outline (it drew them as white shapes floating in the
+                        // dark), sat down where they belong
+                        cat.removeEffect(MobEffects.GLOWING);
+                        cat.moveTo(t.pos().getX() + 0.5, t.pos().getY(), t.pos().getZ() + 0.5, cat.getYRot(), 0);
+                        com.ninjacat.greatjourney.clanlands.life.BookClans.rest(level, cat);
+                        cat.setInSittingPose(true);
+                    }
+                }
                 for (int i = 1; i < found.size(); i++) found.get(i).discard();
             }
         }
@@ -143,19 +156,27 @@ public final class DreamClearing {
     static void spawnTeacher(ServerLevel level, Teacher t) {
         WCatEntity cat = ModEntities.WCAT.get().create(level);
         if (cat == null) return;
-        cat.moveTo(t.pos().getX() + 0.5, t.pos().getY(), t.pos().getZ() + 0.5, 180, 0);
+        // facing the spot where a dreamer arrives (they turn to whoever is near: Dream.teachersLook)
+        float yaw = (float) Math.toDegrees(Math.atan2(-(ARRIVE.getX() - t.pos().getX()), ARRIVE.getZ() - t.pos().getZ()));
+        cat.moveTo(t.pos().getX() + 0.5, t.pos().getY(), t.pos().getZ() + 0.5, yaw, 0);
+        com.ninjacat.greatjourney.clanlands.life.BookClans.rest(level, cat);    // no AI means no gravity: right on the ground
+        cat.setYHeadRot(yaw);
+        cat.setYBodyRot(yaw);
         cat.finalizeSpawn(level, level.getCurrentDifficultyAt(t.pos()), MobSpawnType.COMMAND, null);
         cat.setGender(t.gender());
+        com.ninjacat.greatjourney.clanlands.life.BookLooks.teacher(cat, t.name());
         cat.setCustomName(Component.literal(t.name()));
         cat.setCustomNameVisible(true);
         cat.mode = WCatEntity.CatMode.SIT;
         cat.setNoAi(true);
+        cat.setInSittingPose(true);               // the SIT mode's goal never runs without AI: sat down here
         cat.setAgeInMoons(12);                    // with no AI the age never updates from 0, which draws a kit-sized cat
         cat.setInvulnerable(true);
         cat.setPersistenceRequired();
         cat.setSilent(false);
         cat.addTag(TAG);
-        cat.addEffect(new MobEffectInstance(MobEffects.GLOWING, MobEffectInstance.INFINITE_DURATION, 0, false, false));
+        // no Glowing: its outline showed through everything, so in the dark clearing the teachers were white shapes
+        // floating against the night; StarClan's frost of stars is drawn round them instead (Dream.teachersLook)
         level.addFreshEntity(cat);
     }
 

@@ -1,0 +1,14 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.ninjacat.greatjourney.clanlore.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BorderPatrolGoalMixin",
+    "HuntingPatrolGoalMixin",
+    "ReturnHomeGoalMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

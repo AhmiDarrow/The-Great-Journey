@@ -113,4 +113,9 @@ public final class CampaignData extends SavedData {
     public boolean complete() {
         return complete;
     }
+
+    /** Whether the Clans have left the old forest (with {@link #clansInForest}: on the Great Journey). */
+    public boolean departed() {
+        return departed;
+    }
 }

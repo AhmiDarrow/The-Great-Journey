@@ -12,9 +12,12 @@ import net.minecraft.client.gui.screens.DeathScreen;
  * TEST ONLY. The playtest suites. Each client plays one suite (tools/playtest.py picks it), made of scenarios:
  * <ul>
  *   <li>{@code free-main}: S1 title and a new Free world (cat creator, no spawn picker, the dream, the start choice),
- *   S2 joining ThunderClan with camp views, S4 every Clan event and weather, S5 duties and the journal, S6 a monster
- *   on the Thunderpath, S8 leaving mid-dialogue and mid-tour, S7 the whole tour.</li>
- *   <li>{@code free-starts}: a fresh Free world per start: kittypet, loner, WindClan, RiverClan, ShadowClan.</li>
+ *   S2 joining ThunderClan with camp views and the nests, S10 the mentor's territory tour (walked behind them), S5
+ *   duties and the journal, S11 a border patrol walked with two warriors, S12 the camp's day, S4 every Clan event and
+ *   weather, S6 a monster on the Thunderpath, S8 leaving mid-dialogue and mid-tour, S7 the whole tour, S13 a night in
+ *   the open with no monsters.</li>
+ *   <li>{@code free-starts}: a fresh Free world per start: kittypet and loner (each seeks a Clan and walks behind its
+ *   guide to the camp, S10), WindClan, RiverClan, ShadowClan.</li>
  *   <li>{@code campaign}: S3 the Campaign from Fourtrees through all four acts, plus the kittypet and loner starts.</li>
  *   <li>{@code mp-a} / {@code mp-b}: S9 two players on one dedicated server.</li>
  * </ul>
@@ -82,10 +85,21 @@ final class Scenarios {
                 s.add(cmd("qa state"));
             }
             case "free-starts" -> freeStarts(s);
+            case "walks" -> {                                // focused: a border patrol and the camp's day, without the rest of free-main
+                newWorld(s, "S2-join-thunderclan", "menu.clanlands.free", "20261012", false);
+                s.add(skipDream());
+                s.add(dialogue("start", List.of("join a clan now", "thunderclan"), 120, true, 2));
+                afterJoin(s, "lake", "thunderclan");
+                s.add(dialogue("ceremony", List.of("goodbye"), 60, false, 2));
+                nestChecks(s);
+                patrolScenario(s, "thunderclan");
+                routineScenario(s, "thunderclan");
+            }
             case "store" -> Photo.store(s);
             case "portraits" -> Photo.portraits(s);
             case "gathering" -> Photo.gathering(s);
             case "campaign" -> campaign(s);
+            case "intro" -> intro(s);
             case "mp-a", "mp-b" -> multiplayer(s, name.endsWith("a"));
             case "tour" -> {
                 newWorld(s, "S7-tour", "menu.clanlands.free", "20261012", false);
@@ -183,6 +197,8 @@ final class Scenarios {
         s.add(dialogue("start", List.of("join a clan now", "thunderclan"), 120, true, 4));
         afterJoin(s, "lake", "thunderclan");
         s.add(dialogue("ceremony", List.of("goodbye"), 60, false, 4));
+        nestChecks(s);
+        mentorTour(s);                                       // it begins by itself once the mentor is named, as for a player
         campViews(s, "lake", "thunderclan");
         s.add(check("cats thunderclan 6"));
 
@@ -204,6 +220,9 @@ final class Scenarios {
         s.add(check("standing 1"));
         s.add(cmd("qa state"));
         s.add(journal());
+
+        patrolScenario(s, "thunderclan");
+        routineScenario(s, "thunderclan");
 
         s.add(scenario("S4-events"));
         for (String k : List.of("injury", "sickness", "kits", "ceremony", "hunt", "predator", "old_age", "freeze")) {
@@ -297,6 +316,7 @@ final class Scenarios {
         s.add(shot("after-tour-reload"));
 
         tourScenario(s);
+        monstersScenario(s);
     }
 
     static void tourScenario(List<Step> s) {
@@ -320,9 +340,11 @@ final class Scenarios {
             s.add(skipDream());
             s.add(awaitDialogue("start choice", 20 * 60));
             boolean clan = id.endsWith("clan");
-            s.add(dialogue("start", clan ? List.of("join a clan now", id) : List.of(starts[i][1]), 120, true, 3));
+            // a quick arrival brings "Which Clan's cats will you seek?" and the guide while this step still reads windows
+            s.add(dialogue("start", clan ? List.of("join a clan now", id) : List.of(starts[i][1], seekFor(id), "lead the way"), 120, true, 3));
             if (clan) {
                 afterJoin(s, "lake", id);
+                nestChecks(s);
                 campViews(s, "lake", id);
                 s.add(check("cats " + id + " 6"));
                 // each Clan's own weather, one per world (only one weather event runs at a time)
@@ -345,6 +367,8 @@ final class Scenarios {
                 if (id.equals("kittypet")) s.add(check("near lake KITTYPET_HOME 40"));
                 s.add(shot("arrived-" + id));
                 s.add(cmd("qa state"));
+                // the kittypet seeks ThunderClan next door, as in the books; the loner a Clan round the lake
+                seekWithGuide(s, id, seekFor(id));
                 if (id.equals("loner")) {                     // ThunderClan's fire, as in the books
                     s.add(cmd("qa tp camp lake thunderclan gate"));
                     s.add(waitTicks(160));
@@ -357,6 +381,196 @@ final class Scenarios {
                 }
             }
         }
+    }
+
+    /**
+     * Before a long walk: fed for its length (no stopping to hunt), and kept from harm, since the bot only walks and
+     * cannot fight (in the first run a fox killed the guide, then the kittypet). The log still shows any attack.
+     */
+    /** The Clan a kittypet or loner seeks: ThunderClan next door for the kittypet, as in the books; one round the lake for the loner. */
+    static String seekFor(String start) {
+        return start.equals("kittypet") ? "thunderclan" : "riverclan";
+    }
+
+    static void walker(List<Step> s) {
+        s.add(cmd("effect give @s minecraft:saturation infinite 0 true"));
+        s.add(cmd("effect give @s minecraft:resistance infinite 4 true"));
+    }
+
+    /** The player's own nest in the apprentices' den, where they wake, and every den's full set of beds. */
+    static void nestChecks(List<Step> s) {
+        s.add(check("nest apprentices"));
+        s.add(check("respawn nest"));
+        s.add(check("beds"));
+    }
+
+    /**
+     * A kittypet or loner just arrived: "Which Clan's cats will you seek?", the guide who comes, the walk in its
+     * footsteps to that camp (timed, its teleports counted) and the deputy's invitation there; then the nest.
+     */
+    static void seekWithGuide(List<Step> s, String start, String clan) {
+        s.add(scenario("S10-guide-" + start));
+        walker(s);
+        s.add(cmd("qa watch lead"));
+        s.add(camera(true));
+        // the seek choice and the guide's offer, whenever they come (often already answered in the start's own step)
+        s.add(Walk.await("guide lead", 20 * 120, List.of(clan, "lead the way")));
+        s.add(check("seeking " + clan));
+        s.add(shot("guide-ready"));
+        s.add(Walk.follow("guide", 20 * 60 * 16, List.of("lead the way", "continue"), 10, 20 * 45));
+        s.add(cmd("qa watch report"));
+        s.add(shot("guide-at-camp"));
+        s.add(awaitDialogue("invitation", 20 * 30));
+        s.add(dialogue("invitation", List.of("join"), 100, true, 3));
+        s.add(waitTicks(60));
+        s.add(check("clan " + clan.replace("clan", "")));
+        s.add(check("incamp lake " + clan));
+        s.add(check("stage playing"));
+        s.add(check("mentor"));
+        nestChecks(s);
+        s.add(shot("joined-" + clan));
+        s.add(camera(false));
+        s.add(cmd("qa state"));
+    }
+
+    /** Apprentice step 1: the mentor leads the territory tour, the bot walks behind; then the mentor keeps near for the hunt. */
+    static void mentorTour(List<Step> s) {
+        s.add(scenario("S10-mentor-tour"));
+        walker(s);
+        s.add(cmd("qa watch lead"));
+        s.add(camera(true));
+        s.add(Walk.await("mentor tour", 20 * 60 * 3, List.of("goodbye", "continue")));
+        s.add(check("lead leading"));
+        s.add(Walk.follow("mentor-tour", 20 * 60 * 14, List.of("goodbye", "continue"), 12, 20 * 60));
+        s.add(cmd("qa watch report"));
+        s.add(dialogue("tour-hand-in", List.of("goodbye", "continue"), 60, false, 3));
+        s.add(check("story 2"));
+        s.add(waitTicks(20 * 15));                           // the hunt: the mentor comes along and keeps near
+        s.add(check("lead accompanying 12"));
+        s.add(shot("mentor-on-the-hunt"));
+        s.add(camera(false));
+        s.add(cmd("qa state"));
+    }
+
+    /** A border patrol from the deputy: two warriors walk it beside the player, out to the points and home, timed. */
+    static void patrolScenario(List<Step> s, String clan) {
+        s.add(scenario("S11-patrol"));
+        s.add(cmd("qa tp camp lake " + clan + " centre"));
+        s.add(waitTicks(60));
+        s.add(awaitCats(6, 20 * 40));
+        s.add(cmd("qa duties clear"));
+        s.add(cmd("qa patrolday"));                          // a day when the deputy's duty is a patrol
+        s.add(waitTicks(100));
+        s.add(cmd("qa talk deputy"));
+        s.add(dialogue("deputy-patrol", List.of("do you need help", "i'll do it", "goodbye"), 60, true, 3));
+        s.add(check("duties 1"));
+        s.add(check("escorts 2"));
+        s.add(cmd("qa watch patrol"));
+        walker(s);
+        s.add(camera(true));
+        s.add(Walk.await("patrol", 20 * 20, List.of("goodbye")));
+        s.add(Walk.follow("patrol", 20 * 60 * 14, List.of("goodbye", "continue"), 4, 20 * 60));
+        s.add(cmd("qa watch report"));
+        s.add(shot("patrol-home"));
+        s.add(cmd("qa talk deputy"));
+        s.add(dialogue("deputy-patrol-hand-in", List.of("hand it over", "goodbye"), 60, true, 3));
+        s.add(camera(false));
+        s.add(cmd("qa state"));
+    }
+
+    /** The camp's day: dawn, midday and night views, a tally of what the cats do, and where they cross the barrier. */
+    static void routineScenario(List<Step> s, String clan) {
+        s.add(scenario("S12-camp-routine"));
+        s.add(cmd("qa tp camp lake " + clan + " centre"));
+        s.add(waitTicks(40));
+        s.add(cmd("qa watch barrier"));
+        for (String[] t : new String[][] {{"dawn", "23400"}, {"midday", "6000"}, {"night", "18000"}}) {
+            s.add(cmd("qa time " + t[1]));
+            s.add(cmd("qa tp camp lake " + clan + " above"));
+            s.add(waitTicks(20 * 75));
+            s.add(shot("routine-" + t[0] + "-above"));
+            s.add(cmd("qa routine"));
+            s.add(cmd("qa tp camp lake " + clan + " gate"));
+            s.add(waitTicks(80));
+            s.add(shot("routine-" + t[0] + "-gate"));
+            s.add(cmd("qa tp camp lake " + clan + " centre"));
+            s.add(waitTicks(80));
+            s.add(shot("routine-" + t[0] + "-centre"));
+        }
+        s.add(cmd("qa watch report"));
+        s.add(cmd("gamemode survival"));
+    }
+
+    /** At night out in the open, far from any camp: no zombie, skeleton, creeper or other monster comes; no tigers. */
+    static void monstersScenario(List<Step> s) {
+        s.add(scenario("S13-no-monsters"));
+        s.add(closeScreens());
+        s.add(cmd("qa open"));
+        s.add(cmd("gamemode survival"));
+        s.add(cmd("qa time 14000"));
+        s.add(waitTicks(200));
+        s.add(shot("night-open"));
+        s.add(check("outofplace"));
+        for (int i = 1; i <= 4; i++) {
+            s.add(waitTicks(20 * 60));
+            s.add(check("hostiles 128"));
+        }
+        s.add(shot("night-open-later"));
+        s.add(check("outofplace"));
+        s.add(check("alive"));
+    }
+
+    /**
+     * The story cats close up: each StarClan teacher in the dream (are they on the ground, sitting, in their book
+     * coats?), then the Campaign's opening Gathering at Fourtrees (leaders on the rock, warriors on the ground, nobody up
+     * in the oaks) and a Gathering crowd there.
+     */
+    static void intro(List<Step> s) {
+        newWorld(s, "I1-dream-teachers", "menu.clanlands.free", "20261105", false);
+        s.add(dimension("starclan", 20 * 90));
+        s.add(waitTicks(80));
+        s.add(Photo.looks(true, 70, true));
+        s.add(camera(true));
+        s.add(cmd("gamemode spectator"));
+        // {name, x, feet y, z, yaw, pitch}: three blocks south of each teacher, looking north at them
+        String[][] views = {
+                {"arrival", "0.5", "5", "6.5", "180", "8"},
+                {"bluestar", "-7.5", "9.4", "-4.8", "180", "12"},
+                {"lionheart", "-7.5", "4.4", "10.2", "180", "12"},
+                {"spottedleaf", "5.5", "4.4", "12.2", "180", "12"},
+                {"yellowfang", "5.5", "4.4", "-1.8", "180", "12"},
+                {"yellowfang-side", "8.8", "4.6", "-4.5", "90", "10"}};
+        for (String[] v : views) {
+            s.add(Photo.clean());
+            s.add(cmd("tp @s " + v[1] + " " + v[2] + " " + v[3] + " " + v[4] + " " + v[5]));
+            s.add(waitTicks(40));
+            s.add(Photo.clean());
+            s.add(shot("dream-" + v[0]));
+        }
+        s.add(cmd("qa cats"));
+        s.add(Photo.looks(false, 70, true));
+        s.add(cmd("gamemode survival"));
+        s.add(cmd("greatjourney tutorial skip"));
+        s.add(dimension("overworld", 20 * 90));
+        s.add(quitToTitle());
+
+        newWorld(s, "I2-campaign-opening", "menu.clanlands.campaign", "20261013", false);
+        s.add(skipDream());
+        s.add(awaitDialogue("gathering", 20 * 90));
+        s.add(shot("fourtrees-first-line"));
+        s.add(Photo.clean());
+        s.add(Photo.looks(true, 70, true));
+        s.add(camera(true));
+        s.add(Photo.burst("fourtrees-opening", 3, 30));
+        s.add(cmd("gamemode spectator"));
+        s.add(cmd("qa tp landmark forest FOURTREES"));
+        s.add(waitTicks(120));
+        s.add(Photo.clean());
+        s.add(Photo.burst("fourtrees-landmark-view", 2, 30));
+        s.add(cmd("qa gathering here"));
+        s.add(waitTicks(220));
+        s.add(Photo.burst("fourtrees-gathering-crowd", 3, 30));
+        s.add(Photo.looks(false, 70, true));
     }
 
     static void campaign(List<Step> s) {

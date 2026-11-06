@@ -4,6 +4,9 @@ import com.ninjacat.greatjourney.clanlands.layout.Sectors.Clan;
 import com.ninjacat.greatjourney.clanlands.life.BookClans.Info;
 import com.ninjacat.greatjourney.clanlands.life.Dialog.Line;
 import com.ninjacat.greatjourney.clanlands.life.LifeData;
+import com.ninjacat.greatjourney.clanlore.role.Role;
+import com.ninjacat.greatjourney.clanlore.role.Roles;
+import com.ninjacat.greatjourney.clanlore.traits.Traits;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -59,6 +62,7 @@ public final class Deaths {
         }
         if (leader) {
             int left = life.loseLife(c);
+            Roles.setLives(cat, left);                       // Clan Lore's name tag shows the count kept here
             if (left > 0) {
                 e.setCanceled(true);
                 cat.setHealth(cat.getMaxHealth());
@@ -113,14 +117,15 @@ public final class Deaths {
         Info info = Info.of(c);
         List<Line> lines = new ArrayList<>();
         WCatEntity heir = Cats.withRank(cats, WCatEntity.Rank.DEPUTY).stream().findFirst()
-                .orElse(cats.stream().filter(x -> x.getRank() == WCatEntity.Rank.WARRIOR)
-                        .max(Comparator.comparingDouble(WCatEntity::getAgeInMoons)).orElse(null));
+                .orElse(cats.stream().filter(x -> x.getRank() == WCatEntity.Rank.WARRIOR && Roles.role(x) != Role.ELDER)
+                        .max(Comparator.comparingDouble(Traits::moons)).orElse(null));
         if (heir == null) return lines;
         String before = Cats.plainName(heir);
         String newName = Cats.prefixOf(heir) + "star";
         Cats.rename(heir, Cats.prefixOf(heir), newName);
         heir.setRank(WCatEntity.Rank.WARRIOR);
         life.setLeader(c, newName);
+        Roles.setRole(heir, Role.LEADER);                       // Clan Lore shows the role; the lives stay counted here
         UUID id = life.clanId(c);
         ClanData data = ClanData.get(ow);
         if (id != null && data.getClan(id) != null) {
@@ -135,7 +140,7 @@ public final class Deaths {
 
     static List<Line> newDeputy(ServerLevel ow, LifeData life, Clan c, List<WCatEntity> cats, String leaderName) {
         List<WCatEntity> warriors = Cats.withRank(cats, WCatEntity.Rank.WARRIOR).stream()
-                .filter(x -> !Cats.isLeader(life, c, x)).toList();
+                .filter(x -> !Cats.isLeader(life, c, x) && Roles.role(x) != Role.ELDER).toList();
         if (warriors.isEmpty()) return List.of();
         WCatEntity pick = warriors.get(RandomSource.create(ow.getGameTime()).nextInt(warriors.size()));
         pick.setRank(WCatEntity.Rank.DEPUTY);
@@ -143,11 +148,14 @@ public final class Deaths {
                 + Cats.plainName(pick) + " will be the new deputy of " + Info.of(c).title + "."));
     }
 
-    /** Rarely, an old cat in a loaded camp dies peacefully in their sleep. */
+    /**
+     * Rarely, an old cat in a loaded camp dies peacefully in their sleep. Warrior Cats Events stops a grown cat's age
+     * at 12 moons, so the age is Clan Lore's count ({@link Traits#moons}), which goes on from there.
+     */
     static boolean oldAge(ServerLevel ow, Clan c, RandomSource r) {
         int moons = EventsConfig.OLD_AGE_MOONS.get();
         List<WCatEntity> old = Cats.atCamp(ow, c).stream()
-                .filter(x -> x.getAgeInMoons() >= moons && x.getRank() != WCatEntity.Rank.KIT).toList();
+                .filter(x -> Traits.moons(x) >= moons && x.getRank() != WCatEntity.Rank.KIT).toList();
         if (old.isEmpty() || r.nextDouble() >= EventsConfig.OLD_AGE_CHANCE.get()) return false;
         diePeacefully(old.get(r.nextInt(old.size())));
         return true;

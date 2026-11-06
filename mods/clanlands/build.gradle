@@ -21,7 +21,10 @@ repositories {
     }
 }
 
+evaluationDependsOn(':clanlore')
+
 dependencies {
+    compileOnly project(':clanlore')
     compileOnly 'curse.maven:warriorcats-events-1388582:8711494'
     compileOnly 'curse.maven:walkers-868922:8753263'
     compileOnly 'curse.maven:craftedcore-923377:7575403'
@@ -34,6 +37,11 @@ dependencies {
 }
 
 neoForge {
+    mods {
+        clanlore {
+            sourceSet project(':clanlore').sourceSets.main
+        }
+    }
     runs {
         verification {
             type = 'gameTestServer'

@@ -207,6 +207,34 @@ public final class Dream {
         Starts.offerChoices(player);
     }
 
+    /**
+     * Twice a second for a dreamer: each StarClan teacher near them turns their head to them (they have no AI, so
+     * they would otherwise sit staring one way like statues), and a few faint stars drift off their fur, the way the
+     * books draw StarClan cats, seen by this dreamer only.
+     */
+    private static void teachersLook(ServerPlayer p) {
+        ServerLevel level = p.serverLevel();
+        for (Entity e : level.getEntities((Entity) null, p.getBoundingBox().inflate(24), e -> e.getTags().contains(DreamClearing.TAG)
+                && e instanceof net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity)) {
+            var cat = (net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity) e;
+            double dx = p.getX() - cat.getX(), dz = p.getZ() - cat.getZ();
+            float want = (float) Math.toDegrees(Math.atan2(-dx, dz));
+            // the head turns toward the dreamer; the body follows only when the head would have to turn too far
+            float body = cat.yBodyRot;
+            float off = net.minecraft.util.Mth.wrapDegrees(want - body);
+            if (Math.abs(off) > 60) {
+                body = want - Math.signum(off) * 40;
+                cat.setYBodyRot(body);
+                cat.setYRot(body);
+            }
+            cat.setYHeadRot(want);
+            if (p.getRandom().nextInt(3) == 0) {
+                level.sendParticles(p, net.minecraft.core.particles.ParticleTypes.END_ROD, false,
+                        cat.getX(), cat.getY() + cat.getBbHeight() * 0.6, cat.getZ(), 1, 0.3, 0.25, 0.3, 0.004);
+            }
+        }
+    }
+
     private static boolean inDream(ServerPlayer p) {
         return p.level().dimension() == DreamClearing.DREAM;
     }
@@ -316,6 +344,7 @@ public final class Dream {
             p.teleportTo(p.serverLevel(), a.getX() + 0.5, a.getY(), a.getZ() + 0.5, 180, 0);
         }
         if (p.tickCount % 100 == 0) DreamClearing.ensure(p.serverLevel());   // teachers whose chunk had not loaded yet
+        teachersLook(p);
         if (Journey.stage(p) == Journey.Stage.DREAM && waitsOnChoice(p)) {
             if (Dialog.busy(p)) {
                 IDLE.remove(p.getUUID());

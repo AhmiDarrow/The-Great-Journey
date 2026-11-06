@@ -15,6 +15,8 @@ public final class EventsConfig {
     public static final ModConfigSpec.IntValue OLD_AGE_MOONS;
     public static final ModConfigSpec.DoubleValue OLD_AGE_CHANCE;
     public static final ModConfigSpec.IntValue ANNOUNCE_RADIUS;
+    public static final ModConfigSpec.BooleanValue CAMP_ROUTINE;
+    public static final ModConfigSpec.IntValue ROUTINE_RANGE;
     public static final ModConfigSpec.BooleanValue FREEZE, FLOOD, DROUGHT, FIRE, FOG;
     public static final ModConfigSpec.IntValue WEATHER_WEIGHT;
 
@@ -34,6 +36,11 @@ public final class EventsConfig {
                 .defineInRange("oldAgeChance", 0.03, 0.0, 1.0);
         ANNOUNCE_RADIUS = b.comment("Players this close to an event hear about it even if they belong to another Clan.")
                 .defineInRange("announceRadius", 48, 0, 512);
+        CAMP_ROUTINE = b.comment("Camp cats keep a daily routine: dawn and afternoon patrols out through the camp's way in, hunters",
+                "filling the fresh-kill pile, cats sharing tongues, sunning, sparring and playing, all in their nests at night.")
+                .define("campRoutine", true);
+        ROUTINE_RANGE = b.comment("A camp keeps its routine only while a player is this close to it, in blocks.")
+                .defineInRange("campRoutineRange", 128, 32, 512);
         b.comment("Weather from the books: the lake's edge freezing in leaf-bare, newleaf floods in RiverClan's marsh,",
                 "greenleaf drought drying the shallows, lightning fires in storms, and morning mist. Everything a weather",
                 "event changes is put back when it ends, except a fire's scar.").push("weather");

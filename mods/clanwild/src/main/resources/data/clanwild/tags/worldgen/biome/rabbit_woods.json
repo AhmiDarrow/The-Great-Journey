@@ -1,0 +1,33 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "biomesoplenty:woodland",
+      "required": false
+    },
+    {
+      "id": "minecraft:forest",
+      "required": false
+    },
+    {
+      "id": "biomesoplenty:coniferous_forest",
+      "required": false
+    },
+    {
+      "id": "minecraft:old_growth_pine_taiga",
+      "required": false
+    },
+    {
+      "id": "minecraft:taiga",
+      "required": false
+    },
+    {
+      "id": "biomesoplenty:rocky_shrubland",
+      "required": false
+    },
+    {
+      "id": "biomesoplenty:wetland",
+      "required": false
+    }
+  ]
+}

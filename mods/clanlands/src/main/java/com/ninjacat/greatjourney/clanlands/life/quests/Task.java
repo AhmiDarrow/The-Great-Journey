@@ -15,7 +15,13 @@ public final class Task {
     /** What kind of duty this is, so a giver can be asked again and completed counts can be kept. */
     public enum Kind {
         HERBS, HUNT, FISH, BORDER_PATROL, MOSS, FEED_ELDER, FEED_QUEEN, MOSS_BALL, CLIMB, STALK,
-        STORY_TERRITORY, STORY_HUNT, STORY_HERBS, STORY_PATROL, STORY_PLACES, STORY_ASSESSMENT
+        STORY_TERRITORY, STORY_HUNT, STORY_HERBS, STORY_PATROL, STORY_PLACES, STORY_ASSESSMENT,
+        /** The medicine cat's path (its first step is STORY_TERRITORY, its fifth STORY_PLACES). */
+        STORY_MED_HERBS, STORY_MED_REMEDIES, STORY_MED_ELDERS, STORY_MED_TEST,
+        /** A medicine cat's duties: cure the sick, restock the herb store, ease the elders. */
+        TEND, HERB_STORE, ELDER_HERBS,
+        /** A task the Campaign's story gives (one at a time, see {@link Errands}). */
+        ERRAND
     }
 
     public final Kind kind;
@@ -86,7 +92,7 @@ public final class Task {
      * tag for hand-ins, a prey set for catches); x/z/radius locate visits; {@code y} is a height for climbs.
      */
     public static final class Objective {
-        public enum Type { VISIT, CATCH, BRING, CLIMB, STALK, CATCH_IN_TIME }
+        public enum Type { VISIT, CATCH, BRING, CLIMB, STALK, CATCH_IN_TIME, CURE }
 
         public final Type type;
         public final String text, key;
@@ -131,6 +137,14 @@ public final class Task {
         /** Catch {@code goal} prey within {@code seconds} of the first catch. */
         public static Objective catchInTime(String text, String preySet, int goal, int seconds) {
             return new Objective(Type.CATCH_IN_TIME, text, preySet, goal, 0, 0, 0, seconds);
+        }
+
+        /**
+         * Cure a cat of a Warrior Cats Events disease: {@code key} is "disease id@cat uuid" (see {@link Patients}), or
+         * "plan:who:disease:count" for a duty whose patients are only chosen when it is taken on.
+         */
+        public static Objective cure(String text, String key, int goal) {
+            return new Objective(Type.CURE, text, key, goal, 0, 0, 0, 0);
         }
 
         public boolean done() {

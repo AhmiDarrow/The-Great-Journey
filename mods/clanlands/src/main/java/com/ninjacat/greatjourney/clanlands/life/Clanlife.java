@@ -32,6 +32,10 @@ public final class Clanlife {
     public static void init(IEventBus modBus) {
         Mode.init();
         ChunkWait.init();
+        Lead.init();
+        Keepsakes.init();
+        LoreBridge.init();
+        com.ninjacat.greatjourney.clanlands.life.gathering.Gatherings.init();
         Dream.init(modBus);
         com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.init(modBus);
         com.ninjacat.greatjourney.clanlands.life.quests.Quests.init(modBus);
@@ -198,12 +202,14 @@ public final class Clanlife {
                     Info clan = Info.byKey(StringArgumentType.getString(c, "clan"));
                     return clan != null && Starts.begin(c.getSource().getPlayerOrException(), Journey.Start.CLAN, clan) ? 1 : 0;
                 }))));
+        Starts.commands(root);
         Dream.commands(root);
         com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.commands(root);
         com.ninjacat.greatjourney.clanlands.life.quests.Quests.commands(root);
         com.ninjacat.greatjourney.clanlands.life.campaign.Campaign.commands(root);
         com.ninjacat.greatjourney.clanlands.life.traffic.Traffic.commands(root);
         com.ninjacat.greatjourney.clanlands.life.tour.Tour.commands(root);
+        com.ninjacat.greatjourney.clanlands.life.gathering.Gatherings.commands(root);
         e.getDispatcher().register(root);
     }
 }

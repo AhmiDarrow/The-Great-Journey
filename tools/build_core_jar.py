@@ -28,7 +28,7 @@ CORE_ID = "greatjourney_core"
 CORE_NAME = "The Great Journey Core"
 CORE_JAR = "greatjourney_core-{ver}.jar"
 GROUP = "com.ninjacat.greatjourney"
-MODULES = ("clanlands", "clanwild")      # Gradle subproject name == mod id
+MODULES = ("clanlore", "clanlands", "clanwild")      # Gradle subproject name == mod id
 EPOCH = (2026, 1, 1, 0, 0, 0)
 OUT = ROOT / "dist"
 RELEASE = ROOT / "pack/core-release.json"

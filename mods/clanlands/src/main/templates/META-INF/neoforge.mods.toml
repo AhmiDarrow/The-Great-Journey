@@ -32,3 +32,10 @@ config="clanlands.mixins.json"
     versionRange="[1.12.2,)"
     ordering="AFTER"
     side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="clanlore"
+    type="required"
+    versionRange="[0.1.0,)"
+    ordering="AFTER"
+    side="BOTH"

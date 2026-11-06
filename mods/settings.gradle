@@ -14,3 +14,4 @@ rootProject.name = 'great-journey-mods'
 include 'clanlands'
 include 'clanwild'
 include 'qa'          // TEST ONLY: the playtest harness mod, never shipped
+include 'clanlore'    // Clan Lore: the Warrior Cats Events addon (roles, ceremonies, traits, the moon)

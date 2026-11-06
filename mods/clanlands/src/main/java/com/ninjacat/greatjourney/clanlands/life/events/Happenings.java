@@ -34,12 +34,26 @@ import net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity;
 final class Happenings {
     private Happenings() {}
 
-    private static final long BADGER_TICKS = 20L * 60 * 4;
+    private static final long BADGER_TICKS = 20L * 60 * 5;
+    /** How long a fox or an eagle from an event prowls before it gives up and leaves. */
+    private static final long PREDATOR_TICKS = 20L * 60 * 2;
     private static final long RAID_TICKS = 20L * 60 * 3;
     private static final long LOST_TICKS = 20L * 60 * 20;
 
     /** Marks a kit that is out of camp, lost. Saved with the kit, so one left lost by a restart still finds its way home. */
     static final String LOST_TAG = "greatjourney_lost_kit";
+
+    /** On a fox or an eagle an event brought: it leaves at the game time saved with it ({@link #LEAVE_AT}). */
+    static final String FOE_TAG = "greatjourney_event_foe";
+    static final String LEAVE_AT = "greatjourney_leave_at";
+    static final String FOE_CLAN = "greatjourney_foe_clan";
+    /** What the Clan hears when it goes: absent on a fox or an eagle (they have their own words), empty for nothing. */
+    static final String FOE_GOES = "greatjourney_foe_goes";
+    /** An event's creature: the Clan it came for, when it leaves, and what is said then (null: a fox's or an eagle's words). */
+    private record Foe(Clan clan, long leaveAt, String goes) {}
+
+    /** Event foes about now, by id. */
+    private static final Map<UUID, Foe> foes = new HashMap<>();
 
     /** The lost kit, while one is lost: the kit, and the player leading it home once found. */
     private static UUID lostKit;
@@ -48,6 +62,7 @@ final class Happenings {
     static void reset() {
         lostKit = null;
         guide = null;
+        foes.clear();
     }
 
     static boolean run(ServerLevel ow, Clan c, ClanEvents.Kind kind, RandomSource r) {
@@ -63,6 +78,7 @@ final class Happenings {
             case CEREMONY -> ceremony(ow, c, cats, r);
             case HUNT -> hunt(ow, c, cats, r);
             case LOST_KIT -> lostKit(ow, c, cats, r);
+            case DOGS, ROGUES, RATS, ADDER, KITTYPET, SHORTAGE, STORY -> BookEvents.run(ow, c, kind, cats, r);
             case OLD_AGE -> false;
             case FREEZE, FLOOD, DROUGHT, FIRE, FOG -> Weather.start(ow, c, kind, r, false);
         };
@@ -73,21 +89,21 @@ final class Happenings {
         return ways[r.nextInt(ways.length)];
     }
 
-    private static Info info(Clan c) {
+    static Info info(Clan c) {
         return Info.of(c);
     }
 
-    private static List<WCatEntity> fighters(List<WCatEntity> cats) {
+    static List<WCatEntity> fighters(List<WCatEntity> cats) {
         return cats.stream().filter(x -> x.getRank() == WCatEntity.Rank.WARRIOR || x.getRank() == WCatEntity.Rank.DEPUTY).toList();
     }
 
-    private static BlockPos campEdge(ServerLevel ow, Clan c, RandomSource r, double extra) {
+    static BlockPos campEdge(ServerLevel ow, Clan c, RandomSource r, double extra) {
         Landmark camp = Cats.camp(c);
         double a = r.nextDouble() * Math.PI * 2, d = Math.max(6, camp.radius() - 6) + extra;
         return Cats.surface(ow, (int) Math.floor(camp.x() + Math.cos(a) * d), (int) Math.floor(camp.z() + Math.sin(a) * d));
     }
 
-    private static void rally(List<WCatEntity> defenders, LivingEntity foe, int max) {
+    static void rally(List<WCatEntity> defenders, LivingEntity foe, int max) {
         int n = 0;
         for (WCatEntity d : defenders) {
             if (n++ >= max) break;
@@ -95,11 +111,35 @@ final class Happenings {
         }
     }
 
+    /**
+     * Where a creature coming for the camp starts: just outside the way in, on the land it opens onto, so it can walk
+     * in the way the cats do. A spot on the camp's rim (the old way) could be the top of a hollow's or a ravine's
+     * cliff: the playtest's badger was announced, then stood on the rim above the camp until it left again.
+     */
+    static BlockPos outsideWayIn(ServerLevel ow, Clan c, RandomSource r, double extra) {
+        Landmark camp = Cats.camp(c);
+        CampSite site = camp == null ? null : CampSite.of(ow, c, camp);
+        if (site == null || site.way.isEmpty()) return campEdge(ow, c, r, extra);
+        BlockPos end = site.way.get(0);
+        for (int i = site.way.size() - 1; i >= 0; i--) {
+            // the outermost point where creatures move: an island's ford runs up to 80 blocks out, maybe past them
+            if (ow.isPositionEntityTicking(site.way.get(i))) {
+                end = site.way.get(i);
+                break;
+            }
+        }
+        if (extra <= 0) return end;
+        double dx = end.getX() + 0.5 - camp.x(), dz = end.getZ() + 0.5 - camp.z(), len = Math.max(0.1, Math.hypot(dx, dz));
+        int x = (int) Math.floor(end.getX() + 0.5 + dx / len * extra + r.nextInt(5) - 2), z = (int) Math.floor(end.getZ() + 0.5 + dz / len * extra + r.nextInt(5) - 2);
+        BlockPos out = ow.hasChunk(x >> 4, z >> 4) ? Cats.surface(ow, x, z) : end;
+        return ow.isPositionEntityTicking(out) ? out : end;
+    }
+
     // 1: a badger blunders into camp
     private static boolean badger(ServerLevel ow, Clan c, List<WCatEntity> cats, RandomSource r) {
         Mob badger = ModEntities.BADGER.get().create(ow);
         if (badger == null) return false;
-        BlockPos at = campEdge(ow, c, r, 2);
+        BlockPos at = outsideWayIn(ow, c, r, 0);
         badger.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, r.nextFloat() * 360, 0);
         badger.finalizeSpawn(ow, ow.getCurrentDifficultyAt(at), MobSpawnType.EVENT, null);
         badger.setCustomName(Component.literal("Badger"));
@@ -109,7 +149,7 @@ final class Happenings {
         rally(fighters(cats), badger, 4);
         start(ow, ClanEvents.Kind.BADGER, c, BADGER_TICKS, badger.getUUID());
         String deputy = Cats.speaker(cats, WCatEntity.Rank.DEPUTY, LifeData.get(ow).leader(c));
-        Announce.tell(ow, c, at,
+        Announce.tell(ow, c, Cats.campCentre(ow, c),
                 Line.narrate("A heavy, musty stink rolls into " + info(c).title + "'s camp..."),
                 Line.say(deputy, info(c).colour, "Badger! Protect the nursery! Warriors, with me!"));
         return true;
@@ -120,9 +160,11 @@ final class Happenings {
         boolean eagle = c == Clan.WIND || r.nextInt(3) == 0;
         Mob foe = eagle ? ModEntities.EAGLE.get().create(ow) : EntityType.FOX.create(ow);
         if (foe == null) return false;
-        BlockPos at = campEdge(ow, c, r, 8).above(eagle ? 12 : 0);
+        BlockPos at = eagle ? campEdge(ow, c, r, 8).above(12) : outsideWayIn(ow, c, r, 4);
         foe.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, r.nextFloat() * 360, 0);
         foe.finalizeSpawn(ow, ow.getCurrentDifficultyAt(at), MobSpawnType.EVENT, null);
+        // it prowls a while and goes: the playtest's event eagle stayed and struck at the player without end
+        markFoe(foe, c, ow.getGameTime() + PREDATOR_TICKS, null);
         ow.addFreshEntity(foe);
         rally(fighters(cats), foe, 2);
         String who = Cats.withRank(cats, WCatEntity.Rank.APPRENTICE).stream().findFirst().map(Cats::plainName)
@@ -142,6 +184,9 @@ final class Happenings {
         BlockPos border = Cats.borderToward(ow, c, enemy);
         LifeData life = LifeData.get(ow);
         if (border == null || life.clanId(enemy) == null) return false;
+        // a border out past where creatures move would have the raiders stand frozen there, announced and never seen:
+        // they come to just outside the camp's way in instead, where the Clan's cats are
+        if (!ow.isPositionEntityTicking(border)) border = outsideWayIn(ow, c, r, 14);
         ClanNames names = new ClanNames(ow.getGameTime() ^ enemy.ordinal());
         List<WCatEntity> attackers = new ArrayList<>();
         int n = 2 + r.nextInt(2);
@@ -163,6 +208,7 @@ final class Happenings {
             d.wanderCenter = border;
         }
         start(ow, ClanEvents.Kind.RAID, c, RAID_TICKS, attackers.stream().map(Entity::getUUID).toArray(UUID[]::new));
+        EventNews.record(c, info(enemy).title + " warriors raided " + info(c).title + "'s border.");
         String deputy = Cats.speaker(cats, WCatEntity.Rank.DEPUTY, life.leader(c));
         Announce.tell(ow, c, border,
                 Line.say(Cats.plainName(attackers.get(0)), info(enemy).colour, "This land belongs to " + info(enemy).title + " now!"),
@@ -216,6 +262,7 @@ final class Happenings {
                 Line.say(med, info(c).colour, green
                         ? "It's greencough. We need catmint, and quickly. Search the old Twoleg places and the sheltered banks."
                         : "Whitecough. Catmint or juniper berries will cure it, before it turns to greencough."));
+        EventNews.record(c, (green ? "Greencough" : "Whitecough") + " broke out in " + info(c).title + "'s camp.");
         return true;
     }
 
@@ -248,6 +295,8 @@ final class Happenings {
                         "Meet " + String.join(", ", born) + ". The Clan grows stronger.",
                         "This is " + String.join(", ", born) + ". Aren't they perfect? They'll be fine warriors one day.",
                         "Shh, they're sleeping. " + String.join(", ", born) + ". StarClan has blessed " + info(c).title + ".")));
+        EventNews.record(c, Cats.plainName(mother) + " of " + info(c).title + " has had " + (born.size() == 1 ? "a kit, " : born.size() + " kits, ")
+                + String.join(" and ", born) + ".");
         return true;
     }
 
@@ -264,6 +313,7 @@ final class Happenings {
                 Line.say(leader, info(c).colour, before + ", you have trained hard and served your Clan well. From this moment you will be known as "
                         + after + ". StarClan honours your courage and your loyalty."),
                 Line.narrate("The Clan calls the new warrior's name: " + after + "! " + after + "!"));
+        EventNews.record(c, before + " of " + info(c).title + " has earned the warrior name " + after + ".");
         return true;
     }
 
@@ -279,12 +329,26 @@ final class Happenings {
 
     // 8: the fresh-kill pile runs low and a hunting patrol goes out
     private static boolean hunt(ServerLevel ow, Clan c, List<WCatEntity> cats, RandomSource r) {
+        List<WCatEntity> party = sendHunters(ow, c, cats, r);
+        if (party == null) return false;
+        String deputy = Cats.speaker(cats, WCatEntity.Rank.DEPUTY, LifeData.get(ow).leader(c));
+        String who = party.isEmpty() ? "" : " " + String.join(", ", party.stream().map(Cats::plainName).toList()) + ", go.";
+        Announce.tell(ow, c, Cats.campCentre(ow, c),
+                Line.say(deputy, info(c).colour, pick(r, "The fresh-kill pile is almost empty. We need a hunting patrol.",
+                        "The elders and queens need feeding, and the fresh-kill pile is bare. Hunting patrol!",
+                        "Prey's running in the territory today. Let's fill the fresh-kill pile.") + who),
+                Line.narrate("Prey is stirring in " + info(c).title + "'s territory. Any warrior who hunts today feeds the Clan."));
+        return true;
+    }
+
+    /** Sends up to three warriors on a hunting patrol through the territory and stirs prey there; null when there is nowhere to hunt. */
+    static List<WCatEntity> sendHunters(ServerLevel ow, Clan c, List<WCatEntity> cats, RandomSource r) {
         Map<Integer, BlockPos> waypoints = new HashMap<>();
         for (int i = 0; i < 4; i++) {
             BlockPos p = Cats.inTerritory(ow, c, r, 30, 120);
             if (p != null) waypoints.put(waypoints.size(), p);
         }
-        if (waypoints.isEmpty()) return false;
+        if (waypoints.isEmpty()) return null;
         List<WCatEntity> party = fighters(cats).stream().limit(3).toList();
         for (WCatEntity w : party) w.setOnHuntingPatrol(new HashMap<>(waypoints));
         boolean fog = Weather.foggy(ow);
@@ -302,14 +366,7 @@ final class Happenings {
                 ow.addFreshEntity(prey);
             }
         }
-        String deputy = Cats.speaker(cats, WCatEntity.Rank.DEPUTY, LifeData.get(ow).leader(c));
-        String who = party.isEmpty() ? "" : " " + String.join(", ", party.stream().map(Cats::plainName).toList()) + ", go.";
-        Announce.tell(ow, c, Cats.campCentre(ow, c),
-                Line.say(deputy, info(c).colour, pick(r, "The fresh-kill pile is almost empty. We need a hunting patrol.",
-                        "The elders and queens need feeding, and the fresh-kill pile is bare. Hunting patrol!",
-                        "Prey's running in the territory today. Let's fill the fresh-kill pile.") + who),
-                Line.narrate("Prey is stirring in " + info(c).title + "'s territory. Any warrior who hunts today feeds the Clan."));
-        return true;
+        return party;
     }
 
     // 9: a kit wanders off
@@ -334,7 +391,7 @@ final class Happenings {
         return true;
     }
 
-    private static void start(ServerLevel ow, ClanEvents.Kind k, Clan c, long ticks, UUID... who) {
+    static void start(ServerLevel ow, ClanEvents.Kind k, Clan c, long ticks, UUID... who) {
         if (!k.major) return;
         ClanEvents.activeKind = k;
         ClanEvents.activeClan = c;
@@ -343,7 +400,8 @@ final class Happenings {
         ClanEvents.activeEntities.addAll(List.of(who));
     }
 
-    private static void finish() {
+    static void finish() {
+        BookEvents.majorEnded();
         ClanEvents.activeKind = null;
         ClanEvents.activeClan = null;
         ClanEvents.activeEntities.clear();
@@ -351,8 +409,9 @@ final class Happenings {
         guide = null;
     }
 
-    /** Once a second: big events time out, the lost kit is found and led home. */
+    /** Once a second: big events time out, the lost kit is found and led home, event foes past their time leave. */
     static void everySecond(ServerLevel ow) {
+        foesLeave(ow);
         ClanEvents.Kind k = ClanEvents.activeKind;
         if (k == null) return;
         Clan c = ClanEvents.activeClan;
@@ -364,9 +423,12 @@ final class Happenings {
                 if (b == null) {
                     // gone, or only out of reach (its chunk unloaded): give it until the event's end to come back
                     if (late) finish();
-                } else if (late) {
+                } else if (!late) {
+                    if (b instanceof Mob m) comeIn(ow, c, m);
+                } else {
                     b.discard();
                     Announce.tell(ow, c, b.blockPosition(), Line.narrate("The badger lumbers away into the undergrowth, grumbling."));
+                    EventNews.record(c, "A badger blundered into " + info.title + "'s camp and was driven away.");
                     finish();
                 }
             }
@@ -390,8 +452,122 @@ final class Happenings {
                 }
             }
             case LOST_KIT -> lostKitTick(ow, c, info, late);
+            case DOGS, ROGUES, RATS -> BookEvents.majorTick(ow, c, k, late);
             default -> finish();
         }
+    }
+
+    /**
+     * The badger makes for the camp: in by the way in, then at the Clan's cats (it goes for the nursery). Its own goals
+     * fight whatever it meets on the way; this only keeps it coming when it has nothing to fight.
+     */
+    private static void comeIn(ServerLevel ow, Clan c, Mob badger) {
+        if (badger.getTarget() != null && badger.getTarget().isAlive()) return;
+        Landmark camp = Cats.camp(c);
+        if (camp == null) return;
+        if (steerIn(ow, c, badger, 1.1)) {
+            List<WCatEntity> cats = Cats.atCamp(ow, c);
+            List<WCatEntity> kits = Cats.withRank(cats, WCatEntity.Rank.KIT);
+            List<WCatEntity> pick = kits.isEmpty() ? cats : kits;
+            pick.stream().min(java.util.Comparator.comparingDouble(badger::distanceToSqr)).ifPresent(badger::setTarget);
+        }
+    }
+
+    /**
+     * Steers a creature coming for the camp in along the way in, to the next point nearer the middle each time it
+     * gets where it was going. Returns true once it is inside (nothing is steered then), for the caller to say what
+     * it does there.
+     */
+    static boolean steerIn(ServerLevel ow, Clan c, Mob m, double speed) {
+        Landmark camp = Cats.camp(c);
+        if (camp == null) return false;
+        double fromMiddle = Math.hypot(m.getX() - camp.x(), m.getZ() - camp.z());
+        if (fromMiddle < Math.max(6, camp.radius() - 6)) return true;
+        if (!m.getNavigation().isDone()) return false;
+        CampSite site = CampSite.of(ow, c, camp);
+        BlockPos to = Cats.campCentre(ow, c);
+        if (site != null && !site.way.isEmpty()) {
+            // the next point of the way in that is nearer the middle than the badger is
+            for (int i = site.way.size() - 1; i >= 0; i--) {
+                BlockPos w = site.way.get(i);
+                if (Math.hypot(w.getX() + 0.5 - camp.x(), w.getZ() + 0.5 - camp.z()) < fromMiddle - 1.5) {
+                    to = w;
+                    break;
+                }
+            }
+        }
+        m.getNavigation().moveTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5, speed);
+        return false;
+    }
+
+    /** A creature an event brought goes once its time is up, wherever it is. */
+    private static void foesLeave(ServerLevel ow) {
+        if (foes.isEmpty()) return;
+        long now = ow.getGameTime();
+        for (Map.Entry<UUID, Foe> f : List.copyOf(foes.entrySet())) {
+            if (now < f.getValue().leaveAt()) continue;
+            Entity e = ow.getEntity(f.getKey());
+            foes.remove(f.getKey());
+            if (e == null || !e.isAlive()) continue;             // dead, or unloaded: turned away when it loads (overdueFoe)
+            if (e instanceof WCatEntity cat && cat.isTame()) {
+                cat.removeTag(FOE_TAG);                          // a rogue a player won over with prey is the player's cat now
+                continue;
+            }
+            boolean eagle = e.getType() == ModEntities.EAGLE.get();
+            String goes = f.getValue().goes() != null ? f.getValue().goes()
+                    : eagle ? "The eagle gives up, and wheels away over the trees." : "The fox slinks off into the undergrowth, and its scent fades.";
+            e.discard();
+            if (!goes.isEmpty()) Announce.tell(ow, f.getValue().clan(), e.blockPosition(), Line.narrate(goes));
+        }
+    }
+
+    /**
+     * Marks a creature an event brings: it leaves at {@code leaveAt}, saved with it so one that unloads or outlasts a
+     * restart is still sent away, and {@code goes} is what the Clan hears then (null for a fox's or an eagle's own
+     * words, empty for nothing). Called before the creature is added to the world.
+     */
+    static void markFoe(Mob foe, Clan c, long leaveAt, String goes) {
+        foe.addTag(FOE_TAG);
+        foe.getPersistentData().putLong(LEAVE_AT, leaveAt);
+        foe.getPersistentData().putString(FOE_CLAN, c.name());
+        if (goes != null) foe.getPersistentData().putString(FOE_GOES, goes);
+        foes.put(foe.getUUID(), new Foe(c, leaveAt, goes));
+    }
+
+    /** An event's creature that has had enough: it goes within {@code ticks}, and the Clan hears {@code goes} (empty for nothing). */
+    static void leaveSoon(Entity e, long ticks, String goes) {
+        Foe f = foes.get(e.getUUID());
+        if (f == null) return;
+        long at = Math.min(f.leaveAt(), e.level().getGameTime() + ticks);
+        foes.put(e.getUUID(), new Foe(f.clan(), at, goes));
+        e.getPersistentData().putLong(LEAVE_AT, at);
+        e.getPersistentData().putString(FOE_GOES, goes);
+    }
+
+    /** An event's fox or eagle that loads after its time (it left while its land was unloaded, or over a restart). */
+    static boolean overdueFoe(Entity e) {
+        if (!e.getTags().contains(FOE_TAG)) return false;
+        if (e instanceof WCatEntity cat && cat.isTame()) {
+            cat.removeTag(FOE_TAG);                              // a rogue tamed meanwhile stays: it is someone's cat now
+            return false;
+        }
+        long leave = e.getPersistentData().getLong(LEAVE_AT);
+        if (leave < e.level().getGameTime()) {
+            e.ejectPassengers();                         // a kit it carried stays behind, not riding nothing
+            return true;
+        }
+        // loaded again in time (after a restart the list is empty): it still leaves when its time is up
+        if (!foes.containsKey(e.getUUID())) {
+            Clan c = null;
+            try {
+                c = Clan.valueOf(e.getPersistentData().getString(FOE_CLAN));
+            } catch (IllegalArgumentException ex) {
+                // saved before the Clan was kept on it
+            }
+            String goes = e.getPersistentData().contains(FOE_GOES) ? e.getPersistentData().getString(FOE_GOES) : null;
+            if (c != null) foes.put(e.getUUID(), new Foe(c, leave, goes));
+        }
+        return false;
     }
 
     private static Entity first(ServerLevel ow) {
@@ -422,6 +598,7 @@ final class Happenings {
             Announce.tell(ow, c, centre, Line.say(kit.getMother() != null && !kit.getMother().getString().isBlank()
                             ? kit.getMother().getString() : LifeData.get(ow).leader(c), info.colour,
                     Cats.plainName(kit) + ", you're safe!" + (helper != null ? " Thank you, " + helper + ". " + info.title + " won't forget this." : "")));
+            EventNews.record(c, Cats.plainName(kit) + " wandered out of " + info.title + "'s camp and was brought home safe.");
             finish();
             return;
         }
@@ -430,6 +607,7 @@ final class Happenings {
             kit.wanderCenter = centre;
             kit.removeTag(LOST_TAG);
             Announce.tell(ow, c, centre, Line.narrate("A patrol carries " + Cats.plainName(kit) + " home by the scruff, tired but unhurt."));
+            EventNews.record(c, Cats.plainName(kit) + " wandered out of " + info.title + "'s camp and was brought home safe.");
             finish();
             return;
         }
@@ -502,6 +680,7 @@ final class Happenings {
         String thanks = e.getSource().getEntity() instanceof ServerPlayer p ? " " + Joining.catName(p) + ", you fought like a true warrior!" : "";
         Announce.tell(ow, c, dead.blockPosition(), Line.say(deputy, Info.of(c).colour,
                 "The badger is gone! Thank StarClan, the kits are safe." + thanks));
+        EventNews.record(c, "A badger came into " + Info.of(c).title + "'s camp, and the Clan fought it off.");
         finish();
     }
 }

@@ -62,15 +62,28 @@ public final class Joining {
             p.sendSystemMessage(Component.literal("You already belong to " + current.name + "."));
             return false;
         }
-        data.addMember(p, id, ClanData.ClanPlayerRank.APPRENTICE);
+        // a kit (their cat is a kit) is too young to train: the nursery first, the apprentice ceremony later (Kits)
+        boolean kit = Kits.kitAged(p);
+        data.addMember(p, id, kit ? ClanData.ClanPlayerRank.KIT : ClanData.ClanPlayerRank.APPRENTICE);
+        com.ninjacat.greatjourney.clanlands.life.quests.Paths.joined(p);
         data.changeMemberPermissions(p.getUUID(), id, ClanData.ClanPermissions.MEMBER);
         Journey.clearOffer(p);
         Journey.setStage(p, Journey.Stage.PLAYING);
+        if (kit) {
+            Kits.begin(p);
+            boolean nursery = Nests.claim(p, clan.clan, com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.NURSERY) != null;
+            List<Line> lines = Kits.welcome(catName(p), clan, life.leader(clan.clan), catNamed(p, clan, id, life.leader(clan.clan)));
+            if (!nursery) lines.remove(lines.size() - 1);
+            Dialog.play(p, lines);
+            return true;
+        }
+        // a nest of their own in the apprentices' den, where they wake from now on (each player their own)
+        boolean nest = Nests.claim(p, clan.clan, com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.APPRENTICES) != null;
         WCatEntity mentor = mentorFor(p, clan, id);
         String mentorName = mentor == null ? null : plainName(mentor);
         // each speaker hands the window their own cat: the camp's cats may not have reached the client yet, and a
         // lookup by name from the player's side only reaches so far
-        ceremony(p, clan, life.leader(clan.clan), catNamed(p, clan, id, life.leader(clan.clan)), mentorName, mentor);
+        ceremony(p, clan, life.leader(clan.clan), catNamed(p, clan, id, life.leader(clan.clan)), mentorName, mentor, nest);
         return true;
     }
 
@@ -101,8 +114,11 @@ public final class Joining {
         return found.isEmpty() ? null : found.get(0);
     }
 
-    private static void ceremony(ServerPlayer p, Info clan, String leader, WCatEntity leaderCat, String mentor, WCatEntity mentorCat) {
-        Dialog.play(p, ceremonyLines(catName(p), clan, leader, leaderCat, mentor, mentorCat));
+    private static void ceremony(ServerPlayer p, Info clan, String leader, WCatEntity leaderCat, String mentor, WCatEntity mentorCat, boolean nest) {
+        List<Line> lines = new ArrayList<>(ceremonyLines(catName(p), clan, leader, leaderCat, mentor, mentorCat));
+        if (nest) lines.add(Line.narrate("A moss nest of your own waits in the apprentices' den. You will wake there."));
+        lines.add(com.ninjacat.greatjourney.clanlands.life.quests.Paths.ceremonyChoice());   // a warrior's path, or a medicine cat's
+        Dialog.play(p, lines);
     }
 
     /** The joining ceremony; the leader's and the mentor's lines carry their cats (null for none) for the portrait. */

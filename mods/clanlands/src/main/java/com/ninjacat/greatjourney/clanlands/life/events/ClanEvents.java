@@ -46,7 +46,10 @@ public final class ClanEvents {
     public enum Kind {
         BADGER(true), PREDATOR(false), RAID(true), INJURY(false), SICKNESS(false), KITS(false), CEREMONY(false),
         HUNT(false), LOST_KIT(true), OLD_AGE(false),
-        FREEZE(false), FLOOD(false), DROUGHT(false), FIRE(false), FOG(false);
+        FREEZE(false), FLOOD(false), DROUGHT(false), FIRE(false), FOG(false),
+        // the book events in BookEvents: a loose Twoleg dog, rogues at the fresh-kill pile, rats, an adder bite, a
+        // kittypet at the border, a leaf-bare prey shortage and an elder's story
+        DOGS(true), ROGUES(true), RATS(true), ADDER(false), KITTYPET(false), SHORTAGE(false), STORY(false);
 
         final boolean major;
 
@@ -75,12 +78,26 @@ public final class ClanEvents {
         Weather.init();
         NeoForge.EVENT_BUS.addListener((LivingDeathEvent e) -> {
             Deaths.onDeath(e);
-            if (!e.isCanceled()) Happenings.onCreatureDeath(e);
+            if (!e.isCanceled()) {
+                Happenings.onCreatureDeath(e);
+                BookEvents.onCreatureDeath(e);
+            }
         });
-        NeoForge.EVENT_BUS.addListener((LivingDamageEvent.Post e) -> Happenings.onDamage(e));
+        NeoForge.EVENT_BUS.addListener((LivingDamageEvent.Post e) -> {
+            Happenings.onDamage(e);
+            BookEvents.onDamage(e);
+        });
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppingEvent e) -> CampRoutine.stopAll(e.getServer()));
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent e) -> reset());
         NeoForge.EVENT_BUS.addListener((EntityJoinLevelEvent e) -> {
-            if (!e.getLevel().isClientSide()) Happenings.onJoin(e.getEntity());
+            if (e.getLevel().isClientSide()) return;
+            if (Happenings.overdueFoe(e.getEntity())) {
+                e.setCanceled(true);                          // an event's fox or eagle whose time ran out while it was unloaded
+                return;
+            }
+            Happenings.onJoin(e.getEntity());
+            BookEvents.onJoin(e.getEntity());
+            CampRoutine.onJoin(e.getEntity());
         });
     }
 
@@ -93,6 +110,7 @@ public final class ClanEvents {
         raiders.clear();
         Deaths.reset();
         Happenings.reset();
+        BookEvents.reset();
     }
 
     private static void tick(ServerTickEvent.Post e) {
@@ -101,7 +119,9 @@ public final class ClanEvents {
         ServerLevel ow = server.overworld();
         if (ClanWorld.current() == null || !ClanWorld.isClanWorld(ow) || !LifeData.get(ow).created()) return;
         Happenings.everySecond(ow);
+        BookEvents.everySecond(ow);
         Weather.everySecond(ow);
+        CampRoutine.everySecond(ow);
         if (server.getTickCount() % 1200 == 0) for (Clan c : Clan.values()) keepMedicineCat(ow, c);
         if (!EventsConfig.ENABLED.get()) return;
         long now = server.getTickCount();
@@ -124,13 +144,17 @@ public final class ClanEvents {
         return 20L * (lo + r.nextInt(hi - lo + 1));
     }
 
-    /** A Clan to visit: its camp must be loaded and it must have rested; Clans with players online come first. */
+    /**
+     * A Clan to visit: its camp must be live (its creatures moving, so near a player) and it must have rested; Clans
+     * with players online come first. A camp only loaded at the edge of a player's view has its cats standing still:
+     * a badger sent there never came, though the Clan was told it had.
+     */
     private static Clan pickClan(ServerLevel ow, RandomSource r) {
         long now = ow.getServer().getTickCount(), rest = 20L * EventsConfig.CLAN_COOLDOWN.get();
         Map<Clan, Integer> weights = new EnumMap<>(Clan.class);
         LifeData life = LifeData.get(ow);
         for (Clan c : Clan.values()) {
-            if (!Cats.campLoaded(ow, c) || now - lastEvent.getOrDefault(c, -rest) < rest) continue;
+            if (!Cats.campActive(ow, c) || now - lastEvent.getOrDefault(c, -rest) < rest) continue;
             int w = 1;
             UUID id = life.clanId(c);
             for (ServerPlayer p : ow.getServer().getPlayerList().getPlayers()) {
@@ -156,7 +180,14 @@ public final class ClanEvents {
             w.put(Kind.BADGER, 2);
             w.put(Kind.RAID, 2);
             w.put(Kind.LOST_KIT, 1);
+            w.put(Kind.DOGS, 1);
+            w.put(Kind.ROGUES, 2);
+            if (BookEvents.ratsCanCome(ow)) w.put(Kind.RATS, 1);
         }
+        if (!leafBare && BookEvents.hasSnakes()) w.put(Kind.ADDER, 2);   // adders sleep through leaf-bare
+        w.put(Kind.KITTYPET, 2);
+        if (leafBare) w.put(Kind.SHORTAGE, 3);
+        if (BookEvents.playerInCamp(ow, c)) w.put(Kind.STORY, 3);       // a scene: only worth it with someone there to hear it
         w.put(Kind.PREDATOR, 3);
         w.put(Kind.INJURY, 4);
         w.put(Kind.SICKNESS, leafBare ? 6 : 2);
@@ -203,6 +234,7 @@ public final class ClanEvents {
         WCatEntity heir = nameMedicineCat(life, c, cats);
         if (heir == null) return;
         Announce.tell(ow, c, Cats.campCentre(ow, c), medicineChosen(life, c, heir));
+        EventNews.record(c, Cats.plainName(heir) + " has become " + Info.of(c).title + "'s medicine cat.");
     }
 
     /** Makes one of {@code cats} the Clan's medicine cat (an apprentice if there is one, else a warrior who is not the leader); null if none fits. */
@@ -257,7 +289,7 @@ public final class ClanEvents {
         List<WCatEntity> cats = Cats.atCamp(ow, c).stream()
                 .filter(x -> x.getRank() != WCatEntity.Rank.KIT && !Cats.isLeader(LifeData.get(ow), c, x)).toList();
         if (cats.isEmpty()) return false;
-        WCatEntity oldest = cats.stream().max(java.util.Comparator.comparingDouble(WCatEntity::getAgeInMoons)).get();
+        WCatEntity oldest = cats.stream().max(java.util.Comparator.comparingDouble(com.ninjacat.greatjourney.clanlore.traits.Traits::moons)).get();
         Deaths.diePeacefully(oldest);
         return true;
     }

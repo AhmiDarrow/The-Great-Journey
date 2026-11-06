@@ -1,0 +1,10 @@
+{
+  "type": "neoforge:add_spawns",
+  "biomes": "#clanwild:rabbit_woods",
+  "spawners": {
+    "type": "minecraft:rabbit",
+    "weight": 6,
+    "minCount": 2,
+    "maxCount": 3
+  }
+}

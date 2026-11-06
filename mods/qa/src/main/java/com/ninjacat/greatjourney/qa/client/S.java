@@ -321,7 +321,9 @@ final class S {
                     }
                     Driver.LOG.info("[QA] NOTE {} {} choosing '{}' of {}", Driver.player(mc), Driver.scenario, cs.get(pick).label(),
                             cs.stream().map(ClanPayloads.ChoiceView::label).toList());
-                    if (mc.player != null) choicePos = new double[] {mc.player.getX(), mc.player.getZ()};
+                    // where the step's first choice (a start, a join) was made: later ones in the same step (the seek
+                    // choice, the guide's offer, answered at the new home) are not where the move began
+                    if (mc.player != null && st[2] == 0) choicePos = new double[] {mc.player.getX(), mc.player.getZ()};
                     d.keyPressed(GLFW.GLFW_KEY_1 + pick, 0, 0);
                     st[2]++;
                 } else {

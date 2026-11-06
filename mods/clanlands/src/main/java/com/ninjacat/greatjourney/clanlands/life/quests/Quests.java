@@ -33,6 +33,7 @@ public final class Quests {
         NeoForge.EVENT_BUS.addListener(Talk::onInteract);
         NeoForge.EVENT_BUS.addListener(Tracking::onDeath);
         NeoForge.EVENT_BUS.addListener(Tracking::onFished);
+        Patrols.init();
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> {
             if (e.getServer().getTickCount() % 20 == 7 && ClanWorld.current() != null
                     && ClanWorld.isClanWorld(e.getServer().overworld())) {
@@ -54,6 +55,16 @@ public final class Quests {
         }));
         q.then(Commands.literal("warrior").then(Commands.argument("suffix", StringArgumentType.word()).executes(c ->
                 Story.becomeWarrior(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "suffix")) ? 1 : 0)));
+        // a place in the Clan: the apprentice's path, and the grown cat's role (Paths)
+        q.then(withCat("place", Paths::offer));
+        q.then(Commands.literal("path").then(Commands.argument("path", StringArgumentType.word()).executes(c -> {
+            String path = StringArgumentType.getString(c, "path");
+            if (!path.equals("warrior") && !path.equals("medicine")) return 0;
+            return Paths.choosePath(c.getSource().getPlayerOrException(),
+                    path.equals("medicine") ? QuestState.Path.MEDICINE : QuestState.Path.WARRIOR) ? 1 : 0;
+        })));
+        q.then(Commands.literal("role").then(Commands.argument("role", StringArgumentType.word()).executes(c ->
+                Paths.takeRole(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "role")) ? 1 : 0)));
         q.then(Commands.literal("drop").then(Commands.argument("slot", IntegerArgumentType.integer(1, QuestState.MAX_DUTIES)).executes(c -> {
             ServerPlayer p = c.getSource().getPlayerOrException();
             List<Task> d = QuestState.duties(p);

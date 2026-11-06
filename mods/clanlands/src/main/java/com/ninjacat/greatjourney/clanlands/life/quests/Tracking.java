@@ -40,7 +40,7 @@ public final class Tracking {
         for (Task t : QuestState.active(p)) {
             boolean tc = false;
             for (Task.Objective o : t.objectives) {
-                if (o.done() || !Kin.prey(o.key).contains(id)) continue;
+                if (o.done() || !Kin.anyPrey(id)) continue;                 // any prey, not only the Clan's favourite
                 switch (o.type) {
                     case CATCH -> {
                         o.progress = Math.min(o.goal, o.progress + n);
@@ -95,6 +95,9 @@ public final class Tracking {
                             }
                         }
                         case BRING -> o.progress = Math.min(o.goal, Bag.count(p, o.key));
+                        case CURE -> {
+                            if (!o.done() && Patients.cured(p.serverLevel(), o, p.level().getGameTime())) o.progress = o.goal;
+                        }
                         case CATCH_IN_TIME -> {
                             if (!o.done() && o.started != 0 && p.level().getGameTime() - o.started > o.y * 20L && o.progress > 0) {
                                 o.progress = 0;                           // too slow: the assessment starts over
@@ -121,7 +124,9 @@ public final class Tracking {
                 }
             }
             if (changed) Ui.push(p);
+            com.ninjacat.greatjourney.clanlands.life.Kits.tick(p);    // a kit grows old enough to train (Kits)
             Story.tick(p);
+            Errands.tick(p);                                       // a Campaign errand done (Errands)
         }
     }
 

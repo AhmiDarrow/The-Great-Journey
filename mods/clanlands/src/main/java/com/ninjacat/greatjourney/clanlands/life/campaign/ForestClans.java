@@ -11,6 +11,7 @@ import com.ninjacat.greatjourney.clanlands.life.ChunkWait;
 import com.ninjacat.greatjourney.clanlands.life.ClanNames;
 import com.ninjacat.greatjourney.clanlands.life.Homeland;
 import com.ninjacat.greatjourney.clanlands.life.LifeData;
+import com.ninjacat.greatjourney.clanlands.life.Nests;
 import com.ninjacat.greatjourney.clanlands.world.ClanWorld;
 import java.util.ArrayList;
 import java.util.List;
@@ -134,6 +135,8 @@ final class ForestClans {
                     cd.setDirty();
                     level.getServer().execute(() -> ChunkWait.whenLoaded(level, camp.x(), camp.z(), (int) camp.radius(), () -> populate(level, w, life, c, camp, null)));
                 }
+            } else if (!cd.departed) {
+                Nests.furnishIfDue(level, Homeland.forestCamp(w, c), loaded);       // filled before every den had its nests
             }
             if (cd.lakeFounded && !cd.lakeArrived.contains(c)) {
                 Landmark camp = w.lake.camp(c);
@@ -143,6 +146,8 @@ final class ForestClans {
                     List<String> roster = cd.roster.getOrDefault(c, List.of());
                     level.getServer().execute(() -> ChunkWait.whenLoaded(level, camp.x(), camp.z(), (int) camp.radius(), () -> populate(level, w, life, c, camp, roster)));
                 }
+            } else if (cd.lakeArrived.contains(c)) {
+                Nests.furnishIfDue(level, w.lake.camp(c), loaded);
             }
         }
     }
@@ -183,6 +188,9 @@ final class ForestClans {
         int cx = (int) Math.floor(camp.x()), cz = (int) Math.floor(camp.z());
         BlockPos centre = BookClans.surface(level, cx, cz);
         place(level, BookClans.surface(level, cx + 2, cz), block("warriorcats_events:fresh_kill_pile"));
+        BookClans.furnish(level, camp);                             // every den's beds, slept in or not
+        Nests.markFurnished(level, camp);
+        if (roster != null) Nests.rehome(level, c, camp);          // the Clan's players move their nests to the new camp
         int[] perDen = new int[com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.values().length];
         for (int i = 0; i < cats.size(); i++) {
             Role role = (Role) cats.get(i)[0];

@@ -239,7 +239,8 @@ public final class CampPlan {
         double mid = mouth + length - 2;
         // dug level into the hollow's side from the mouth, so it runs ever deeper under the rising slope
         int y = (int) Math.round(w.sample(cx + Math.cos(a) * mouth, cz + Math.sin(a) * mouth).height()) + 1;
-        return new Den(kind, cx + Math.cos(a) * mid, cz + Math.sin(a) * mid, 2.2, 2, a + Math.PI, Den.Shape.BURROW, length, y);
+        // (the warriors' chamber a little wider: it holds the most nests)
+        return new Den(kind, cx + Math.cos(a) * mid, cz + Math.sin(a) * mid, kind == DenKind.WARRIORS ? 2.7 : 2.2, 2, a + Math.PI, Den.Shape.BURROW, length, y);
     }
 
     /**
@@ -382,16 +383,71 @@ public final class CampPlan {
         return dens.get(0);
     }
 
+    /** How many nests a den of this kind holds (fewer where the den has no room for them). */
+    public static int nestCount(DenKind kind) {
+        return switch (kind) {
+            case WARRIORS -> 8;
+            case NURSERY, APPRENTICES -> 4;
+            case ELDERS -> 3;
+            case MEDICINE -> 2;
+            case LEADER -> 1;
+        };
+    }
+
     /**
-     * Where the {@code index}th cat of a den sleeps {x, z}: the den's middle, then round it a block or so in. Dens
-     * hold a handful of cats each.
+     * Every nest of a den {x, z}, each the middle of its own block on the den's open floor: the den's middle first,
+     * then spread round it, clear of the way in. Every one gets a moss bed whether or not a cat sleeps there, and the
+     * painter keeps them all bare.
      */
+    public List<double[]> nests(DenKind kind) {
+        return nestSpots.computeIfAbsent(kind, k -> spread(den(k), nestCount(k)));
+    }
+
+    /** Where the {@code index}th cat of a den sleeps {x, z}; a den fuller than its nests doubles cats up. */
     public double[] nest(DenKind kind, int index) {
-        Den d = den(kind);
-        if (index == 0) return new double[] {d.x(), d.z()};
-        double room = Math.max(0.8, d.radius() - 1.6);
-        double a = d.door() + Math.PI + (index - 1) * 2.1;
-        double rr = room * (index % 2 == 0 ? 1 : 0.6);
-        return new double[] {d.x() + Math.cos(a) * rr, d.z() + Math.sin(a) * rr};
+        List<double[]> all = nests(kind);
+        return all.get(Math.floorMod(index, all.size()));
+    }
+
+    private final Map<DenKind, List<double[]>> nestSpots = new ConcurrentHashMap<>();
+
+    private List<double[]> spread(Den d, int count) {
+        // the blocks of the den's floor a cat can lie on (the shapes Camps cuts), less the way from the door
+        List<double[]> free = new ArrayList<>();
+        int r = (int) Math.ceil(d.radius()) + 1;
+        int bx = (int) Math.floor(d.x()), bz = (int) Math.floor(d.z());
+        for (int x = bx - r; x <= bx + r; x++) {
+            for (int z = bz - r; z <= bz + r; z++) {
+                double px = x + 0.5, pz = z + 0.5, dd = Math.hypot(px - d.x(), pz - d.z());
+                double along = (px - d.x()) * Math.cos(d.door()) + (pz - d.z()) * Math.sin(d.door());
+                double lat = -(px - d.x()) * Math.sin(d.door()) + (pz - d.z()) * Math.cos(d.door());
+                boolean floor = switch (d.shape()) {
+                    case DOME -> dd < d.radius() - 1.0;                               // under the roof
+                    case BURROW -> dd <= d.radius() - 0.2;                            // the chamber
+                    case CLEFT -> dd <= d.radius() && !(style == Style.STONE_HOLLOW && along < -d.radius() + 1.6 && Math.abs(lat) < 1.2);   // not the pool
+                    case CAVE -> dd <= d.radius();
+                };
+                if (floor && !(along > 0.5 && Math.abs(lat) < 1.0)) free.add(new double[] {px, pz});
+            }
+        }
+        // the middle first (where the den's one nest always was), then each the furthest from those already laid
+        List<double[]> out = new ArrayList<>();
+        out.add(new double[] {bx + 0.5, bz + 0.5});
+        free.removeIf(f -> f[0] == bx + 0.5 && f[1] == bz + 0.5);
+        while (out.size() < count && !free.isEmpty()) {
+            double[] best = null;
+            double bestGap = -1;
+            for (double[] f : free) {
+                double gap = Double.MAX_VALUE;
+                for (double[] o : out) gap = Math.min(gap, Math.hypot(f[0] - o[0], f[1] - o[1]));
+                if (gap > bestGap + 1e-9) {
+                    bestGap = gap;
+                    best = f;
+                }
+            }
+            out.add(best);
+            free.remove(best);
+        }
+        return List.copyOf(out);
     }
 }

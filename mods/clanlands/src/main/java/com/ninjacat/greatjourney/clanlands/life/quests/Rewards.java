@@ -43,6 +43,9 @@ final class Rewards {
             case MOSS_BALL -> "Look at them pounce! You've earned the nursery's thanks.";
             case CLIMB -> "You climbed like a squirrel! A warrior needs that.";
             case STALK -> "Silent paws, quick strike. That's how a warrior hunts.";
+            case TEND -> "That's much better already. Thank you. StarClan guides your paws.";
+            case HERB_STORE -> "Fresh and well picked. The store will see us through a moon or more. Here, take some traveling herbs.";
+            case ELDER_HERBS -> "Ahh. That's eased the ache, young one. Sit a while, and I'll tell you how it was in my day...";
             default -> "Well done.";
         };
     }

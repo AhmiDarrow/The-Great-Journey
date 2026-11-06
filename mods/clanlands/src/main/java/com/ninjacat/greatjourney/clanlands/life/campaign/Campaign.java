@@ -18,8 +18,10 @@ import com.ninjacat.greatjourney.clanlands.life.Mode;
 import com.ninjacat.greatjourney.clanlands.life.Starts;
 import com.ninjacat.greatjourney.clanlands.life.dream.Dream;
 import com.ninjacat.greatjourney.clanlands.life.dream.DreamClearing;
+import com.ninjacat.greatjourney.clanlands.life.quests.Errands;
 import com.ninjacat.greatjourney.clanlands.life.quests.QuestLog;
 import com.ninjacat.greatjourney.clanlands.life.quests.QuestState;
+import com.ninjacat.greatjourney.clanlands.life.quests.StoryTasks;
 import com.ninjacat.greatjourney.clanlands.life.rpg.JournalView;
 import com.ninjacat.greatjourney.clanlands.life.rpg.Journals;
 import com.ninjacat.greatjourney.clanlands.world.ClanWorld;
@@ -200,19 +202,23 @@ public final class Campaign {
                 go(p, x, z, q -> Dialog.play(q, lake
                         ? List.of(Line.narrate("You are a kittypet, warm and well fed in your Twoleg garden."),
                                 Line.narrate("Beyond the fence the woods rustle with strange scents. Wild cats live out there, they say..."),
-                                Line.narrate("Climb the fence and explore when you are ready."))
+                                Starts.seekLine("Four Clans of wild cats live around the lake. Which Clan's cats will you seek? Or climb the fence and explore when you are ready.",
+                                        "None yet: I'll explore", null))
                         : List.of(Line.narrate("You are a kittypet, warm and well fed in a Twoleg nest at the very edge of the forest."),
                                 Line.narrate("Every night you dream of the woods beyond your garden fence: of hunting, and of the wild cats who live there."),
-                                Line.narrate("ThunderClan's woods begin just past the fence. Climb it and explore when you are ready."))));
+                                Starts.seekLine("ThunderClan's woods begin just past the fence. Which Clan's cats will you seek? Or climb the fence and explore when you are ready.",
+                                        "None yet: I'll explore", null))));
             }
             case LONER -> {
                 double[] s = lake ? w.lake.lonerSpot() : w.forest.lonerSpot();
                 outsider(p, start, s[0], s[1]);
                 go(p, s[0], s[1], q -> Dialog.play(q, lake
                         ? List.of(Line.narrate("You are a loner, belonging to no one. The great lake shines before you."),
-                                Line.narrate("Four Clans live around these shores. Their patrols may find you if you wander into their land. Or walk your own path."))
+                                Starts.seekLine("Four Clans live around these shores. Which Clan's cats will you seek? Their patrols may find you anyway if you wander into their land.",
+                                        "None yet: I'll walk my own path", null))
                         : List.of(Line.narrate("You are a loner, belonging to no one. Behind you lies a Twoleg farm; ahead, the high moor where WindClan runs."),
-                                Line.narrate("Four Clans live in the forest beyond. Their patrols may find you if you wander into their land. Or walk your own path."))));
+                                Starts.seekLine("Four Clans live in the forest beyond. Which Clan's cats will you seek? Their patrols may find you anyway if you wander into their land.",
+                                        "None yet: I'll walk my own path", null))));
             }
             default -> {
                 return false;
@@ -231,6 +237,17 @@ public final class Campaign {
         d.putDouble("startZ", z);
         d.putBoolean("journal", true);
         Starts.giveGuide(p);
+    }
+
+    /**
+     * Whether a kittypet or loner in a Campaign world may seek a Clan and be guided to it: they have no Clan yet and
+     * the Clans have camps (not while they are away on the Great Journey).
+     */
+    public static boolean maySeek(ServerPlayer p) {
+        MinecraftServer server = p.getServer();
+        if (server == null || !active(server) || chapter(p) != Chapter.OUTSIDER) return false;
+        CampaignData cd = CampaignData.get(server.overworld());
+        return !(cd.departed && !cd.lakeFounded);
     }
 
     /** Whether the player has no Clan yet in a Campaign world (choosing, or a kittypet or loner). */
@@ -279,10 +296,13 @@ public final class Campaign {
             int i = 0;
             for (Clan c : Clan.values()) {
                 double a = i++ * Math.PI / 2 + turn;
-                leaders.put(c, SceneCats.spawn(level, life.leader(c), fx + Math.cos(a) * 4, fz + Math.sin(a) * 4, SCENE_TAG));
+                // the leaders stand on the rock looking out over their Clans; the warriors sit below, facing the rock
+                leaders.put(c, SceneCats.spawn(level, life.leader(c), fx + Math.cos(a) * 4, fz + Math.sin(a) * 4, SCENE_TAG,
+                        fx + Math.cos(a) * 40, fz + Math.sin(a) * 40, false));
                 for (int k = 0; k < 2; k++) {
                     double b = a + (k == 0 ? -0.35 : 0.35);
-                    SceneCats.spawn(level, ForestClans.names(w, c).warrior().full(), fx + Math.cos(b) * ring * 0.6, fz + Math.sin(b) * ring * 0.6, SCENE_TAG);
+                    SceneCats.spawn(level, ForestClans.names(w, c).warrior().full(), fx + Math.cos(b) * ring * 0.6, fz + Math.sin(b) * ring * 0.6, SCENE_TAG,
+                            fx, fz, true);
                 }
             }
             ServerPlayer q = level.getServer().getPlayerList().getPlayer(who);
@@ -442,6 +462,8 @@ public final class Campaign {
     /** What happens for one player in their current chapter. */
     private static void progress(ServerPlayer p, Chapter ch, CampaignData cd, ClanWorld w) {
         if (Dialog.busy(p)) return;
+        errands(p, ch, cd, w);
+        if (Dialog.busy(p)) return;
         CompoundTag d = data(p);
         long now = p.level().getGameTime();
         switch (ch) {
@@ -493,10 +515,17 @@ public final class Campaign {
             case PASS -> reach(p, w.journey.mountainPass(), 70, Chapter.TRIBE,
                     Line.narrate("The mountains are cold and bare. Wind howls between the rocks and there is little prey."),
                     Line.narrate("A shadow sweeps over the snow: an eagle! The Clans press close together under an overhang until it is gone."));
-            case TRIBE -> reach(p, w.journey.tribeCave(), 35, Chapter.LAKE,
-                    Line.narrate("Behind a roaring waterfall you find a cave, and in it, cats who live among the peaks: the Tribe of Rushing Water."),
-                    Line.say("A Tribe healer", TRIBE, "Welcome, travellers. Rest in our cave and share our prey. The mountains are hard for those who do not know them."),
-                    Line.say("A Tribe healer", TRIBE, "Go on when you are rested. Your ancestors have shown you the way. We have seen it in the stars."));
+            case TRIBE -> {
+                boolean healer = healer(p);
+                if (reach(p, w.journey.tribeCave(), 35, Chapter.LAKE,
+                        Line.narrate("Behind a roaring waterfall you find a cave, and in it, cats who live among the peaks: the Tribe of Rushing Water."),
+                        Line.say("A Tribe healer", TRIBE, "Welcome, travellers. Rest in our cave and share our prey. The mountains are hard for those who do not know them."),
+                        healer ? Line.say("A Tribe healer", TRIBE, "You carry the scent of herbs. You are a healer too? Take these: juniper grows high among the peaks, and it keeps the cold out of a cat's chest.")
+                                : Line.say("A Tribe cave-guard", TRIBE, "You walk like one of our cave-guards, stranger. If an eagle comes for you on the way down, strike first and strike hard."),
+                        Line.say("A Tribe healer", TRIBE, "Go on when you are rested. Your ancestors have shown you the way. We have seen it in the stars.")) && healer) {
+                    giveItem(p, "warriorcats_events:juniper_berries", 3);
+                }
+            }
             case LAKE -> {
                 if (near(p, w.journey.lakeArrival(), 70)) {
                     setChapter(p, Chapter.LAKE_CAMP);
@@ -516,10 +545,21 @@ public final class Campaign {
                         Line.narrate("Your Clan has chosen its new camp. Clanmates are already gathering moss for new dens."),
                         Line.narrate("It smells strange and new. It will smell like home soon enough."));
             }
-            case MOONPOOL -> reach(p, w.lake.moonpool(), 30, Chapter.GATHERING,
-                    Line.narrate("You follow a stream up into the hills, and find a hollow of stone. A waterfall spills into a small, still pool."),
-                    Line.narrate("The stars shine in the water, brighter than they should. You feel warm, as if old friends were watching."),
-                    Line.narrate("This is the Moonpool, where medicine cats will share tongues with StarClan."));
+            case MOONPOOL -> {
+                if (healer(p)) {
+                    reach(p, w.lake.moonpool(), 30, Chapter.GATHERING,
+                            Line.narrate("You follow a stream up into the hills, and find a hollow of stone. A waterfall spills into a small, still pool."),
+                            Line.narrate("The stars shine in the water, brighter than they should. A sweet scent drifts over it, and for a heartbeat you see a dappled pelt among the stars."),
+                            Line.say("Spottedleaf", STARCLAN, "You found it, " + Joining.catName(p) + ". This is where you will come at every half moon, you and the other medicine cats, to share tongues with us."),
+                            Line.say("Spottedleaf", STARCLAN, "Bring your Clan's troubles here, and we will listen. We are never far."),
+                            Line.narrate("This is the Moonpool. Your Clan's medicine cats will dream here for all the moons to come."));
+                } else {
+                    reach(p, w.lake.moonpool(), 30, Chapter.GATHERING,
+                            Line.narrate("You follow a stream up into the hills, and find a hollow of stone. A waterfall spills into a small, still pool."),
+                            Line.narrate("The stars shine in the water, brighter than they should. You feel warm, as if old friends were watching."),
+                            Line.narrate("This is the Moonpool, where medicine cats will share tongues with StarClan."));
+                }
+            }
             case GATHERING -> {
                 Landmark island = w.lake.landmarks().stream().filter(l -> l.kind() == Landmark.Kind.ISLAND_TREE).findFirst().orElse(null);
                 if (island != null && p.level().isNight() && near(p, new double[] {island.x(), island.z()}, 45)) {
@@ -530,10 +570,14 @@ public final class Campaign {
                     }
                     LifeData life = LifeData.get(p.getServer().overworld());
                     // the leader steps out beside the player for the speech (nobody stands on the island otherwise)
-                    Entity leader = SceneCats.spawn(p.serverLevel(), life.leader(ownOr(p, Clan.THUNDER)), p.getX() + 4, p.getZ(), SCENE_TAG);
+                    Entity leader = SceneCats.spawn(p.serverLevel(), life.leader(ownOr(p, Clan.THUNDER)), p.getX() + 4, p.getZ(), SCENE_TAG,
+                            p.getX(), p.getZ(), false);
                     Dialog.play(p,
                             Line.narrate("The moon is full. Across the fallen-tree bridge they come, cats of all four Clans, to the first Gathering at the lake."),
                             Line.say(life.leader(ownOr(p, Clan.THUNDER)), Info.of(ownOr(p, Clan.THUNDER)).colour, "We have come a long way together. Now each Clan has its own home again, and here we will meet in peace, as we always have.").speakerEntity(leader),
+                            Line.narrate(healer(p)
+                                    ? "At the foot of the great tree the medicine cats of all four Clans sit together, as they always have, sharing news of the sick and of the herbs in their new lands."
+                                    : "Beneath the great tree, warriors of all four Clans share tongues and trade stories of the journey: the Thunderpath, the mountains, the eagles."),
                             Line.narrate("The story of the Great Journey is told. Your own story goes on. Live it as you choose."));
                 }
             }
@@ -541,11 +585,71 @@ public final class Campaign {
         }
     }
 
-    private static void reach(ServerPlayer p, double[] at, double radius, Chapter next, Line... scene) {
-        if (!near(p, at, radius)) return;
+    private static boolean reach(ServerPlayer p, double[] at, double radius, Chapter next, Line... scene) {
+        if (!near(p, at, radius)) return false;
         setChapter(p, next);
         Dialog.play(p, scene);
         Journals.push(p);
+        return true;
+    }
+
+    // --- the errands along the way, a warrior's or a medicine cat's (StoryTasks)
+
+    private static boolean healer(ServerPlayer p) {
+        return QuestState.path(p) == QuestState.Path.MEDICINE;
+    }
+
+    /** Which of the four errands this chapter brings (null for none). */
+    private static String errandFor(Chapter ch, boolean healer) {
+        String stage = switch (ch) {
+            case DARK_TIMES, SUN_DROWN, TELL_CLAN -> "dark";
+            case HIGHWAY, FARM -> "journey";
+            case PASS, TRIBE -> "pass";
+            case LAKE_CAMP, MOONPOOL, GATHERING, COMPLETE -> "lake";
+            default -> null;
+        };
+        if (stage == null) return null;
+        return stage + "." + switch (stage) {
+            case "dark" -> healer ? "herbs" : "hunt";
+            case "journey" -> healer ? "herbs" : "hunt";
+            case "pass" -> healer ? "tend" : "scout";
+            default -> healer ? "den" : "borders";
+        };
+    }
+
+    /**
+     * Gives the chapter's errand once, if no other is under way; the forest's errand is set aside when the Clans
+     * leave. Nothing in the story waits on an errand.
+     */
+    private static void errands(ServerPlayer p, Chapter ch, CampaignData cd, ClanWorld w) {
+        Clan c = clanOf(p);
+        if (c == null) return;
+        if (cd.departed && Errands.current(p).startsWith("dark.")) {
+            Errands.drop(p, "There is no time for that now: the Clans are leaving the forest.");
+        }
+        String id = errandFor(ch, healer(p));
+        if (id == null || Errands.busy(p) || Errands.given(p, id)) return;
+        StoryTasks.Def def = switch (id.substring(0, id.indexOf('.'))) {
+            case "dark" -> StoryTasks.forestEnd(p, Homeland.forestCamp(w, c));
+            case "journey" -> StoryTasks.journeyStart(p);
+            case "pass" -> StoryTasks.mountains(p, w.journey.mountainPass(), w.journey.tribeCave(), companions(p, c));
+            default -> cd.lakeFounded ? StoryTasks.newHome(p, c, w.lake.camp(c)) : null;
+        };
+        if (def != null) def.give(p);
+    }
+
+    /** The Clanmates walking with the player on the Great Journey. */
+    private static List<net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity> companions(ServerPlayer p, Clan c) {
+        UUID id = LifeData.get(p.getServer().overworld()).clanId(c);
+        return p.serverLevel().getEntitiesOfClass(net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity.class, p.getBoundingBox().inflate(32),
+                cat -> cat.isAlive() && id != null && id.equals(cat.getClanUUID()) && cat.getTags().contains(ForestClans.ESCORT_TAG));
+    }
+
+    private static void giveItem(ServerPlayer p, String id, int n) {
+        var item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(net.minecraft.resources.ResourceLocation.parse(id));
+        if (item == net.minecraft.world.item.Items.AIR) return;
+        var stack = new net.minecraft.world.item.ItemStack(item, n);
+        if (!p.getInventory().add(stack)) p.drop(stack, false);
     }
 
     /** StarClan's sign: a dream under the stars, then back to the forest with a task. */
@@ -568,6 +672,9 @@ public final class Campaign {
                 Line.narrate("That night you dream. You stand in a clearing under a sky crowded with stars."),
                 Line.say("Bluestar", STARCLAN, "Dark times have come to the forest, young one. The Twolegs will not stop."),
                 Line.say("Spottedleaf", STARCLAN, "Go to where the sun drowns. Far to the west, where the land ends in water. Listen to the one you meet there."),
+                Line.say("Spottedleaf", STARCLAN, healer(p)
+                        ? "You are a medicine cat, " + Joining.catName(p) + ". We speak to you so that you can speak to your Clan, and they will listen."
+                        : "Your Clan will need every warrior's strength, " + Joining.catName(p) + ". Be ready."),
                 Line.say("Bluestar", STARCLAN, "Go with courage. StarClan walks with you.").withChoices(Choice.of("Wake up", "greatjourney campaign wake")));
     }
 
@@ -698,14 +805,8 @@ public final class Campaign {
     }
 
     private static void giveJournal(ServerPlayer p) {
-        CompoundTag d = data(p);
-        if (d.getBoolean("journal")) return;
-        d.putBoolean("journal", true);
-        var item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("clanlands", "journal"));
-        if (item != net.minecraft.world.item.Items.AIR) {
-            var stack = new net.minecraft.world.item.ItemStack(item);
-            if (!p.getInventory().add(stack)) p.drop(stack, false);
-        }
+        data(p).putBoolean("journal", true);
+        com.ninjacat.greatjourney.clanlands.life.Keepsakes.ensure(p);
     }
 
     /** In a Campaign world the journal leads with the story's current chapter. */
@@ -713,9 +814,10 @@ public final class Campaign {
         MinecraftServer server = p.getServer();
         if (server == null || Mode.of(server) != Mode.CAMPAIGN) return v;
         Chapter ch = chapter(p);
-        String goal = ch == Chapter.OUTSIDER ? Outsiders.goal(p) : ch.goal;
+        boolean healer = healer(p);
+        String goal = ch == Chapter.OUTSIDER ? Outsiders.goal(p) : ch.goal(healer);
         List<JournalView.Quest> quests = new ArrayList<>();
-        quests.add(new JournalView.Quest("campaign", "Act " + ch.act + ": " + ch.title, "The story", goal,
+        quests.add(new JournalView.Quest("campaign", "Act " + ch.act + ": " + ch.title(healer), "The story", goal,
                 List.of(new JournalView.Objective(goal, ch == Chapter.COMPLETE ? 1 : 0, 1)), true, ch == Chapter.COMPLETE));
         quests.addAll(v.quests());
         return new JournalView(v.catName(), v.clan(), v.rank(), v.clanColour(), v.standing(), goal, quests, v.places(), v.clanmates(), v.starclan());

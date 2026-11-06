@@ -4,6 +4,7 @@ import com.ninjacat.greatjourney.clanlands.layout.Landmark;
 import com.ninjacat.greatjourney.clanlands.layout.Sectors.Clan;
 import com.ninjacat.greatjourney.clanlands.life.BookClans;
 import com.ninjacat.greatjourney.clanlands.life.BookClans.Info;
+import com.ninjacat.greatjourney.clanlands.life.Starts;
 import com.ninjacat.greatjourney.clanlands.life.ChunkWait;
 import com.ninjacat.greatjourney.clanlands.life.ClanNames;
 import com.ninjacat.greatjourney.clanlands.life.Dialog;
@@ -48,6 +49,7 @@ final class Outsiders {
             return;
         }
         if (cd.departed && !cd.lakeFounded) {
+            Starts.clearSeek(p);                            // no camps to be guided to: the Clans are on their way
             if (now - d.getLong("asked") > 2400) {
                 d.putLong("asked", now);
                 List<Choice> choices = new ArrayList<>();
@@ -65,6 +67,12 @@ final class Outsiders {
                 d.putLong("asked", now);
                 Dialog.subtitle(p, Line.narrate("The forest is empty and torn. The Clans live by a great lake now, far to the north-west, past the mountains."));
             }
+            return;
+        }
+        // a cat who chose a Clan is guided there by one of its cats, not stopped by every patrol on the way
+        Info seek = Starts.seeking(p);
+        if (seek != null) {
+            Starts.guideTick(p, seek, now);
             return;
         }
         boolean firstEver = true;
@@ -125,7 +133,7 @@ final class Outsiders {
             BlockPos centre = BlockPos.containing(camp.x(), p.getY(), camp.z());
             Map<String, Entity> cats = new HashMap<>();
             for (int i = 0; i < who.size(); i++) {
-                BlockPos at = BookClans.surface(ow, (int) Math.floor(ax + (i - 1) * 2), (int) Math.floor(az));
+                BlockPos at = BookClans.safeSpot(ow, (int) Math.floor(ax + (i - 1) * 2), (int) Math.floor(az), 3);   // not up in a tree
                 cats.put(who.get(i).full(), BookClans.spawnCat(ow, clan, id, i == 2 ? BookClans.Role.APPRENTICE : BookClans.Role.WARRIOR, who.get(i),
                         r.nextInt(2), at, centre, r));
             }

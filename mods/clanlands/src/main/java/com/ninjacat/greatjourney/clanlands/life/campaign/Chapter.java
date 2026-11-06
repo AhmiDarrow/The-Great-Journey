@@ -32,6 +32,22 @@ public enum Chapter {
         this.goal = goal;
     }
 
+    /** The chapter's title for a cat on the medicine cat's path ({@code healer}) or the warrior's. */
+    String title(boolean healer) {
+        return healer && this == WARRIOR_LIFE ? "A medicine cat of the old forest" : title;
+    }
+
+    /** What the chapter asks of a cat on the medicine cat's path ({@code healer}) or the warrior's. */
+    String goal(boolean healer) {
+        if (!healer) return goal;
+        return switch (this) {
+            case APPRENTICE -> "Learn the ways of a medicine cat from your Clan's medicine cat, and earn your full name.";
+            case WARRIOR_LIFE -> "Heal your Clan: cure the sick, keep the herb store full, and share tongues with StarClan at the half moon.";
+            case DARK_TIMES -> "Twoleg monsters are tearing down the trees and the herbs with them. The sick are many. The Clans wait for a sign from StarClan.";
+            default -> goal;
+        };
+    }
+
     /** Where a cat who joins (or chooses a Clan) now begins, given where the world's story stands. */
     static Chapter startFor(int worldAct, boolean signGiven, boolean departed, boolean lakeFounded) {
         if (lakeFounded) return MOONPOOL;

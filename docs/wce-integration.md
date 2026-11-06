@@ -124,7 +124,9 @@ the clan if members becomes empty**), `removeMember(UUID,UUID)`, `changeMemberRa
   - MedicineHealsCats: MEDICINE rank makes poultices from herbs in its inventory and heals injured clanmates.
   - PickupItem.
   - DeputySendsPatrols, BorderPatrolGoal, HuntingPatrolGoal: a deputy hands patrol waypoints to listed cats. Border
-    patrols re-mark stumps.
+    patrols re-mark stumps. The cat waits 1200 ticks (a minute) at every waypoint, and the goal's "not reachable"
+    counter counts every tick spent walking and is never reset: once a cat has walked 3000 ticks of patrols in all
+    (until it reloads) every patrol it is given ends at once. Our quest patrols steer their warriors themselves.
   - DepositFreshkill: prey in the cat's inventory goes to the nearest fresh-kill pile within 18 blocks.
   - BreedGoal, MoveToMate, FollowOwner, RunWithPlayer.
   - BoundedWander: within `wanderRadius` of `wanderCenter`, with a random chance to go back to its nest (home within 20

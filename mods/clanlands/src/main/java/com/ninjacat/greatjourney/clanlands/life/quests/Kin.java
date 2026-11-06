@@ -60,7 +60,11 @@ public final class Kin {
             case KIT -> Role.KIT;
             case APPRENTICE -> Role.APPRENTICE;
             default -> {
-                if (cat.getAgeInMoons() >= 80) yield Role.ELDER;
+                // Clan Lore's role first: it knows who has retired and who is nursing kits
+                var lore = com.ninjacat.greatjourney.clanlore.role.Roles.role(cat);
+                if (lore == com.ninjacat.greatjourney.clanlore.role.Role.ELDER) yield Role.ELDER;
+                if (lore == com.ninjacat.greatjourney.clanlore.role.Role.QUEEN) yield Role.QUEEN;
+                if (lore == com.ninjacat.greatjourney.clanlore.role.Role.LEADER) yield Role.LEADER;
                 if (cat.getGender() == 1 && nearKits(cat)) yield Role.QUEEN;
                 yield Role.WARRIOR;
             }
@@ -95,17 +99,21 @@ public final class Kin {
 
     /**
      * Points on the Clan's borders where it meets other Clans, nudged a little inside its own land: where a border
-     * patrol goes. Scans rings around the lake at the camp's distance and either side of it.
+     * patrol goes. Scans rings around the lake at the camp's distance and either side of it (the rings near the camp
+     * are close together, so a patrol can keep to the stretches of border nearest home).
      */
     static List<double[]> borderPoints(Clan clan) {
-        ClanWorld w = ClanWorld.current();
+        return borderPoints(ClanWorld.current(), clan);
+    }
+
+    public static List<double[]> borderPoints(ClanWorld w, Clan clan) {
         List<double[]> out = new ArrayList<>();
         if (w == null) return out;
         Landmark camp = Homeland.camp(w, clan);
         double[] heart = Homeland.centre(w);
         double cx = heart[0], cz = heart[1];
         double base = Math.hypot(camp.x() - cx, camp.z() - cz);
-        for (double f : new double[] {0.75, 1.0, 1.3}) {
+        for (double f : new double[] {0.75, 0.9, 1.0, 1.15, 1.3}) {
             double r = base * f;
             Clan prev = null;
             double prevB = 0;
@@ -127,7 +135,10 @@ public final class Kin {
 
     /** The edge of the lake in the Clan's land: walk from the camp toward the lake until the water. */
     static double[] shorePoint(Clan clan) {
-        ClanWorld w = ClanWorld.current();
+        return shorePoint(ClanWorld.current(), clan);
+    }
+
+    public static double[] shorePoint(ClanWorld w, Clan clan) {
         Landmark camp = Homeland.camp(w, clan);
         double[] heart = Homeland.centre(w);
         double dx = heart[0] - camp.x(), dz = heart[1] - camp.z(), len = Math.hypot(dx, dz);
@@ -140,14 +151,23 @@ public final class Kin {
         return last;
     }
 
-    /** The far edge of the Clan's land: walk from the camp away from the lake until the territory ends. */
+    /**
+     * The far edge of the Clan's land: walk from the camp away from the lake until the territory ends. The lands are
+     * wide (the true edge can lie a thousand blocks out), so the walk stops short where the round trip, down to the
+     * shore and out again, would outgrow a duty's walk ({@link Tasks#ROUTE_CAP}): the far reaches, if not the very edge.
+     */
     static double[] farEdgePoint(Clan clan) {
-        ClanWorld w = ClanWorld.current();
+        return farEdgePoint(ClanWorld.current(), clan);
+    }
+
+    public static double[] farEdgePoint(ClanWorld w, Clan clan) {
         Landmark camp = Homeland.camp(w, clan);
         double[] heart = Homeland.centre(w);
         double dx = camp.x() - heart[0], dz = camp.z() - heart[1], len = Math.hypot(dx, dz);
+        double[] shore = shorePoint(w, clan);
+        double reach = Math.max(200, Tasks.ROUTE_CAP / 2 - Math.hypot(shore[0] - camp.x(), shore[1] - camp.z()));
         double[] last = {camp.x(), camp.z()};
-        for (double s = 0; s < 3000; s += 12) {
+        for (double s = 0; s < Math.min(3000, reach); s += 12) {
             double x = camp.x() + dx / len * s, z = camp.z() + dz / len * s;
             if (Homeland.territoryAt(w, x, z) != clan) return last;
             last = new double[] {x, z};
@@ -175,6 +195,30 @@ public final class Kin {
             default -> Set.of("warriorcats_events:mouse", "warriorcats_events:squirrel", "warriorcats_events:pigeon",
                     "minecraft:rabbit", "minecraft:frog", "warriorcats_events:lizard", "minecraft:cod", "minecraft:salmon");
         };
+    }
+
+    /** Every Clan's prey, and the rest Warrior Cats Events counts as prey. */
+    private static final Set<String> ALL_PREY = allPrey();
+    private static final net.minecraft.tags.TagKey<net.minecraft.world.entity.EntityType<?>> MORE_PREY = net.minecraft.tags.TagKey.create(
+            net.minecraft.core.registries.Registries.ENTITY_TYPE, net.minecraft.resources.ResourceLocation.parse("warriorcats_events:additional_prey"));
+
+    private static Set<String> allPrey() {
+        Set<String> all = new java.util.HashSet<>();
+        for (String set : new String[] {"thunder", "wind", "river", "shadow", "any"}) all.addAll(prey(set));
+        all.addAll(Set.of("minecraft:chicken", "naturalist:bird", "naturalist:rat", "naturalist:mole", "naturalist:duck", "naturalist:lizard",
+                "alexsmobs:crow", "alexsmobs:blue_jay", "alexsmobs:jerboa"));
+        return Set.copyOf(all);
+    }
+
+    /**
+     * Whether an entity counts as a catch for any hunt: the Clan's favourite prey is only what the mentor talks of, and
+     * a WindClan apprentice's mouse feeds the Clan as well as a rabbit (playtest 2026-10-19: catches outside the Clan's
+     * own list were not counted). Anything Warrior Cats Events tags as prey counts too.
+     */
+    static boolean anyPrey(String id) {
+        if (ALL_PREY.contains(id)) return true;
+        var key = net.minecraft.resources.ResourceLocation.tryParse(id);
+        return key != null && net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getOptional(key).map(t -> t.is(MORE_PREY)).orElse(false);
     }
 
     static String preySet(Clan c) {

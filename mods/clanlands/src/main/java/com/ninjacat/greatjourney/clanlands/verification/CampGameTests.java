@@ -91,9 +91,9 @@ public final class CampGameTests {
                     if (a.shape() == CampPlan.Den.Shape.DOME && Math.hypot(a.x() - plan.cx, a.z() - plan.cz) + a.radius() > plan.clearing + 0.6) {
                         throw new IllegalStateException(at + ": the " + a.kind() + " den pokes into the barrier");
                     }
-                    for (int n = 0; n < 4; n++) {
-                        double[] nest = plan.nest(a.kind(), n);
-                        if (Math.hypot(nest[0] - a.x(), nest[1] - a.z()) > Math.max(1.0, a.radius() - 0.9)) {
+                    for (double[] nest : plan.nests(a.kind())) {
+                        // (under a dome's roof, or in a dug den's chamber, which is cut out to its full radius)
+                        if (Math.hypot(nest[0] - a.x(), nest[1] - a.z()) > (a.shape() == CampPlan.Den.Shape.DOME ? Math.max(1.0, a.radius() - 0.9) : a.radius())) {
                             throw new IllegalStateException(at + ": a nest outside the " + a.kind() + " den");
                         }
                     }

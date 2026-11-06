@@ -56,6 +56,12 @@ public final class Cats {
         return camp != null && level.isLoaded(BlockPos.containing(camp.x(), 64, camp.z()));
     }
 
+    /** Whether the camp's middle is live: loaded with its creatures moving (within a player's simulation distance). */
+    public static boolean campActive(ServerLevel level, Clan c) {
+        Landmark camp = camp(c);
+        return camp != null && level.isPositionEntityTicking(BlockPos.containing(camp.x(), 64, camp.z()));
+    }
+
     /**
      * Whether the cats of every chunk the camp covers have loaded. Entities load a little after the land: just after a
      * player arrives, a camp can be loaded with only some of its cats in it.
@@ -109,6 +115,7 @@ public final class Cats {
         for (int i = 0; i < 40; i++) {
             String sfx = WCatEntity.SUFIXES[r.nextInt(WCatEntity.SUFIXES.length)].toLowerCase(Locale.ROOT).trim();
             if (sfx.isEmpty() || sfx.equals("paw") || sfx.equals("kit") || sfx.equals("star")) continue;
+            if (!com.ninjacat.greatjourney.clanlands.life.ClanNames.fitsSuffix(sfx)) continue;
             if (prefix.toLowerCase(Locale.ROOT).endsWith(sfx.substring(0, 1))) continue;
             String full = prefix + sfx;
             if (!used.contains(full.toLowerCase(Locale.ROOT))) return full;
@@ -135,6 +142,7 @@ public final class Cats {
         cat.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, r.nextFloat() * 360, 0);
         cat.finalizeSpawn(level, level.getCurrentDifficultyAt(at), MobSpawnType.EVENT, null);
         cat.setGender(gender);
+        looks(level, cat, c, rank, home);
         rename(cat, prefix, full);
         cat.setRank(rank);
         if (rank == WCatEntity.Rank.KIT) {
@@ -155,6 +163,25 @@ public final class Cats {
         cat.wanderCenter = campCentre(level, c);
         cat.mode = WCatEntity.CatMode.WANDER;
         return cat;
+    }
+
+    /**
+     * Gives a new cat its Clan's coat leanings; a kit born in camp instead inherits from its mother (the queen whose
+     * nest it is born in) and a tom of the Clan, the way Warrior Cats Events breeds.
+     */
+    private static void looks(ServerLevel level, WCatEntity cat, Clan c, WCatEntity.Rank rank, BlockPos home) {
+        if (rank == WCatEntity.Rank.KIT && home != null) {
+            List<WCatEntity> camp = atCamp(level, c);
+            WCatEntity mother = camp.stream().filter(x -> x.getGender() == 1 && !x.isBaby() && home.equals(x.getHomePosition()))
+                    .findFirst().orElse(null);
+            if (mother != null) {
+                List<WCatEntity> toms = camp.stream().filter(x -> x.getGender() == 0 && !x.isBaby()).toList();
+                WCatEntity father = toms.isEmpty() ? null : toms.get(cat.getRandom().nextInt(toms.size()));
+                com.ninjacat.greatjourney.clanlands.life.BookLooks.kit(cat, c, mother, father);
+                return;
+            }
+        }
+        com.ninjacat.greatjourney.clanlands.life.BookLooks.clanCat(cat, c);
     }
 
     public static BlockPos surface(ServerLevel level, int x, int z) {

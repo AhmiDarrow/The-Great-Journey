@@ -6,6 +6,7 @@ import com.ninjacat.greatjourney.clanlands.layout.LakeLands;
 import com.ninjacat.greatjourney.clanlands.layout.Landmark;
 import com.ninjacat.greatjourney.clanlands.layout.Sectors.Clan;
 import com.ninjacat.greatjourney.clanlands.world.ClanWorld;
+import com.ninjacat.greatjourney.clanlore.role.Roles;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,11 @@ public final class BookClans {
     private static final Logger LOG = LogUtils.getLogger();
     /** The age at which Warrior Cats Events draws a cat full grown, and the age its own tick gives every adult. */
     public static final int ADULT_MOONS = 12;
+    /**
+     * On a Clan cat while one of our systems steers it (a guide or mentor leading a player, a patrol walking with
+     * one): the camp routine leaves a busy cat alone. Whoever adds it removes it when done.
+     */
+    public static final String BUSY_TAG = "greatjourney_busy";
 
     /** How each Clan shows in Warrior Cats Events' Clan list and on its territory. */
     public enum Info {
@@ -174,8 +180,13 @@ public final class BookClans {
         if (w == null || !Clanlife.isClanWorld(level)) return;
         LifeData life = LifeData.get(level);
         if (!life.created) return;
+        boolean campaign = Mode.of(level.getServer()) == Mode.CAMPAIGN;
         for (Clan c : Clan.values()) {
-            if (life.populated.contains(c)) continue;
+            if (life.populated.contains(c)) {
+                // a camp filled before every den had its nests gets the rest (the Campaign's Clans furnish their own)
+                if (!campaign) Nests.furnishIfDue(level, w.lake.camp(c), loaded);
+                continue;
+            }
             Landmark camp = w.lake.camp(c);
             if (!new ChunkPos(BlockPos.containing(camp.x(), 0, camp.z())).equals(loaded)) continue;
             life.populated.add(c);
@@ -185,7 +196,8 @@ public final class BookClans {
         }
     }
 
-    public enum Role { LEADER, DEPUTY, MEDICINE, WARRIOR, QUEEN, APPRENTICE, KIT }
+    /** A cat's place when a camp is filled; Clan Lore keeps the leader's, queen's and elder's role on the cat after. */
+    public enum Role { LEADER, DEPUTY, MEDICINE, WARRIOR, QUEEN, APPRENTICE, KIT, ELDER }
 
     private static void populate(ServerLevel level, ClanWorld w, LifeData life, Clan c, Landmark camp) {
         RandomSource r = RandomSource.create(w.seed ^ (c.ordinal() * 0x9E3779B9L));
@@ -194,10 +206,13 @@ public final class BookClans {
         List<Role> roster = new ArrayList<>(List.of(Role.LEADER, Role.DEPUTY, Role.MEDICINE, Role.QUEEN, Role.APPRENTICE, Role.APPRENTICE, Role.KIT, Role.KIT));
         int warriors = 4 + r.nextInt(3);
         for (int i = 0; i < warriors; i++) roster.add(3, Role.WARRIOR);
+        roster.add(Role.ELDER);                                     // last, so every earlier cat keeps its seeded name
         double ring = Math.max(6, camp.radius() - 14);
         int cx = (int) Math.floor(camp.x()), cz = (int) Math.floor(camp.z());
         BlockPos centre = surface(level, cx, cz);
         place(level, surface(level, cx + 2, cz), block("warriorcats_events:fresh_kill_pile"));
+        furnish(level, camp);                                       // every den's beds, slept in or not
+        Nests.markFurnished(level, camp);
         int[] perDen = new int[CampPlan.DenKind.values().length];
         for (int i = 0; i < roster.size(); i++) {
             Role role = roster.get(i);
@@ -225,8 +240,10 @@ public final class BookClans {
         cat.moveTo(home.getX() + 0.5, home.getY(), home.getZ() + 0.5, r.nextFloat() * 360, 0);
         cat.finalizeSpawn(level, level.getCurrentDifficultyAt(home), MobSpawnType.EVENT, null);
         cat.setGender(gender);
+        BookLooks.clanCat(cat, c);
         cat.setCustomName(Component.literal(name.full() + (gender == 0 ? " ♂" : " ♀")));
         cat.setPrefix(Component.literal(name.prefix()));
+        int moons = 0;
         cat.setRank(switch (role) {
             case DEPUTY -> WCatEntity.Rank.DEPUTY;
             case MEDICINE -> WCatEntity.Rank.MEDICINE;
@@ -246,10 +263,13 @@ public final class BookClans {
             // Warrior Cats Events draws a cat from its age with no cap past 12 moons: the body keeps growing (4.4x at 80
             // moons) and the head shrinks to nothing at 52 and turns inside out past it. Its tick puts every adult at 12
             // anyway, but only once the cat ticks, so camp cats out of simulation range stood giant and headless. The
-            // rolls stay (the same seed gives the same roster); grown cats are given the full-grown 12
-            case LEADER -> cat.setAgeInMoons(Math.min(ADULT_MOONS, 60 + r.nextInt(40)));
-            default -> cat.setAgeInMoons(Math.min(ADULT_MOONS, 14 + r.nextInt(50)));
+            // rolls stay (the same seed gives the same roster); grown cats are given the full-grown 12, and Clan Lore
+            // keeps the age rolled (its count goes on past 12, so warriors grow old and retire)
+            case LEADER -> moons = 60 + r.nextInt(40);
+            case ELDER -> moons = 100 + r.nextInt(20);
+            default -> moons = 14 + r.nextInt(50);
         }
+        if (moons > 0) cat.setAgeInMoons(Math.min(ADULT_MOONS, moons));
         cat.setClan(Component.literal(Info.of(c).title));
         cat.setTame(true, false);
         cat.setOwnerUUID(standInLeader(c));
@@ -258,6 +278,13 @@ public final class BookClans {
         cat.setHomePosition(home);
         cat.wanderCenter = centre;
         cat.mode = WCatEntity.CatMode.WANDER;
+        if (moons > 0) Roles.setMoons(cat, moons);
+        switch (role) {
+            case LEADER -> Roles.setRole(cat, com.ninjacat.greatjourney.clanlore.role.Role.LEADER);
+            case QUEEN -> Roles.setRole(cat, com.ninjacat.greatjourney.clanlore.role.Role.QUEEN);
+            case ELDER -> Roles.setRole(cat, com.ninjacat.greatjourney.clanlore.role.Role.ELDER);
+            default -> {}
+        }
         return cat;
     }
 
@@ -273,15 +300,85 @@ public final class BookClans {
             case LEADER -> CampPlan.DenKind.LEADER;
             case MEDICINE -> CampPlan.DenKind.MEDICINE;
             case QUEEN, KIT -> CampPlan.DenKind.NURSERY;
+            case ELDER -> CampPlan.DenKind.ELDERS;
             case APPRENTICE -> CampPlan.DenKind.APPRENTICES;
             default -> CampPlan.DenKind.WARRIORS;
         };
-        double[] at = plan.nest(kind, perDen[kind.ordinal()]++);
+        return nestBlock(level, plan, kind, perDen[kind.ordinal()]++);
+    }
+
+    /** The block a den's {@code index}th nest's bed stands on (on the den's floor, under a bed already laid there). */
+    public static BlockPos nestBlock(ServerLevel level, CampPlan plan, CampPlan.DenKind kind, int index) {
+        double[] at = plan.nest(kind, index);
         int x = (int) Math.floor(at[0]), z = (int) Math.floor(at[1]);
         int y = plan.den(kind).y();
-        if (y == CampPlan.SURFACE) return surface(level, x, z);
+        if (y == CampPlan.SURFACE) {
+            // a laid bed is taller than the heightmap's step, so the surface reads one over it
+            BlockPos top = surface(level, x, z);
+            return level.getBlockState(top.below()).is(block("warriorcats_events:moss_bed")) ? top.below() : top;
+        }
         level.getChunk(x >> 4, z >> 4);
         return new BlockPos(x, y, z);                                  // a burrow, cleft or cave: dug to the plan
+    }
+
+    /** Lays a moss bed on every nest of every den in a camp (where there is none yet); how many it laid. */
+    public static int furnish(ServerLevel level, Landmark camp) {
+        CampPlan plan = CampPlan.of(camp);
+        if (plan == null) return 0;
+        int laid = 0;
+        Block moss = block("warriorcats_events:moss_bed");
+        for (CampPlan.Den den : plan.dens) {
+            // a camp filled before dens had their full set already has beds (on the old nest spots): top the den up
+            // to its count, beside them rather than doubling it
+            int target = plan.nests(den.kind()).size();
+            List<BlockPos> spots = new ArrayList<>();
+            for (int i = 0; i < target; i++) spots.add(nestBlock(level, plan, den.kind(), i));
+            List<BlockPos> beds = bedsIn(level, plan, den, moss);
+            List<BlockPos> stray = beds.stream().filter(b -> !spots.contains(b)).toList();   // old beds off today's nests
+            for (int i = 0; i < target && beds.size() < target; i++) {
+                BlockPos at = spots.get(i);
+                if (level.getBlockState(at).is(moss) || stray.stream().anyMatch(b -> b.distManhattan(at) <= 1)) continue;
+                if (bed(level, at)) {
+                    beds.add(at);
+                    laid++;
+                } else {
+                    LOG.info("No bed for {} nest {} at {}: {} there", den.kind(), i, at.toShortString(), level.getBlockState(at));
+                }
+            }
+        }
+        return laid;
+    }
+
+    /** The moss beds already in a den: within its radius, on its floor (a dug den's level, or a few blocks round the ground). */
+    private static List<BlockPos> bedsIn(ServerLevel level, CampPlan plan, CampPlan.Den den, Block moss) {
+        List<BlockPos> out = new ArrayList<>();
+        int r = (int) Math.ceil(den.radius()) + 1;
+        int cx = (int) Math.floor(den.x()), cz = (int) Math.floor(den.z());
+        int y0 = den.y() == CampPlan.SURFACE ? surface(level, cx, cz).getY() - 3 : den.y() - 1;
+        int y1 = den.y() == CampPlan.SURFACE ? y0 + 7 : den.y() + 1;
+        for (BlockPos b : BlockPos.betweenClosed(cx - r, y0, cz - r, cx + r, y1, cz + r)) {
+            if (level.getBlockState(b).is(moss)) out.add(b.immutable());
+        }
+        return out;
+    }
+
+    /** A moss bed on a nest, over any moss carpet there; false where something else stands in the way. */
+    public static boolean bed(ServerLevel level, BlockPos pos) {
+        Block bed = block("warriorcats_events:moss_bed");
+        net.minecraft.world.level.block.state.BlockState s = level.getBlockState(pos);
+        if (s.is(bed)) return true;
+        if (bed == Blocks.AIR || !s.getFluidState().isEmpty() || !(s.is(Blocks.MOSS_CARPET) || s.canBeReplaced())) return false;
+        // firm ground under it: the bed only stands on a sturdy top face. Sand over a hollow fell as the bed went down
+        // and the bed broke with it (a ThunderClan nursery's pit), and a den floor that water seeped into held none
+        // (a RiverClan medicine den)
+        BlockPos under = pos.below();
+        net.minecraft.world.level.block.state.BlockState u = level.getBlockState(under);
+        if (!u.getFluidState().isEmpty() || !u.isFaceSturdy(level, under, net.minecraft.core.Direction.UP)
+                || u.getBlock() instanceof net.minecraft.world.level.block.FallingBlock && net.minecraft.world.level.block.FallingBlock.isFree(level.getBlockState(under.below()))) {
+            level.setBlock(under, Blocks.PACKED_MUD.defaultBlockState(), 3);
+        }
+        level.setBlock(pos, bed.defaultBlockState(), 3);
+        return true;
     }
 
     /** Beside a nest, on the same floor, for the medicine cat's herb rock. */
@@ -331,9 +428,54 @@ public final class BookClans {
         while (!blocks(level, p.below()) && p.getY() > top - 8) p.move(0, -1, 0);
         BlockPos feet = p.immutable();
         net.minecraft.world.level.block.state.BlockState under = level.getBlockState(feet.below());
+        if (under.is(net.minecraft.tags.BlockTags.LOGS) || under.is(net.minecraft.tags.BlockTags.LEAVES)) {
+            // the heightmap's top is a tree: a limb or a trunk. Under a limb there is ground with room to stand (the
+            // cats of a Gathering were set down on the great oaks' branches and sat there in mid-air); a trunk has
+            // none, and the column is no place to stand
+            BlockPos.MutableBlockPos q = feet.below().mutable();
+            feet = null;
+            while (q.getY() > p.getY() - 40) {
+                q.move(0, -1, 0);
+                net.minecraft.world.level.block.state.BlockState s = level.getBlockState(q);
+                if (s.is(net.minecraft.tags.BlockTags.LOGS) || s.is(net.minecraft.tags.BlockTags.LEAVES) || !blocks(level, q)) continue;
+                if (!blocks(level, q.above()) && !blocks(level, q.above(2))) feet = q.above().immutable();
+                break;
+            }
+            if (feet == null) return null;
+            under = level.getBlockState(feet.below());
+        }
         if (!under.getFluidState().isEmpty() || under.is(Blocks.MAGMA_BLOCK)
                 || !under.isFaceSturdy(level, feet.below(), net.minecraft.core.Direction.UP)) return null;
         return blocks(level, feet) || blocks(level, feet.above()) ? null : feet;
+    }
+
+    /**
+     * Sets a cat that will not move (no AI, so no gravity either) down exactly on what it stands on: the top of a slab,
+     * a moss bed, a snow layer or a path block, rather than the whole block's height above or below it. Call before
+     * {@code addFreshEntity}. A still cat put a half block above a slab sat on the air all scene long.
+     */
+    public static void rest(ServerLevel level, WCatEntity cat) {
+        BlockPos feet = cat.blockPosition();
+        var at = level.getBlockState(feet).getCollisionShape(level, feet);
+        double y;
+        if (!at.isEmpty() && at.max(net.minecraft.core.Direction.Axis.Y) <= 0.75) {
+            y = feet.getY() + at.max(net.minecraft.core.Direction.Axis.Y);        // a bed, a carpet, a layer of snow
+        } else if (at.isEmpty()) {
+            BlockPos below = feet.below();
+            var under = level.getBlockState(below).getCollisionShape(level, below);
+            if (under.isEmpty()) {
+                // nothing under it at all: down to the first thing that would hold it, a few blocks at most
+                BlockPos.MutableBlockPos q = below.mutable();
+                while (q.getY() > feet.getY() - 6 && level.getBlockState(q).getCollisionShape(level, q).isEmpty()) q.move(0, -1, 0);
+                var s = level.getBlockState(q).getCollisionShape(level, q);
+                y = s.isEmpty() ? feet.getY() : q.getY() + s.max(net.minecraft.core.Direction.Axis.Y);
+            } else {
+                y = below.getY() + under.max(net.minecraft.core.Direction.Axis.Y);
+            }
+        } else {
+            return;                                                          // in a full block: leave it be
+        }
+        cat.moveTo(cat.getX(), y, cat.getZ(), cat.getYRot(), cat.getXRot());
     }
 
     /** No wall or rock at head height in the eight columns around. */

@@ -383,7 +383,7 @@ def qa_lines(path: Path) -> list[str]:
 
 
 ERR_RE = re.compile(r"(Exception|Error:|\bERROR\b)")
-OURS_RE = re.compile(r"ninjacat|clanlands|clanwild|greatjourney|snowteb|warriorcats")
+OURS_RE = re.compile(r"ninjacat|clanlore|clanlands|clanwild|greatjourney|snowteb|warriorcats")
 
 
 def report(run_dir: Path) -> Path:

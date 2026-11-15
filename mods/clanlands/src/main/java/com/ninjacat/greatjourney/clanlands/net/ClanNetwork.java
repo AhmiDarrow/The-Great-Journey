@@ -22,7 +22,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 public final class ClanNetwork {
     private ClanNetwork() {}
 
-    public static final String VERSION = "1";
+    public static final String VERSION = "2";
 
     public static void register(IEventBus modBus) {
         modBus.addListener(ClanNetwork::payloads);
@@ -38,7 +38,7 @@ public final class ClanNetwork {
     private static final Map<UUID, int[]> LAST = new HashMap<>();
 
     private static int[] last(ServerPlayer sp) {
-        return LAST.computeIfAbsent(sp.getUUID(), k -> new int[] {Integer.MIN_VALUE / 2, Integer.MIN_VALUE / 2, 0});
+        return LAST.computeIfAbsent(sp.getUUID(), k -> new int[] {Integer.MIN_VALUE / 2, Integer.MIN_VALUE / 2, 0, Integer.MIN_VALUE / 2});
     }
 
     /** Whether this journal request comes long enough after the player's last one. */
@@ -47,6 +47,15 @@ public final class ClanNetwork {
         int[] l = last(sp);
         if (now - l[0] < JOURNAL_GAP) return false;
         l[0] = now;
+        return true;
+    }
+
+    /** Whether this map request comes long enough after the player's last one (maps refresh twice a second). */
+    static boolean allowMap(ServerPlayer sp) {
+        int now = sp.server.getTickCount();
+        int[] l = last(sp);
+        if (now - l[3] < 8) return false;
+        l[3] = now;
         return true;
     }
 
@@ -87,6 +96,17 @@ public final class ClanNetwork {
         r.playToServer(ClanPayloads.RequestJournal.TYPE, ClanPayloads.RequestJournal.STREAM_CODEC,
                 (p, ctx) -> ctx.enqueueWork(() -> {
                     if (ctx.player() instanceof ServerPlayer sp && allowJournal(sp)) Journals.open(sp);
+                }));
+        r.playToClient(ClanPayloads.MapData.TYPE, ClanPayloads.MapData.STREAM_CODEC,
+                (p, ctx) -> ctx.enqueueWork(() -> ClientHooks.mapData.accept(p)));
+        r.playToServer(ClanPayloads.RequestMap.TYPE, ClanPayloads.RequestMap.STREAM_CODEC,
+                (p, ctx) -> ctx.enqueueWork(() -> {
+                    if (ctx.player() instanceof ServerPlayer sp && p.region() >= -1 && p.region() <= 2 && allowMap(sp)) {
+                        var data = com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.view(sp, p.region());
+                        if (data != null && sp.connection.hasChannel(ClanPayloads.MapData.TYPE)) {
+                            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, data);
+                        }
+                    }
                 }));
         r.playToClient(ClanPayloads.TourStart.TYPE, ClanPayloads.TourStart.STREAM_CODEC,
                 (p, ctx) -> ctx.enqueueWork(() -> ClientHooks.tourStart.accept(p)));

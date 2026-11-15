@@ -11,12 +11,12 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * The Clan Journal: a worn leather book open on a two-page spread, with ribbon bookmarks for Tasks, Duties, Clan,
- * Places and StarClan. The left page lists, the right page tells: pick a task on the left to read it and its
+ * Places, StarClan and the Map. The left page lists, the right page tells: pick a task on the left to read it and its
  * checklist on the right. Everything shown comes from the server; the journal only draws it.
  */
 public final class JournalScreen extends Screen {
     private enum Tab {
-        TASKS("Tasks"), DUTIES("Duties"), CLAN("Clan"), PLACES("Places"), STARCLAN("StarClan");
+        TASKS("Tasks"), DUTIES("Duties"), CLAN("Clan"), PLACES("Places"), STARCLAN("StarClan"), MAP("Map");
 
         final String label;
 
@@ -54,7 +54,12 @@ public final class JournalScreen extends Screen {
         bookH = Math.min(232, height - 40);
         bookX = (width - bookW) / 2;
         bookY = (height - bookH) / 2 + 8;
+        // opened on the Map page: show wherever the cat is now (not when coming back from the big map)
+        if (tab == Tab.MAP && !mapAsked) MapPainter.show(-1);
+        mapAsked = true;
     }
+
+    private boolean mapAsked;
 
     // what each tab lists -----------------------------------------------------------------------------------------
 
@@ -116,7 +121,42 @@ public final class JournalScreen extends Screen {
             case CLAN -> drawClan(g);
             case PLACES -> drawPlaces(g);
             case STARCLAN -> drawStarClan(g);
+            case MAP -> drawMap(g, mouseX, mouseY);
         }
+    }
+
+    /** The map's square on the right page. */
+    private int mapSide() {
+        return Math.max(40, Math.min(pageW() - 10, pageH() - 26));
+    }
+
+    private int mapX() {
+        return rightX() + (pageW() + 2 - mapSide()) / 2;
+    }
+
+    private int mapY() {
+        return pageY() + 6;
+    }
+
+    /** Left page: the regions, where the goal is, and the key. Right page: the map. */
+    private void drawMap(GuiGraphics g, int mouseX, int mouseY) {
+        MapPainter.keepFresh();
+        var d = MapPainter.data();
+        int x = leftX() + 8, w = pageW() - 14, y = pageY() + 7;
+        if (d == null) {
+            drawWrapped(g, "Drawing the map...", x, y, w, UiStyle.INK_SOFT, true);
+            return;
+        }
+        y = ClanMapScreen.regionButtons(g, d, x, y, w, mouseX, mouseY) + 3;
+        String goal = MapPainter.goalLine(d);
+        if (!goal.isEmpty()) y = drawWrapped(g, goal, x, y, w, 0x8C2F2F, false) + 3;
+        MapPainter.legend(g, font, d, x, y, w);
+        MapPainter.draw(g, font, d, mapX(), mapY(), mapSide(), false);
+        String hint = "Click the map to see it big";
+        g.drawString(font, hint, rightX() + (pageW() + 2 - font.width(hint)) / 2, mapY() + mapSide() + 6,
+                UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
+        java.util.List<Component> tip = MapPainter.hover(d, mapX(), mapY(), mapSide(), mouseX, mouseY);
+        if (tip != null) g.renderComponentTooltip(font, tip, mouseX, mouseY);
     }
 
     private void drawTabs(GuiGraphics g, int mouseX, int mouseY) {
@@ -309,6 +349,7 @@ public final class JournalScreen extends Screen {
         if (t == null || t == tab) return;
         tab = t;
         lastTab = t;
+        if (t == Tab.MAP) MapPainter.show(-1);              // the map of wherever the cat is now
         selected = 0;
         leftScroll = rightScroll = 0;
     }
@@ -319,6 +360,18 @@ public final class JournalScreen extends Screen {
         if (t != null) {
             setTab(t);
             return true;
+        }
+        if (tab == Tab.MAP && MapPainter.data() != null) {
+            var d = MapPainter.data();
+            int r = ClanMapScreen.regionAt(d, leftX() + 8, pageY() + 7, pageW() - 14, mx, my);
+            if (r >= 0) {
+                MapPainter.show(r);
+                return true;
+            }
+            if (UiStyle.over(mx, my, mapX(), mapY(), mapSide(), mapSide())) {
+                minecraft.setScreen(new ClanMapScreen(this));
+                return true;
+            }
         }
         if ((tab == Tab.TASKS || tab == Tab.DUTIES) && mx >= leftX() && mx < leftX() + pageW()) {
             int top = pageY() + 7 + 2 * (font.lineHeight + 1) + 7;
@@ -342,7 +395,7 @@ public final class JournalScreen extends Screen {
 
     @Override
     public boolean keyPressed(int key, int scan, int mods) {
-        if (key >= GLFW.GLFW_KEY_1 && key <= GLFW.GLFW_KEY_5) {
+        if (key >= GLFW.GLFW_KEY_1 && key <= GLFW.GLFW_KEY_6) {
             setTab(Tab.values()[key - GLFW.GLFW_KEY_1]);
             return true;
         }

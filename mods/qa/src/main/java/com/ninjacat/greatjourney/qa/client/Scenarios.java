@@ -38,6 +38,17 @@ final class Scenarios {
                 s.add(titleButtons());
             }
             case "free-main" -> freeMain(s);
+            case "map" -> {                                  // focused: the journal's Clan map at the lake and in the old forest
+                newWorld(s, "S13-clan-map", "menu.clanlands.free", "20261012", false);
+                s.add(skipDream());
+                s.add(dialogue("start", List.of("join a clan now", "thunderclan"), 120, true, 2));
+                s.add(awaitMove("to the camp", 40, 20 * 60));
+                s.add(waitTicks(100));
+                s.add(journal("map-lake"));
+                s.add(cmd("qa tp landmark forest FOURTREES"));
+                s.add(waitTicks(200));
+                s.add(journal("map-forest"));
+            }
             case "route" -> {                                // the Great Journey's folk settle where they belong
                 newWorld(s, "S3-route", "menu.clanlands.campaign", "20261016", false);
                 s.add(skipDream());

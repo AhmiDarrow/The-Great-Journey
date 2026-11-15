@@ -163,6 +163,92 @@ public final class ClanPayloads {
         }
     }
 
+    // the Clan map ----------------------------------------------------------------------------------------------
+
+    /** One entry of a map's legend: a name and the colour its ground is drawn in. */
+    public record MapLegend(String name, int colour) {}
+
+    /** A named spot on the map: a camp, a place from the books, or a big area's label (no marker). */
+    public record MapPoi(String name, int kind, int colour, double x, double z) {
+        public static final int PLACE = 0, CAMP = 1, AREA = 2;
+    }
+
+    /**
+     * S2C: one region's map. {@code cells} holds a legend index per cell (row by row, {@code size} x {@code size},
+     * each {@code cell} blocks wide from {@code minX}, {@code minZ}); {@code shade} the relief, 0-255.
+     */
+    public record MapData(int region, List<String> regions, int minX, int minZ, int cell, int size, byte[] cells,
+                          byte[] shade, List<MapLegend> legend, List<MapPoi> pois, boolean here, double px, double pz,
+                          float yaw, boolean hasGoal, String goal, double gx, double gz) implements CustomPacketPayload {
+        public static final Type<MapData> TYPE = id("map_data");
+        /** Largest map the client accepts (cells per side). */
+        public static final int MAX_SIZE = 256;
+        public static final StreamCodec<RegistryFriendlyByteBuf, MapData> STREAM_CODEC = StreamCodec.of((b, p) -> {
+            b.writeVarInt(p.region);
+            b.writeVarInt(p.regions.size());
+            for (String s : p.regions) b.writeUtf(s, 64);
+            b.writeInt(p.minX);
+            b.writeInt(p.minZ);
+            b.writeVarInt(p.cell);
+            b.writeVarInt(p.size);
+            b.writeByteArray(p.cells);
+            b.writeByteArray(p.shade);
+            b.writeVarInt(p.legend.size());
+            for (MapLegend l : p.legend) {
+                b.writeUtf(l.name, 64);
+                b.writeInt(l.colour);
+            }
+            b.writeVarInt(p.pois.size());
+            for (MapPoi q : p.pois) {
+                b.writeUtf(q.name, 96);
+                b.writeVarInt(q.kind);
+                b.writeInt(q.colour);
+                b.writeDouble(q.x);
+                b.writeDouble(q.z);
+            }
+            b.writeBoolean(p.here);
+            b.writeDouble(p.px);
+            b.writeDouble(p.pz);
+            b.writeFloat(p.yaw);
+            b.writeBoolean(p.hasGoal);
+            b.writeUtf(p.goal, 256);
+            b.writeDouble(p.gx);
+            b.writeDouble(p.gz);
+        }, b -> {
+            int region = b.readVarInt();
+            int nr = Math.min(b.readVarInt(), 8);
+            List<String> regions = new ArrayList<>(nr);
+            for (int i = 0; i < nr; i++) regions.add(b.readUtf(64));
+            int minX = b.readInt(), minZ = b.readInt(), cell = b.readVarInt(), size = Math.min(b.readVarInt(), MAX_SIZE);
+            byte[] cells = b.readByteArray(MAX_SIZE * MAX_SIZE), shade = b.readByteArray(MAX_SIZE * MAX_SIZE);
+            int nl = Math.min(b.readVarInt(), 64);
+            List<MapLegend> legend = new ArrayList<>(nl);
+            for (int i = 0; i < nl; i++) legend.add(new MapLegend(b.readUtf(64), b.readInt()));
+            int np = Math.min(b.readVarInt(), 512);
+            List<MapPoi> pois = new ArrayList<>(np);
+            for (int i = 0; i < np; i++) pois.add(new MapPoi(b.readUtf(96), b.readVarInt(), b.readInt(), b.readDouble(), b.readDouble()));
+            return new MapData(region, regions, minX, minZ, cell, size, cells, shade, legend, pois, b.readBoolean(),
+                    b.readDouble(), b.readDouble(), b.readFloat(), b.readBoolean(), b.readUtf(256), b.readDouble(), b.readDouble());
+        });
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /** C2S: please send the map of {@code region} (-1: the region I am in). */
+    public record RequestMap(int region) implements CustomPacketPayload {
+        public static final Type<RequestMap> TYPE = id("request_map");
+        public static final StreamCodec<RegistryFriendlyByteBuf, RequestMap> STREAM_CODEC =
+                StreamCodec.of((b, p) -> b.writeVarInt(p.region + 1), b -> new RequestMap(b.readVarInt() - 1));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
     // the guided tour -------------------------------------------------------------------------------------------
 
     /**

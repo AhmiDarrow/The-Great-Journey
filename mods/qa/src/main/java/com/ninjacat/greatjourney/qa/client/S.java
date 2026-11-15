@@ -347,30 +347,47 @@ final class S {
         });
     }
 
-    /** Opens the journal (as the journal item does) and photographs each of its five tabs. */
+    /** Opens the journal (as the journal item does), photographs each of its six tabs, then the big Clan map. */
     static Step journal() {
+        return journal("journal");
+    }
+
+    static Step journal(String name) {
         final int[] tab = {0};
-        return of("journal", 20 * 40, false, (mc, age) -> {
+        return of(name, 20 * 40, false, (mc, age) -> {
+            if (mc.screen instanceof com.ninjacat.greatjourney.clanlands.client.ClanMapScreen big) {
+                if (tab[0] == 14 && age % 30 == 0) {
+                    Driver.shot(mc, name + "-map-big");
+                    tab[0]++;
+                } else if (tab[0] == 13) {
+                    tab[0]++;
+                } else if (tab[0] > 14) {
+                    Driver.pass(mc, name + " opened, map shown");
+                    mc.setScreen(null);
+                    return true;
+                }
+                return false;
+            }
             if (!(mc.screen instanceof JournalScreen js)) {
                 if (mc.screen instanceof DialogueScreen d) {
                     d.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0);
                     return false;
                 }
                 if (tab[0] == 0 && age % 40 == 0) PacketDistributor.sendToServer(new ClanPayloads.RequestJournal());
-                if (tab[0] > 10) return true;
+                if (tab[0] > 14) return true;
                 return false;
             }
-            if (age % 8 != 0) return false;
-            if (tab[0] <= 10) {
+            if (age % 12 != 0) return false;                  // the map tab asks the server for its map: give it time
+            if (tab[0] <= 12) {
                 int t = (tab[0] + 1) / 2;
                 if (tab[0] % 2 == 1) js.keyPressed(GLFW.GLFW_KEY_1 + t - 1, 0, 0);
-                else if (t > 0) Driver.shot(mc, "journal-tab-" + t);
+                else if (t > 0) Driver.shot(mc, name + "-tab-" + t);
                 tab[0]++;
                 return false;
             }
-            Driver.pass(mc, "journal opened");
-            mc.setScreen(null);
-            return true;
+            mc.setScreen(new com.ninjacat.greatjourney.clanlands.client.ClanMapScreen(js));   // as clicking the map does
+            tab[0] = 13;
+            return false;
         });
     }
 

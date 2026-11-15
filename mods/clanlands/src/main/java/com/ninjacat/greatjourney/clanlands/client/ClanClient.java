@@ -44,6 +44,7 @@ public final class ClanClient {
         ClientHooks.journalUpdate = p -> {
             if (Minecraft.getInstance().screen instanceof JournalScreen js) js.update(p.view());
         };
+        ClientHooks.mapData = MapPainter::receive;
         ClientHooks.tourStart = TourClient::start;
         ClientHooks.tourGo = TourClient::go;
         ClientHooks.tourEnd = TourClient::end;

@@ -14,6 +14,7 @@ public final class ClientHooks {
     public static volatile Consumer<ClanPayloads.Subtitle> subtitle = p -> {};
     public static volatile Consumer<ClanPayloads.OpenJournal> openJournal = p -> {};
     public static volatile Consumer<ClanPayloads.JournalUpdate> journalUpdate = p -> {};
+    public static volatile Consumer<ClanPayloads.MapData> mapData = p -> {};
     public static volatile Consumer<ClanPayloads.TourStart> tourStart = p -> {};
     public static volatile Consumer<ClanPayloads.TourGo> tourGo = p -> {};
     public static volatile Consumer<ClanPayloads.TourEnd> tourEnd = p -> {};

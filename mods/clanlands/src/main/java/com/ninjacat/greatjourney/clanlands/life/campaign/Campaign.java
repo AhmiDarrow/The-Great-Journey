@@ -96,6 +96,60 @@ public final class Campaign {
         NeoForge.EVENT_BUS.addListener(Campaign::entityJoined);
         // the journal shows the story's chapter first in a Campaign world
         Journals.provider(p -> decorate(p, QuestLog.view(p)));
+        // the Clan map marks where the story (or a task) is sending the player
+        com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.goals(Campaign::mapGoal);
+    }
+
+    /** Where the player is going, for the Clan map: the Campaign chapter's place, else a place a task asks for. */
+    static com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.Goal mapGoal(ServerPlayer p) {
+        ClanWorld w = ClanWorld.current();
+        MinecraftServer server = p.getServer();
+        if (w != null && server != null && active(server)) {
+            Clan c = clanOf(p);
+            double[] at = null;
+            String name = null;
+            switch (chapter(p)) {
+                case SUN_DROWN -> { at = w.journey.sunDrownPlace(); name = "Where the sun drowns"; }
+                case TELL_CLAN -> {
+                    if (c != null) {
+                        Landmark camp = Homeland.forestCamp(w, c);
+                        at = new double[] {camp.x(), camp.z()};
+                        name = "Your Clan's camp: tell them!";
+                    }
+                }
+                case HIGHWAY -> { at = w.journey.highwayCrossing(); name = "Cross the great Thunderpath"; }
+                case FARM -> { at = w.journey.twolegFarm(); name = "The Twoleg farms"; }
+                case PASS -> { at = w.journey.mountainPass(); name = "The mountain pass"; }
+                case TRIBE -> { at = w.journey.tribeCave(); name = "The Tribe's cave"; }
+                case LAKE -> { at = w.journey.lakeArrival(); name = "The ridge above the lake"; }
+                case LAKE_CAMP -> {
+                    if (c != null) {
+                        Landmark camp = w.lake.camp(c);
+                        at = new double[] {camp.x(), camp.z()};
+                        name = "Your new camp";
+                    }
+                }
+                case MOONPOOL -> { at = w.lake.moonpool(); name = "The Moonpool"; }
+                case GATHERING -> {
+                    Landmark island = w.lake.landmarks().stream().filter(l -> l.kind() == Landmark.Kind.ISLAND_TREE).findFirst().orElse(null);
+                    if (island != null) {
+                        at = new double[] {island.x(), island.z()};
+                        name = "The Gathering island (at night)";
+                    }
+                }
+                default -> { }
+            }
+            if (at != null) return new com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.Goal(name, at[0], at[1]);
+        }
+        for (var t : QuestState.active(p)) {
+            for (var o : t.objectives) {
+                if (!o.done() && (o.type == com.ninjacat.greatjourney.clanlands.life.quests.Task.Objective.Type.VISIT
+                        || o.type == com.ninjacat.greatjourney.clanlands.life.quests.Task.Objective.Type.CLIMB)) {
+                    return new com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.Goal(o.text, o.x, o.z);
+                }
+            }
+        }
+        return null;
     }
 
     private static boolean active(MinecraftServer server) {

@@ -61,4 +61,35 @@ public final class CampaignGameTests {
         h.assertTrue(Chapter.parse("nonsense") == Chapter.CHOOSE && Chapter.parse("TRIBE") == Chapter.TRIBE, "chapters read back from saves");
         h.succeed();
     }
+
+    @GameTest(template = "empty")
+    public static void theWayIsToldInCompassWords(GameTestHelper h) {
+        h.assertTrue(Campaign.compass(-1, 0).equals("west"), "-x is west");
+        h.assertTrue(Campaign.compass(0, -1).equals("north"), "-z is north");
+        h.assertTrue(Campaign.compass(1, 1).equals("south-east"), "+x +z is south-east");
+        h.assertTrue(Campaign.compass(-1, 0.3).equals("west"), "mostly west is west");
+        h.assertTrue(Campaign.compass(-0.7, -0.7).equals("north-west"), "-x -z is north-west");
+        h.succeed();
+    }
+
+    /** The whole sun-drown beach counts, not only the spot by Midnight's sett (Act 2 never ended otherwise). */
+    @GameTest(template = "empty")
+    public static void theSunDrownBeachIsBigEnoughToFind(GameTestHelper h) {
+        var w = com.ninjacat.greatjourney.clanlands.world.ClanWorld.current();
+        if (w == null) {
+            h.succeed();                                    // not a Clan world: no journey to check
+            return;
+        }
+        var j = w.journey;
+        double[] v = j.seaward(), sd = j.sunDrownPlace();
+        // walk along the shore line (across the seaward vector) and count how much of it is sun-drown beach or sea
+        int hits = 0;
+        for (int t = -300; t <= 300; t += 50) {
+            var s = j.sample(sd[0] - v[1] * t, sd[1] + v[0] * t);
+            if (s.weight() > 0.5 && (s.zone() == com.ninjacat.greatjourney.clanlands.layout.Zone.SUN_DROWN_SHORE
+                    || s.zone() == com.ninjacat.greatjourney.clanlands.layout.Zone.SUN_DROWN_SEA)) hits++;
+        }
+        h.assertTrue(hits >= 9, "most of 600 blocks of shore counts as the sun-drown-place (" + hits + "/13)");
+        h.succeed();
+    }
 }

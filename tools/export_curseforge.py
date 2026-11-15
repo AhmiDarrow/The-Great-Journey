@@ -13,6 +13,7 @@ import argparse
 import html
 import json
 import re
+import sys
 import zipfile
 from pathlib import Path
 
@@ -50,6 +51,13 @@ def main() -> int:
     names = [(e["name"], e["projectId"]) for e in entries]
     core_path = ROOT / "pack/core-release.json"
     if core_path.is_file():
+        # the pack must point at the Core built from today's mods/, not an older upload
+        sys.path.insert(0, str(ROOT / "tools"))
+        from build_core_jar import gradle_version, release_problems
+        problems = release_problems(gradle_version())
+        if problems:
+            raise SystemExit("Refusing: the Core on CurseForge is out of date: " + "; ".join(problems)
+                             + " (build, upload and --record-release the new Core first)")
         core = json.loads(core_path.read_text(encoding="utf-8"))
         files.append({"projectID": core["projectId"], "fileID": core["fileId"], "required": True})
         names.append((core.get("name", "The Great Journey Core"), core["projectId"]))
@@ -59,12 +67,14 @@ def main() -> int:
     version = toml_value("version")
     manifest = {
         "minecraft": {"version": toml_value("minecraft"),
-                      "modLoaders": [{"id": f"neoforge-{toml_value('neoforge')}", "primary": True}]},
+                      "modLoaders": [{"id": f"neoforge-{toml_value('neoforge')}", "primary": True}],
+                      "recommendedRam": 8192},
         "manifestType": "minecraftModpack",
         "manifestVersion": 1,
         "name": PACK_NAME,
         "version": version,
         "author": toml_value("author"),
+        "image": "profileImage/the-great-journey.png",
         "files": files,
         "overrides": "overrides",
     }
@@ -82,11 +92,19 @@ def main() -> int:
         info.compress_type = zipfile.ZIP_DEFLATED
         z.writestr(info, data)
 
+    icon = ROOT / "docs/public/pack-icon-400.png"
+    if not icon.is_file():
+        raise SystemExit(f"Refusing: the pack's profile image {icon} is missing")
+    # tooling and secrets never ride along in overrides
+    internal = re.compile(r"(?i)(\.py|\.ps1|\.key|\.log)$|credentials|^\.env")
+
     with zipfile.ZipFile(zip_path, "w") as z:
         put(z, "manifest.json", (json.dumps(manifest, indent=2) + "\n").encode())
         put(z, "modlist.html", modlist.encode())
+        put(z, "profileImage/the-great-journey.png", icon.read_bytes())
+        put(z, "icon.png", icon.read_bytes())
         for p in sorted(overrides.rglob("*")):
-            if p.is_file() and not p.name.startswith("."):
+            if p.is_file() and not p.name.startswith(".") and not internal.search(p.name):
                 put(z, "overrides/" + p.relative_to(overrides).as_posix(), p.read_bytes())
     print(f"Wrote {zip_path} ({len(files)} files in manifest)")
     return 0

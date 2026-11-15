@@ -62,7 +62,7 @@ version="{ver}"
 displayName="{CORE_NAME}"
 authors="AhmiDarrow"
 logoFile="{CORE_ID}.png"
-description=\'\'\'The companion mods of The Great Journey modpack in one jar: Clanlands (the Clan territories, camps and story from the books) and Clanwild (speed strikes, prey and wildlife glue). Written from scratch for the pack.\'\'\'
+description=\'\'\'The companion mods of The Great Journey modpack in one jar: Clanlands (the Clan territories, camps and story from the books), Clan Lore (roles, ceremonies, scars and the moon for the Warrior Cats Events cats) and Clanwild (speed strikes, prey and wildlife glue). Written from scratch for the pack.\'\'\'
 
 [[dependencies.{CORE_ID}]]
     modId="neoforge"
@@ -138,6 +138,8 @@ def build(ver: str, out_dir: Path) -> Path:
         for _, jar in jars:            # nested jars are already compressed; store them
             put(z, f"META-INF/jarjar/{jar.name}", jar.read_bytes(), stored=True)
         logo = ROOT / "docs/public/core-icon-256.png"
+        if not logo.is_file():
+            logo = ROOT / "docs/public/pack-icon-256.png"      # the mods.toml names a logo, so always ship one
         if logo.is_file():
             put(z, f"{CORE_ID}.png", logo.read_bytes(), stored=True)
     tmp.replace(out)
@@ -150,7 +152,8 @@ def source_hash() -> str:
     names = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "mods"], cwd=ROOT,
                            check=True, capture_output=True).stdout.decode("utf-8").split("\0")
     h = hashlib.sha1()
-    for name in sorted(n for n in names if n and n not in HASH_EXCLUDE):
+    # the test-only qa module never ships, so an edit there does not make the released Core stale
+    for name in sorted(n for n in names if n and n not in HASH_EXCLUDE and not n.startswith("mods/qa/")):
         path = ROOT / name
         if path.is_file():
             h.update(name.encode("utf-8") + b"\0" + path.read_bytes().replace(b"\r\n", b"\n") + b"\0")

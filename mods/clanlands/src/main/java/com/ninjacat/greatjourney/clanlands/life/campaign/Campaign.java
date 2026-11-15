@@ -4,6 +4,8 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.ninjacat.greatjourney.clanlands.layout.Landmark;
+import com.ninjacat.greatjourney.clanlands.layout.Sample;
+import com.ninjacat.greatjourney.clanlands.layout.Zone;
 import com.ninjacat.greatjourney.clanlands.layout.Sectors.Clan;
 import com.ninjacat.greatjourney.clanlands.life.BookClans.Info;
 import com.ninjacat.greatjourney.clanlands.life.ChunkWait;
@@ -73,6 +75,10 @@ public final class Campaign {
     private static final long DAY = 24000;
     /** Without a warrior in the world, Act 2 comes after this many days of the old forest. */
     private static final long ACT1_DAYS = 14;
+    /** However few stretches have been felled, StarClan's sign comes after this many days of Act 2. */
+    private static final long SIGN_DAYS = 3;
+    /** How often a cat on a long walk (to the sea, or home with the message) is reminded of the way. */
+    private static final long WAY_HINT_TICKS = 20 * 150;
     /** Scene cats (the leaders at the Gathering) vanish after this long. */
     private static final String SCENE_TAG = "greatjourney_scene";
 
@@ -440,6 +446,11 @@ public final class Campaign {
                     cd.setDirty();
                 }
             }
+            // the felling only happens near cats in the forest; a cat who wanders off still gets the sign in time
+            if (!cd.signGiven && now - cd.actStartedAt > SIGN_DAYS * DAY) {
+                cd.signGiven = true;
+                cd.setDirty();
+            }
         }
 
         for (ServerPlayer p : players) {
@@ -483,12 +494,13 @@ public final class Campaign {
                 if (cd.signGiven && Joining.clanOf(p) != null && !d.getBoolean("signDone")) sign(p);
             }
             case SUN_DROWN -> {
-                double[] sd = w.journey.sunDrownPlace();
-                if (near(p, sd, 40)) {
+                if (atSunDrown(p, w)) {
                     cd.midnightMet = true;
                     cd.setDirty();
                     setChapter(p, Chapter.TELL_CLAN);
-                    midnight(p);
+                    midnight(p, near(p, w.journey.midnightSett(), 60));
+                } else {
+                    wayHint(p, d, now, w.journey.sunDrownPlace(), "The great water where the sun drowns");
                 }
             }
             case TELL_CLAN -> {
@@ -497,6 +509,8 @@ public final class Campaign {
                 Landmark camp = Homeland.forestCamp(w, c);
                 if (near(p, new double[] {camp.x(), camp.z()}, camp.radius() + 10)) {
                     depart(p, c, cd);
+                } else {
+                    wayHint(p, d, now, new double[] {camp.x(), camp.z()}, "Your Clan's camp");
                 }
             }
             case HIGHWAY -> {
@@ -671,7 +685,7 @@ public final class Campaign {
         Dialog.play(p,
                 Line.narrate("That night you dream. You stand in a clearing under a sky crowded with stars."),
                 Line.say("Bluestar", STARCLAN, "Dark times have come to the forest, young one. The Twolegs will not stop."),
-                Line.say("Spottedleaf", STARCLAN, "Go to where the sun drowns. Far to the west, where the land ends in water. Listen to the one you meet there."),
+                Line.say("Spottedleaf", STARCLAN, "Go to where the sun drowns. Far to the " + seaward() + ", where the land ends in water. Listen to the one you meet there."),
                 Line.say("Spottedleaf", STARCLAN, healer(p)
                         ? "You are a medicine cat, " + Joining.catName(p) + ". We speak to you so that you can speak to your Clan, and they will listen."
                         : "Your Clan will need every warrior's strength, " + Joining.catName(p) + ". Be ready."),
@@ -701,15 +715,58 @@ public final class Campaign {
         d.putBoolean("inSign", false);
         ServerLevel ow = p.getServer().overworld();
         p.teleportTo(ow, d.getDouble("returnX"), d.getDouble("returnY"), d.getDouble("returnZ"), p.getYRot(), 0);
-        Dialog.play(p, Line.narrate("You wake in your nest with the dream still bright in your mind. Where the sun drowns... far to the west."));
+        Dialog.play(p, Line.narrate("You wake in your nest with the dream still bright in your mind. Where the sun drowns... far to the " + seaward() + "."));
         Journals.push(p);
     }
 
+    /**
+     * Whether the player has reached the sun-drown-place: anywhere on its beach or in its sea, not only the one spot
+     * by Midnight's sett (the bay is hundreds of blocks wide, and a cat who walks to the water has done what StarClan
+     * asked).
+     */
+    static boolean atSunDrown(ServerPlayer p, ClanWorld w) {
+        if (p.level().dimension() != Level.OVERWORLD) return false;
+        if (near(p, w.journey.sunDrownPlace(), 40) || near(p, w.journey.midnightSett(), 40)) return true;
+        Sample s = w.journey.sample(p.getX(), p.getZ());
+        return s.weight() > 0.5 && (s.zone() == Zone.SUN_DROWN_SHORE || s.zone() == Zone.SUN_DROWN_SEA);
+    }
+
+    /** The direction of the sun-drown-place from the old forest, in words ("west", "south-west"...). */
+    private static String seaward() {
+        ClanWorld w = ClanWorld.current();
+        if (w == null) return "west";
+        double[] v = w.journey.seaward();
+        return compass(v[0], v[1]);
+    }
+
+    /** A compass direction in words for a world-space vector (north is -z, east is +x). */
+    static String compass(double dx, double dz) {
+        String[] names = {"east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"};
+        int i = (int) Math.round(Math.atan2(dz, dx) / (Math.PI / 4));
+        return names[Math.floorMod(i, names.length)];
+    }
+
+    /** "about 2,300 blocks to the south-west" from the player to {@code at}. */
+    private static String wayTo(ServerPlayer p, double[] at) {
+        double dx = at[0] - p.getX(), dz = at[1] - p.getZ();
+        long dist = Math.max(50, Math.round(Math.hypot(dx, dz) / 50.0) * 50);
+        return String.format(java.util.Locale.ROOT, "about %,d blocks to the %s", dist, compass(dx, dz));
+    }
+
+    /** Every so often on a long walk, a reminder of which way to go. */
+    private static void wayHint(ServerPlayer p, CompoundTag d, long now, double[] at, String what) {
+        if (p.level().dimension() != Level.OVERWORLD || now - d.getLong("wayHint") < WAY_HINT_TICKS) return;
+        d.putLong("wayHint", now);
+        Dialog.subtitle(p, Line.narrate(what + " lies " + wayTo(p, at) + "."));
+    }
+
     /** At the sun-drown-place: Midnight the badger, who knows the stars' message. */
-    private static void midnight(ServerPlayer p) {
+    private static void midnight(ServerPlayer p, boolean atSett) {
         Dialog.play(p,
                 Line.narrate("The land ends in sand and roaring water that stretches to the edge of the sky. The sun sinks into it, red as fire."),
-                Line.narrate("A badger shuffles out of a sett in the dunes. She does not attack. She looks at you with bright, wise eyes."),
+                Line.narrate(atSett
+                        ? "A badger shuffles out of a sett in the dunes. She does not attack. She looks at you with bright, wise eyes."
+                        : "A badger comes shuffling along the dunes toward you. She does not attack. She looks at you with bright, wise eyes."),
                 Line.say("Midnight", MIDNIGHT, "Come you have, as the stars said. Midnight I am called."),
                 Line.say("Midnight", MIDNIGHT, "Your forest is dying. Twolegs will destroy all of it. You must leave, all Clans together, or all will die."),
                 Line.say("Midnight", MIDNIGHT, "A new home waits, past the mountains. Where the stars shine on still water. Go now. Tell your Clans."));
@@ -816,6 +873,16 @@ public final class Campaign {
         Chapter ch = chapter(p);
         boolean healer = healer(p);
         String goal = ch == Chapter.OUTSIDER ? Outsiders.goal(p) : ch.goal(healer);
+        ClanWorld w = ClanWorld.current();
+        if (w != null && p.level().dimension() == Level.OVERWORLD) {
+            if (ch == Chapter.SUN_DROWN) {
+                goal = "StarClan sent a sign: go to where the sun drowns, and listen to what you are told there. The sea lies "
+                        + wayTo(p, w.journey.sunDrownPlace()) + ".";
+            } else if (ch == Chapter.TELL_CLAN && clanOf(p) != null) {
+                Landmark camp = Homeland.forestCamp(w, clanOf(p));
+                goal = ch.goal(healer) + " Your camp lies " + wayTo(p, new double[] {camp.x(), camp.z()}) + ".";
+            }
+        }
         List<JournalView.Quest> quests = new ArrayList<>();
         quests.add(new JournalView.Quest("campaign", "Act " + ch.act + ": " + ch.title(healer), "The story", goal,
                 List.of(new JournalView.Objective(goal, ch == Chapter.COMPLETE ? 1 : 0, 1)), true, ch == Chapter.COMPLETE));

@@ -110,6 +110,27 @@ public final class CampRoutineGameTests {
         cats.forEach(WCatEntity::discard);
     }
 
+    /** A cat that has only done one or two things today is given something new (it used to be left to chance). */
+    @GameTest(template = "empty")
+    public static void aCatThatHasDoneLittleGetsSomethingNew(GameTestHelper h) {
+        CampRoutine.Now noon = at(3, 6000, 100_000);
+        Map<Act, Integer> watchedAndShared = Map.of(Act.WATCH, 2, Act.SHARE, 1);
+        Map<Act, Integer> watchedTwice = Map.of(Act.WATCH, 2);
+        for (int seed = 0; seed < 500; seed++) {
+            RandomSource r = RandomSource.create(seed);
+            Act a = CampRoutine.pick(CampRoutine.Part.QUEEN, noon, r, watchedAndShared);
+            h.assertTrue(a != Act.WATCH && a != Act.SHARE, "a queen who only watched and shared tongues gets something new, got " + a);
+            Act b = CampRoutine.pick(CampRoutine.Part.WARRIOR, noon, r, watchedTwice);
+            h.assertTrue(b != Act.WATCH, "a warrior who watched twice does something else, got " + b);
+        }
+        // three different things done: the choice is free again, though what was done weighs less
+        Set<Act> seen = EnumSet.noneOf(Act.class);
+        RandomSource r = RandomSource.create(1);
+        for (int i = 0; i < 400; i++) seen.add(CampRoutine.pick(CampRoutine.Part.QUEEN, noon, r, Map.of(Act.WATCH, 1, Act.SHARE, 1, Act.NAP, 1)));
+        h.assertTrue(seen.contains(Act.WATCH), "after three different things a queen may watch again; saw " + seen);
+        h.succeed();
+    }
+
     @GameTest(template = "empty", timeoutTicks = 200)
     public static void aCampsCatsKeepBusyThroughTheDay(GameTestHelper h) {
         CampRoutine.Camp camp = new CampRoutine.Camp(site(h));

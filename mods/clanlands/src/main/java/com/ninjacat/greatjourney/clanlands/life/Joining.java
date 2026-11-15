@@ -94,7 +94,11 @@ public final class Joining {
     private static WCatEntity mentorFor(ServerPlayer p, Info clan, UUID clanId) {
         List<WCatEntity> warriors = campCats(p, clan, clanId, c -> c.getRank() == WCatEntity.Rank.WARRIOR);
         if (warriors.isEmpty()) return null;
-        return warriors.get(p.getRandom().nextInt(warriors.size()));
+        // a warrior with no apprentice (a Clan cat's or a player's) first; shuffled so the nearest isn't always it
+        List<WCatEntity> shuffled = new ArrayList<>(warriors);
+        java.util.Collections.shuffle(shuffled, new java.util.Random(p.getRandom().nextLong()));
+        List<WCatEntity> free = shuffled.stream().filter(c -> !com.ninjacat.greatjourney.clanlands.life.quests.Mentors.busy(c)).toList();
+        return free.isEmpty() ? shuffled.get(0) : free.get(0);
     }
 
     /** The Clan's named cats in or near its camp that pass {@code test}. */

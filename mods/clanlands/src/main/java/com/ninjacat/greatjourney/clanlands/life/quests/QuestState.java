@@ -81,8 +81,10 @@ public final class QuestState {
     }
 
     public static void setMentor(ServerPlayer p, String name, UUID id) {
+        UUID old = mentorId(p);
         root(p).putString("mentor", name);
         if (id != null) root(p).putUUID("mentorId", id);
+        if (p.getServer() != null) Mentors.mark(p, old, id);    // the cat knows it has a pupil (Mentors)
     }
 
     public static Task story(ServerPlayer p) {

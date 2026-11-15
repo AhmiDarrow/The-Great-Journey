@@ -26,10 +26,13 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
  */
 @GameTestHolder("clanlands")
 @PrefixGameTestTemplate(false)
+// Every test has a batch of its own: the roads' monsters are one list for the whole server, so tests that ran side by
+// side cleared and drove each other's monsters (a pig waiting to be struck was left untouched when another test's
+// Traffic.clear() took its monster away). Batches run one after another.
 public final class TrafficGameTests {
     private TrafficGameTests() {}
 
-    @GameTest(template = "empty")
+    @GameTest(template = "empty", batch = "traffic-1")
     public static void monstersKeepLeftAndFaceTheirWay(GameTestHelper h) {
         double[] left = TrafficMath.left(0, 1);                       // facing south, the left is east
         h.assertTrue(left[0] == 1 && left[1] == 0, "facing south, left is +x, got " + left[0] + "," + left[1]);
@@ -44,7 +47,7 @@ public final class TrafficGameTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty")
+    @GameTest(template = "empty", batch = "traffic-2")
     public static void aMonsterHitsWhatIsInItsWay(GameTestHelper h) {
         // a car 4.1 long and 1.9 wide, facing south
         h.assertTrue(TrafficMath.inFootprint(0, 0.5, 1.8, 0, 1, 4.1, 1.9, 1.8), "a cat at its bumper is hit");
@@ -58,7 +61,7 @@ public final class TrafficGameTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty")
+    @GameTest(template = "empty", batch = "traffic-3")
     public static void aMonsterIsGoneOncePastOrOffItsRoad(GameTestHelper h) {
         h.assertTrue(!TrafficMath.done(500, 600, 1, 2000, 140), "still coming toward the cat");
         h.assertTrue(!TrafficMath.done(700, 600, 1, 2000, 140), "just past the cat, still in sight");
@@ -69,14 +72,14 @@ public final class TrafficGameTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty")
+    @GameTest(template = "empty", batch = "traffic-4")
     public static void theMonsterDamageTypeIsRegistered(GameTestHelper h) {
         var types = h.getLevel().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE);
         h.assertTrue(types.containsKey(ResourceLocation.fromNamespaceAndPath("clanlands", "monster")), "clanlands:monster damage type loads");
         h.succeed();
     }
 
-    @GameTest(template = "empty")
+    @GameTest(template = "empty", batch = "traffic-5")
     public static void eachStretchOfRoadRollsOnItsOwn(GameTestHelper h) {
         h.assertTrue(Traffic.chance(Road.Kind.OLD_THUNDERPATH) == 0, "nothing drives the old Thunderpath");
         h.assertTrue(Traffic.chance(Road.Kind.HIGHWAY) > Traffic.chance(Road.Kind.THUNDERPATH) && Traffic.chance(Road.Kind.THUNDERPATH) > 0,
@@ -95,7 +98,7 @@ public final class TrafficGameTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty")
+    @GameTest(template = "empty", batch = "traffic-6")
     public static void monstersRideOnTheRoadNotThroughIt(GameTestHelper h) {
         h.assertTrue(TrafficMath.rideHeight(Double.NaN, 70, 70, 70, Double.NaN) == 70, "flat ground: on it");
         h.assertTrue(TrafficMath.rideHeight(Double.NaN, 70, 71, 70, 70) == 71, "a rise under the front wheels lifts it at once");
@@ -117,7 +120,7 @@ public final class TrafficGameTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty", timeoutTicks = 100)
+    @GameTest(template = "empty", batch = "traffic-7", timeoutTicks = 100)
     public static void aMonsterStrikesWhatIsInItsLaneAndLeavesNothingBehind(GameTestHelper h) {
         ServerLevel level = h.getLevel();
         BlockPos at = h.absolutePos(new BlockPos(1, 1, 1));
@@ -151,7 +154,7 @@ public final class TrafficGameTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty", timeoutTicks = 200)
+    @GameTest(template = "empty", batch = "traffic-8", timeoutTicks = 200)
     public static void aMonsterSentAtAMobInItsLaneReachesAndHitsIt(GameTestHelper h) {
         ServerLevel level = h.getLevel();
         BlockPos at = h.absolutePos(new BlockPos(1, 1, 1));
@@ -176,7 +179,7 @@ public final class TrafficGameTests {
         });
     }
 
-    @GameTest(template = "empty", timeoutTicks = 100)
+    @GameTest(template = "empty", batch = "traffic-9", timeoutTicks = 100)
     public static void aimPicksTheLaneThroughTheSpotInBothDirections(GameTestHelper h) {
         Road road = new Road(Path.straight(new double[][] {{0, 0}, {0, 400}}), 4, Road.Kind.THUNDERPATH);
         double off = TrafficMath.laneOffset(Road.Kind.THUNDERPATH, 4, 0);
@@ -192,7 +195,7 @@ public final class TrafficGameTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty", timeoutTicks = 100)
+    @GameTest(template = "empty", batch = "traffic-10", timeoutTicks = 100)
     public static void everyMonsterEndsWithinItsLifetime(GameTestHelper h) {
         ServerLevel level = h.getLevel();
         BlockPos at = h.absolutePos(new BlockPos(1, 1, 1));
@@ -221,7 +224,7 @@ public final class TrafficGameTests {
         h.succeed();
     }
 
-    @GameTest(template = "empty", timeoutTicks = 100)
+    @GameTest(template = "empty", batch = "traffic-11", timeoutTicks = 100)
     public static void partsWithNoControllerAreSweptAway(GameTestHelper h) {
         ServerLevel level = h.getLevel();
         BlockPos at = h.absolutePos(new BlockPos(1, 1, 1));

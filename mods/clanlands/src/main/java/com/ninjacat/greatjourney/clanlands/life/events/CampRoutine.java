@@ -135,6 +135,8 @@ public final class CampRoutine {
         long builtAt;
         final Map<UUID, Job> jobs = new HashMap<>();
         final Map<UUID, Act> last = new HashMap<>();
+        /** Per cat, how often it has done each daytime activity today (so it doesn't do one or two things all day). */
+        final Map<UUID, Map<Act, Integer>> today = new HashMap<>();
         final Map<UUID, Integer> outings = new HashMap<>();
         final Map<UUID, Long> handsOff = new HashMap<>();
         final Set<String> done = new HashSet<>();
@@ -256,6 +258,7 @@ public final class CampRoutine {
             camp.day = now.day();
             camp.done.clear();
             camp.outings.clear();
+            camp.today.clear();
         }
         camp.handsOff.values().removeIf(t -> t < now.tick());
         Set<UUID> here = new HashSet<>();
@@ -288,11 +291,18 @@ public final class CampRoutine {
                 job = choose(level, camp, cat, cats, now, r);
                 if (job == null) continue;
                 camp.jobs.put(cat.getUUID(), job);
-                camp.last.put(cat.getUUID(), job.act);
+                did(camp, cat.getUUID(), job.act);
             }
             step(level, camp, cat, job, now, r);
         }
         ball(level, camp, now);
+    }
+
+    /** Notes the activity a cat was just given (its last, and today's tally of daytime activities). */
+    private static void did(Camp camp, UUID id, Act act) {
+        camp.last.put(id, act);
+        if (act == Act.SLEEP || act == Act.GUARD || act == Act.HOME) return;
+        camp.today.computeIfAbsent(id, k -> new EnumMap<>(Act.class)).merge(act, 1, Integer::sum);
     }
 
     /** Whether the routine may steer this cat now. */
@@ -474,12 +484,18 @@ public final class CampRoutine {
             BlockPos h = home(cat, site);
             return new Job(Act.SLEEP, then(route(site, x, z, h), night(Pose.REST, h)));
         }
-        Act act = pick(part, now, r);
-        if (act == camp.last.get(cat.getUUID()) && r.nextFloat() < 0.6F) act = pick(part, now, r);
+        Map<Act, Integer> done = camp.today.getOrDefault(cat.getUUID(), Map.of());
+        Act act = pick(part, now, r, done);
+        if (act == camp.last.get(cat.getUUID()) && r.nextFloat() < 0.6F) act = pick(part, now, r, done);
         return build(level, camp, cat, part, act, cats, now, r);
     }
 
-    private static Act pick(Part part, Now now, RandomSource r) {
+    /**
+     * A day activity for a cat of this part, by weight. {@code done} is what the cat has done today: those weigh less
+     * each time, and a cat that has had two or more turns but fewer than three different activities gets one it has
+     * not done yet, if any is open to it now (a queen could watch and share tongues all day, the playtest saw).
+     */
+    static Act pick(Part part, Now now, RandomSource r, Map<Act, Integer> done) {
         boolean dry = !now.wet();
         boolean evening = between(now.time(), 11000, 12600);
         int sun = dry && !now.leafBare() ? (now.greenleaf() ? 5 : 3) : 0, eat = evening ? 6 : 1;
@@ -530,6 +546,14 @@ public final class CampRoutine {
                 w.put(Act.NAP, dry ? 1 : 3);
                 w.put(Act.EAT, eat);
             }
+        }
+        int turns = done.values().stream().mapToInt(Integer::intValue).sum();
+        Map<Act, Integer> fresh = new EnumMap<>(Act.class);
+        for (var e : w.entrySet()) if (e.getValue() > 0 && !done.containsKey(e.getKey())) fresh.put(e.getKey(), e.getValue());
+        if (turns >= 2 && done.size() < 3 && !fresh.isEmpty()) {
+            w = fresh;
+        } else {
+            w.replaceAll((a, v) -> v > 0 && done.containsKey(a) ? Math.max(1, v / (1 + done.get(a))) : v);
         }
         int total = w.values().stream().mapToInt(Integer::intValue).sum();
         int roll = r.nextInt(Math.max(1, total));
@@ -657,7 +681,7 @@ public final class CampRoutine {
         theirs.partner = cat.getUUID();
         Job old = camp.jobs.put(mate.getUUID(), theirs);
         if (old != null) theirs.expect = old.expect;
-        camp.last.put(mate.getUUID(), act);
+        did(camp, mate.getUUID(), act);
         return mine;
     }
 
@@ -672,7 +696,7 @@ public final class CampRoutine {
             Job watch = new Job(Act.WATCH, then(route(site, q.getX(), q.getZ(), spot), stay(Pose.SIT, spot, secs(r, 60, 100))));
             if (qj != null) watch.expect = qj.expect;
             camp.jobs.put(q.getUUID(), watch);
-            camp.last.put(q.getUUID(), Act.WATCH);
+            did(camp, q.getUUID(), Act.WATCH);
             return;
         }
     }
@@ -690,7 +714,9 @@ public final class CampRoutine {
         boolean out = camp.jobs.values().stream().anyMatch(j -> !j.done() && (j.act == Act.PATROL || j.act == Act.HUNT));
         if (!out) {
             if (between(t, 23200, 1200)) patrol(level, camp, cats, now, r, "dawn", Act.PATROL);
-            else if (between(t, 2500, 4500)) patrol(level, camp, cats, now, r, "morning", Act.HUNT);
+            // the morning hunt waits for two cats to be free until the afternoon's patrol is due: a short window
+            // left some days with no hunt at all when the cats were busy sharing tongues or sparring just then
+            else if (between(t, 2500, 6500)) patrol(level, camp, cats, now, r, "morning", Act.HUNT);
             else if (between(t, 6500, 8500)) patrol(level, camp, cats, now, r, "afternoon", now.leafBare() ? Act.HUNT : Act.PATROL);
             else if (between(t, 8500, 10500) && (now.leafBare() || now.day() % 2 == 0)) patrol(level, camp, cats, now, r, "late", Act.HUNT);
         }
@@ -731,7 +757,7 @@ public final class CampRoutine {
             Job job = new Job(act, outing(site, cat, spots, act, i, r, back, act == Act.HUNT ? Pose.STROLL : Pose.CHILL, act == Act.HUNT ? 12 : 20));
             if (old != null) job.expect = old.expect;
             camp.jobs.put(cat.getUUID(), job);
-            camp.last.put(cat.getUUID(), act);
+            did(camp, cat.getUUID(), act);
             camp.outings.merge(cat.getUUID(), 1, Integer::sum);
         }
     }
@@ -749,7 +775,7 @@ public final class CampRoutine {
             Job job = new Job(Act.HERBS, outing(site, cat, List.of(spot), Act.HERBS, 0, r, den, Pose.CHILL, secs(r, 30, 45)));
             if (old != null) job.expect = old.expect;
             camp.jobs.put(cat.getUUID(), job);
-            camp.last.put(cat.getUUID(), Act.HERBS);
+            did(camp, cat.getUUID(), Act.HERBS);
             return;
         }
     }

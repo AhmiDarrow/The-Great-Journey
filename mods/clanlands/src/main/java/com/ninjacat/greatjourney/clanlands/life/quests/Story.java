@@ -62,6 +62,7 @@ final class Story {
                 QuestState.setStory(p, Tasks.storyStep(QuestState.path(p), step, clan, mentor, QuestState.mentorId(p), p.getUUID().getMostSignificantBits()));
                 Ui.push(p);
             } else {
+                Mentors.keepMark(p);                                // the mentor knows it has a pupil (Mentors)
                 Mentor.tick(p, clan, step, camp, toCamp);           // the mentor walks, watches and looks in (Mentor)
             }
             return;
@@ -87,8 +88,8 @@ final class Story {
             if (healerCat != null) warriors.add(healerCat);
         }
         if (warriors.isEmpty()) return;                               // the camp isn't loaded or has no warriors (or medicine cat) yet
-        warriors.sort(Comparator.comparingDouble(c -> c.distanceToSqr(p)));
-        WCatEntity mentor = warriors.get(0);
+        // a free warrior (or medicine cat) first, so apprentices are shared out; one who teaches already only if none is free
+        WCatEntity mentor = Mentors.choose(warriors, p.getX(), p.getZ());
         String name = Kin.name(mentor);
         QuestState.setMentor(p, name, mentor.getUUID());
         int step = Math.max(1, QuestState.storyStep(p));

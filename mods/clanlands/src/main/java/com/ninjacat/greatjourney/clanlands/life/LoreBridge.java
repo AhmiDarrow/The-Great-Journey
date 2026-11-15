@@ -55,6 +55,11 @@ public final class LoreBridge {
         }
 
         @Override
+        public boolean mentorsPlayer(WCatEntity cat) {
+            return com.ninjacat.greatjourney.clanlands.life.quests.Mentors.mentorsPlayer(cat);
+        }
+
+        @Override
         public boolean leads(WCatEntity cat) {
             Clan c = clan(cat);
             return c != null && Cats.isLeader(life(cat), c, cat);

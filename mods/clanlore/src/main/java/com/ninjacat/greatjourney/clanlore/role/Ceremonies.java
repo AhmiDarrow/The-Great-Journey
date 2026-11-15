@@ -163,10 +163,15 @@ final class Ceremonies {
 
     // mentors ------------------------------------------------------------------------------------------------------
 
-    /** The mentor for a new apprentice: a warrior of its Clan in its prime with no apprentice, the nearest first. */
+    /**
+     * The mentor for a new apprentice: a warrior of its Clan in its prime with no apprentice (neither a Clan cat nor a
+     * player, as the pack tells), the nearest first.
+     */
     static WCatEntity pickMentor(ServerLevel level, WCatEntity apprentice, ClanData.Clan clan) {
+        ClanKeeper k = Roles.keeper();
         return ClanCats.loaded(level, clan).stream()
-                .filter(c -> c != apprentice && ClanCats.ableWarrior(c) && Roles.apprenticeOf(c) == null)
+                .filter(c -> c != apprentice && ClanCats.ableWarrior(c) && Roles.apprenticeOf(c) == null
+                        && (k == null || !k.mentorsPlayer(c)))
                 .min(Comparator.comparingDouble(c -> c.distanceToSqr(apprentice))).orElse(null);
     }
 

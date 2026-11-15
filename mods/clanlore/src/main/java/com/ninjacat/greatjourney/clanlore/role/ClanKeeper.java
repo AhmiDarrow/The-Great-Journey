@@ -25,4 +25,9 @@ public interface ClanKeeper {
     default boolean rehome(WCatEntity cat, Role role) {
         return false;
     }
+
+    /** Whether this cat teaches a player (the pack's own apprentices), so it is not given a Clan apprentice too. */
+    default boolean mentorsPlayer(WCatEntity cat) {
+        return false;
+    }
 }

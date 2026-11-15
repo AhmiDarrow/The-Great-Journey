@@ -88,10 +88,21 @@ def boot(folder: Path, kind: str, timeout: int, settle: int) -> None:
                 log(f"server up after {done_at - start:.0f}s")
         proc.stdin.write("stop\n")
         proc.stdin.flush()
-        time.sleep(5)
-        proc.stdin.write("\n")                               # start.bat's closing pause
-        proc.stdin.flush()
-        proc.wait(timeout=180)
+        # start.bat ends on a pause: keep pressing a key until the window closes (one sent before the server had
+        # finished saving was read by the server's console, and the pause then waited for ever)
+        end = time.monotonic() + 180
+        while proc.poll() is None and time.monotonic() < end:
+            time.sleep(3)
+            try:
+                proc.stdin.write("\n")
+                proc.stdin.flush()
+            except OSError:
+                break
+        proc.wait(timeout=10)
+        try:
+            proc.stdin.close()                               # the window is gone: its input pipe may be too
+        except OSError:
+            pass
     finally:
         if proc.poll() is None:
             proc.kill()

@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.1.0: the first release
+## 0.1.1: the first release
+
+Fixes from the family playtest, on top of everything below:
+
+- **Act 2 reaches the sea.** Walking anywhere onto the beach where the sun drowns (or to Midnight's sett) now counts, the journal and a reminder tell you how far and which way the sea is, and StarClan's sign comes after a few days even if you were away from the forest.
+- **Mentors are shared out.** A new apprentice, or one whose mentor has gone to StarClan, gets a warrior who has no apprentice yet whenever the Clan has one.
+- **Livelier camps.** Each cat does a few different things through the day, and the morning hunting patrol no longer gets skipped on busy days.
+
+## 0.1.0
 
 The Great Journey: live as a Warrior Cat among the four Clans, from the old forest to the lake.
 

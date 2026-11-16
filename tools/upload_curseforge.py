@@ -108,7 +108,7 @@ def multipart(fields: dict[str, tuple[str, bytes, str]]) -> tuple[bytes, str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("file")
-    ap.add_argument("--release-type", choices=["alpha", "beta", "release"], default="beta")
+    ap.add_argument("--release-type", choices=["alpha", "beta", "release"], default="release")
     ap.add_argument("--display-name", default="")
     ap.add_argument("--changelog-file", default="")
     ap.add_argument("--parent-file-id", type=int, default=0,

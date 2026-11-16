@@ -1,6 +1,6 @@
 # Changelog
 
-## Next
+## 0.1.2
 
 - **Slower seasons.** Each season now lasts 72 days instead of 24, and the leaves change colour every 24 days instead of every 8.
 

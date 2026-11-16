@@ -1,5 +1,9 @@
 # Changelog
 
+## Next
+
+- **Slower seasons.** Each season now lasts 72 days instead of 24, and the leaves change colour every 24 days instead of every 8.
+
 ## 0.1.1: the first release
 
 Fixes from the family playtest, on top of everything below:

@@ -108,6 +108,14 @@
         "value": true,
         "why": "no tornadoes or hurricanes tearing up the territories; rain, thunder, wind and storms stay"
       }
+    ],
+    "config/sereneseasons/seasons.toml": [
+      {
+        "section": "time_settings",
+        "key": "sub_season_duration",
+        "value": 24,
+        "why": "At Serene Seasons' default of 8 days a sub-season, a whole season passed in 24 days and the leaves changed colour every 8 days, far too fast for a Clan's moons (playtest). 24 days a sub-season makes a season 72 days."
+      }
     ]
   }
 }

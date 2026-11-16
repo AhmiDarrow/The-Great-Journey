@@ -5,7 +5,7 @@ import net.minecraft.world.level.Level;
 
 /**
  * The season, and whether it is leaf-bare. Asks Serene Seasons when it is installed (through reflection, so Clanlands does not need
- * it); otherwise counts days, with a year of 96 days and its last quarter as leaf-bare.
+ * it); otherwise counts days, with a year of 288 days (as the pack sets Serene Seasons) and its last quarter as leaf-bare.
  */
 final class Seasons {
     private Seasons() {}
@@ -20,7 +20,7 @@ final class Seasons {
         return season(level) == Season.LEAF_BARE;
     }
 
-    /** The current season: Serene Seasons' when installed, else a 96-day year in four equal quarters. */
+    /** The current season: Serene Seasons' when installed, else a 288-day year in four equal quarters. */
     static Season season(Level level) {
         try {
             if (!looked) {
@@ -42,6 +42,6 @@ final class Seasons {
             getState = null;
         }
         long day = level.getDayTime() / 24000L;
-        return Season.values()[(int) (day % 96 / 24)];
+        return Season.values()[(int) (day % 288 / 72)];
     }
 }

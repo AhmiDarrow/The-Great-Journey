@@ -113,10 +113,8 @@ public final class Cats {
     public static String warriorName(String prefix, RandomSource r, Set<String> used) {
         String best = prefix + "heart";
         for (int i = 0; i < 40; i++) {
-            String sfx = WCatEntity.SUFIXES[r.nextInt(WCatEntity.SUFIXES.length)].toLowerCase(Locale.ROOT).trim();
-            if (sfx.isEmpty() || sfx.equals("paw") || sfx.equals("kit") || sfx.equals("star")) continue;
-            if (!com.ninjacat.greatjourney.clanlands.life.ClanNames.fitsSuffix(sfx)) continue;
-            if (prefix.toLowerCase(Locale.ROOT).endsWith(sfx.substring(0, 1))) continue;
+            String sfx = com.ninjacat.greatjourney.clanlands.life.ClanNames.randomSuffix(r);
+            if (!com.ninjacat.greatjourney.clanlands.life.ClanNames.fine(prefix, sfx)) continue;
             String full = prefix + sfx;
             if (!used.contains(full.toLowerCase(Locale.ROOT))) return full;
             best = full;

@@ -88,4 +88,22 @@ public final class ClanEventsGameTests {
         }
         h.succeed();
     }
+
+    @GameTest(template = "empty")
+    public static void warriorNamesAreManyAndNeverDoubled(GameTestHelper h) {
+        java.util.Set<String> names = new java.util.HashSet<>(), suffixes = new java.util.HashSet<>();
+        for (long seed = 0; seed < 40; seed++) {
+            var gen = new com.ninjacat.greatjourney.clanlands.life.ClanNames(seed * 104729L + 11);
+            for (int i = 0; i < 150; i++) {
+                var n = gen.warrior();
+                String p = n.prefix().toLowerCase(java.util.Locale.ROOT), s = n.full().toLowerCase(java.util.Locale.ROOT).substring(p.length());
+                h.assertTrue(!p.contains(s) && !s.contains(p) && !s.equals("paw") && !s.equals("kit") && !s.equals("star"), "a doubled or rank name: " + n.full());
+                names.add(n.full());
+                suffixes.add(s);
+            }
+        }
+        h.assertTrue(com.ninjacat.greatjourney.clanlands.life.ClanNames.SUFFIXES.size() >= 200, "the suffix list is short");
+        h.assertTrue(suffixes.size() >= 150 && names.size() >= 1000, "only " + suffixes.size() + " suffixes and " + names.size() + " names drawn");
+        h.succeed();
+    }
 }

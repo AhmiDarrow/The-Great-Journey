@@ -10,7 +10,11 @@
     "WorldDimensionsMixin",
     "ChunkGeneratorMixin",
     "CanyonWorldCarverMixin",
-    "DynamicWatersHydrologyMixin"
+    "DynamicWatersHydrologyMixin",
+    "NoiseRouterMixin",
+    "RangeChoiceMixin",
+    "LevelStorageSourceMixin",
+    "NamespacedSurfaceRuleMixin"
   ],
   "injectors": {
     "defaultRequire": 1

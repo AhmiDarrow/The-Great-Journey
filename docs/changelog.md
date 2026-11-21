@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- **Worlds keep opening.** Three worldgen mods together made the world's saved terrain settings grow every time the world was opened: one part tripled, until after about a dozen opens the world refused to load ("Tried to read NBT tag that was too big"); another added a layer each time, slowing new terrain a little more on every open. Both now stay the same size, and a world already hit by this opens again and shrinks back on its next save.
+
 ## 0.1.2
 
 - **Slower seasons.** Each season now lasts 72 days instead of 24, and the leaves change colour every 24 days instead of every 8.

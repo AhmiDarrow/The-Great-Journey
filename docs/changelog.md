@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- **Many more warrior names.** Warrior names now end in one of 231 endings in the books' style (-pelt, -stripe, -frost, -flight, -whisker, -fang, -song, -blossom, -pool and many more), so the Clans can have tens of thousands of different warriors. Your own warrior ceremony offers four new endings in every world, and no name uses the same word twice (no "Firefire").
+
 ## 0.1.3
 
 - **Worlds keep opening.** Three worldgen mods together made the world's saved terrain settings grow every time the world was opened: one part tripled, until after about a dozen opens the world refused to load ("Tried to read NBT tag that was too big"); another added a layer each time, slowing new terrain a little more on every open. Both now stay the same size, and a world already hit by this opens again and shrinks back on its next save.

@@ -247,12 +247,12 @@ final class Story {
         int colour = BookClans.Info.of(clan).colour;
         String prefix = prefix(p);
         boolean healer = QuestState.path(p) == QuestState.Path.MEDICINE;
-        RandomSource r = RandomSource.create(p.getUUID().getLeastSignificantBits() ^ 0xCE7E30L);
+        // seeded by world and player: the same four if the ceremony is asked again, a new four in every world
+        RandomSource r = RandomSource.create(p.getUUID().getLeastSignificantBits() ^ 0xCE7E30L ^ p.serverLevel().getServer().overworld().getSeed());
         List<String> choices = new ArrayList<>();
         while (choices.size() < 4) {
-            String s = WCatEntity.SUFIXES[r.nextInt(WCatEntity.SUFIXES.length)].toLowerCase(Locale.ROOT).trim();
-            if (!s.isEmpty() && !s.equals("paw") && !s.equals("kit") && !s.equals("star") && com.ninjacat.greatjourney.clanlands.life.ClanNames.fitsSuffix(s)
-                    && !choices.contains(s)) choices.add(s);
+            String s = com.ninjacat.greatjourney.clanlands.life.ClanNames.randomSuffix(r);
+            if (com.ninjacat.greatjourney.clanlands.life.ClanNames.fine(prefix, s) && !choices.contains(s)) choices.add(s);
         }
         QuestState.setCeremonyChoices(p, choices);
         WCatEntity leaderCat = leaderCat(p, clan, leader);

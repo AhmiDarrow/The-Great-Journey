@@ -45,19 +45,33 @@ final class Story {
         int step = QuestState.storyStep(p);
         Landmark camp = Homeland.camp(w, clan);
         double toCamp = Math.hypot(p.getX() - camp.x(), p.getZ() - camp.z());
+        // on the Great Journey the Clan is on the move, and its cats are let go and made anew at the lake (seen in the
+        // Campaign saves checked 2026-11-23): no mentor or apprentice is counted lost until the Clan has a camp again
+        ServerLevel ow = p.serverLevel().getServer().overworld();
+        boolean travelling = Homeland.forest() && com.ninjacat.greatjourney.clanlands.life.Mode.of(ow) == com.ninjacat.greatjourney.clanlands.life.Mode.CAMPAIGN
+                && com.ninjacat.greatjourney.clanlands.life.campaign.CampaignData.get(ow).act() >= 3;
         if (step == 0) {
             ClanData.ClanPlayerRank rank = wc.members.get(p.getUUID());
             if ((rank == ClanData.ClanPlayerRank.APPRENTICE || rank == ClanData.ClanPlayerRank.MEDICINEAPP) && toCamp < camp.radius() + 40) {
-                assignMentor(p, clan, wc, camp, false);
+                assignMentor(p, clan, wc, camp, null);
             }
             return;
         }
         if (step >= 1 && step <= 6) {
             LifeData life = LifeData.get(p.serverLevel().getServer().overworld());
+            boolean nearCamp = toCamp < camp.radius() + 100;
+            if (nearCamp && !travelling) Mentors.follow(p, wc.clanUUID, camp, life);       // the same cat, made anew
             String mentor = QuestState.mentorName(p);
-            boolean gone = life.starClan().stream().anyMatch(f -> f.name().equalsIgnoreCase(mentor));
-            if (gone && toCamp < camp.radius() + 40) {
-                assignMentor(p, clan, wc, camp, true);
+            Mentors.Loss loss = travelling ? null : Mentors.lost(p, wc, life);
+            // one only missing from the Clan's list may be waiting in camp under its old name: looked for there first
+            if (loss == Mentors.Loss.GONE && !nearCamp) loss = null;
+            Task cur = QuestState.story(p);
+            if (loss == null && cur != null && QuestState.mentorId(p) != null && !QuestState.mentorId(p).equals(cur.giverId)) {
+                // the step follows the mentor (one found again under a new id, or taken on at a hand-in)
+                QuestState.setStory(p, carryOver(cur, Tasks.storyStep(QuestState.path(p), step, clan, mentor, QuestState.mentorId(p), p.getUUID().getMostSignificantBits())));
+            }
+            if (loss != null) {
+                mentorLost(p, clan, wc, camp, toCamp, loss, life);
             } else if (QuestState.story(p) == null) {
                 QuestState.setStory(p, Tasks.storyStep(QuestState.path(p), step, clan, mentor, QuestState.mentorId(p), p.getUUID().getMostSignificantBits()));
                 Ui.push(p);
@@ -72,41 +86,117 @@ final class Story {
             QuestState.root(p).putLong("ceremonyAt", now);     // asked again at most every 30 s if the window is closed
             ceremony(p, clan);
         }
+        if (step == QuestState.WARRIOR && !travelling) {
+            Pupils.tick(p, clan, wc, camp, toCamp);            // an apprentice of their own (Pupils)
+            Ranks.tick(p, clan, wc, camp, toCamp);             // deputy, leader, nine lives (Ranks)
+        }
     }
 
-    private static void assignMentor(ServerPlayer p, Clan clan, ClanData.Clan wc, Landmark camp, boolean replacement) {
+    /**
+     * The mentor is gone: the apprentice is told once, wherever they are, and gets a new mentor in camp as soon as a
+     * cat who can teach is there. Until then the step stays as it is in the journal.
+     */
+    private static void mentorLost(ServerPlayer p, Clan clan, ClanData.Clan wc, Landmark camp, double toCamp, Mentors.Loss loss, LifeData life) {
+        java.util.UUID old = QuestState.mentorId(p);
+        com.ninjacat.greatjourney.clanlands.life.Lead lead = com.ninjacat.greatjourney.clanlands.life.Lead.of(p);
+        if (lead != null && lead.cat().getUUID().equals(old)) com.ninjacat.greatjourney.clanlands.life.Lead.stop(p);
+        var root = QuestState.root(p);
+        if (toCamp < camp.radius() + 40 && assignMentor(p, clan, wc, camp, loss)) {
+            root.remove("mentorLostTold");
+            return;
+        }
+        if (root.getBoolean("mentorLostTold")) return;
+        root.putBoolean("mentorLostTold", true);
+        Ui.subtitle(p, List.of(Line.narrate(lossWords(QuestState.mentorName(p), loss) + " " + life.leader(clan) + " will name a new mentor for you in camp.")));
+        Ui.push(p);
+    }
+
+    static String lossWords(String mentor, Mentors.Loss loss) {
+        if (mentor.isEmpty()) mentor = "Your mentor";
+        return switch (loss) {
+            case DIED -> mentor + " hunts with StarClan now.";
+            case RETIRED -> mentor + " can train you no longer.";
+            case GONE -> mentor + " is gone from the Clan.";
+        };
+    }
+
+    /**
+     * Gives the player a mentor in camp: their first ({@code loss} null), or a new one for one who can teach no
+     * longer. Returns false when no cat who can teach is in camp yet (asked again the next second).
+     */
+    private static boolean assignMentor(ServerPlayer p, Clan clan, ClanData.Clan wc, Landmark camp, Mentors.Loss loss) {
         ServerLevel level = p.serverLevel();
         LifeData life = LifeData.get(level.getServer().overworld());
         boolean healer = QuestState.path(p) == QuestState.Path.MEDICINE;
-        Kin.Role teaches = healer ? Kin.Role.MEDICINE : Kin.Role.WARRIOR;          // a medicine cat apprentice learns from the medicine cat
-        List<WCatEntity> warriors = new ArrayList<>(Kin.catsNear(level, wc.clanUUID, camp.x(), camp.z(), camp.radius() + 60));
-        warriors.removeIf(c -> Kin.role(c, life) != teaches);
-        if (warriors.isEmpty() && healer) {
+        java.util.UUID old = QuestState.mentorId(p);
+        String was = QuestState.mentorName(p);
+        // warriors (medicine cats for a medicine cat apprentice); the deputy or the leader where a Clan has no warrior in camp
+        List<WCatEntity> fit = Mentors.candidates(level, wc.clanUUID, camp, life, healer);
+        if (loss != null) fit.removeIf(c -> c.getUUID().equals(old));
+        if (fit.isEmpty() && healer) {
             // the medicine cat is out gathering herbs (or its chunk is not loaded): only the medicine cat teaches a
             // medicine cat apprentice, so it is fetched home to camp, or, if the Clan has none loaded at all, one comes
             WCatEntity healerCat = fetchMedicineCat(p, clan, wc, camp, life);
-            if (healerCat != null) warriors.add(healerCat);
+            if (healerCat != null && !healerCat.getUUID().equals(old)) fit.add(healerCat);
         }
-        if (warriors.isEmpty()) return;                               // the camp isn't loaded or has no warriors (or medicine cat) yet
+        if (fit.isEmpty()) return false;                             // the camp isn't loaded or has no cat who can teach yet
+        WCatEntity mentor = null;
+        boolean same = false;
+        if (loss == null && old != null) {
+            // the mentor the leader named at the joining ceremony, if they can still teach
+            mentor = fit.stream().filter(c -> c.getUUID().equals(old)).findFirst().orElse(null);
+        } else if (loss == Mentors.Loss.GONE) {
+            // the same cat, made anew (the Clans' cats are, when they settle after the journey): it simply goes on
+            mentor = fit.stream().filter(c -> Kin.name(c).equalsIgnoreCase(was)).findFirst().orElse(null);
+            same = mentor != null;
+        }
         // a free warrior (or medicine cat) first, so apprentices are shared out; one who teaches already only if none is free
-        WCatEntity mentor = Mentors.choose(warriors, p.getX(), p.getZ());
+        if (mentor == null) mentor = Mentors.choose(fit, p.getX(), p.getZ());
         String name = Kin.name(mentor);
         QuestState.setMentor(p, name, mentor.getUUID());
         int step = Math.max(1, QuestState.storyStep(p));
         QuestState.setStoryStep(p, step);
-        Task t = Tasks.storyStep(QuestState.path(p), step, clan, name, mentor.getUUID(), p.getUUID().getMostSignificantBits());
+        Task t = carryOver(loss == null ? null : QuestState.story(p),
+                Tasks.storyStep(QuestState.path(p), step, clan, name, mentor.getUUID(), p.getUUID().getMostSignificantBits()));
         QuestState.setStory(p, t);
+        Ui.push(p);
+        if (same) return true;
         int colour = BookClans.Info.of(clan).colour;
         String you = Joining.catName(p);
-        Dialog.play(p,
-                replacement
-                        ? Line.say(name, colour, "Your mentor hunts with StarClan now, " + you + ". I'll finish your training. We go on from where you left off.").speakerEntity(mentor)
-                        : healer
-                        ? Line.say(name, colour, "So you'll walk the medicine cat's path, " + you + ". I'm " + name + ". There's a lot to learn: every herb, every sickness, every sign StarClan sends.").speakerEntity(mentor)
-                        : Line.say(name, colour, "So you're my new apprentice, " + you + ". I'm " + name + ". Stay close and keep your ears open.").speakerEntity(mentor),
-                Line.say(name, colour, t.title + ": " + t.description).speakerEntity(mentor),
-                Line.narrate("Your journal shows what to do next. Talk to " + name + " when you are done."));
-        Ui.push(p);
+        List<Line> lines = new ArrayList<>();
+        if (loss != null) {
+            String leader = life.leader(clan);
+            WCatEntity leaderCat = catNamed(p, clan, leader);
+            if (leaderCat != null && leaderCat != mentor) {
+                lines.add(Line.say(leader, colour, lossWords(was, loss) + " " + name + ", you will finish " + you + "'s training.").speakerEntity(leaderCat));
+                lines.add(Line.say(name, colour, "I will, " + leader + ". We go on from where you left off, " + you + ".").speakerEntity(mentor));
+            } else {
+                lines.add(Line.say(name, colour, lossWords(was, loss) + " I'll finish your training, " + you + ". We go on from where you left off.").speakerEntity(mentor));
+            }
+        } else {
+            lines.add(healer
+                    ? Line.say(name, colour, "So you'll walk the medicine cat's path, " + you + ". I'm " + name + ". There's a lot to learn: every herb, every sickness, every sign StarClan sends.").speakerEntity(mentor)
+                    : Line.say(name, colour, "So you're my new apprentice, " + you + ". I'm " + name + ". Stay close and keep your ears open.").speakerEntity(mentor));
+        }
+        lines.add(Line.say(name, colour, t.title + ": " + t.description).speakerEntity(mentor));
+        lines.add(Line.narrate("Your journal shows what to do next. Talk to " + name + " when you are done."));
+        Dialog.play(p, lines);
+        return true;
+    }
+
+    /**
+     * The step as the new mentor gives it, with what the apprentice had already done of it: the step is the same one
+     * (its places and herbs come from the player, not the mentor), so the progress carries over.
+     */
+    static Task carryOver(Task from, Task to) {
+        if (from == null || to == null || from.kind != to.kind || from.objectives.size() != to.objectives.size()) return to;
+        for (int i = 0; i < to.objectives.size(); i++) {
+            Task.Objective a = from.objectives.get(i), b = to.objectives.get(i);
+            if (a.type != b.type || a.goal != b.goal) continue;
+            b.progress = a.progress;
+            b.started = a.started;
+        }
+        return to;
     }
 
     /**
@@ -242,22 +332,65 @@ final class Story {
      * cat's path the medicine cat who taught them (the leader, if they are not about) names them a full medicine cat.
      */
     static void ceremony(ServerPlayer p, Clan clan) {
+        ceremony(p, clan, false);
+    }
+
+    /** "Other names": the Clan offers four more (the name the player chose stays on offer). */
+    static boolean otherNames(ServerPlayer p) {
+        Clan clan = Kin.bookClan(p);
+        if (clan == null || QuestState.storyStep(p) != QuestState.CEREMONY) return false;
+        QuestState.root(p).putInt("ceremonyPage", QuestState.root(p).getInt("ceremonyPage") + 1);
+        ceremony(p, clan, true);
+        return true;
+    }
+
+    /**
+     * The name ending the player chose when they made their cat (Warrior Cats Events keeps it beside the "-kit" or
+     * "-paw" name they go by), or "" for none they could carry as a warrior.
+     */
+    static String ownSuffix(ServerPlayer p) {
+        String s = p.getData(ModAttachments.PLAYER_WCE_DATA.get()).getSufix();
+        s = s == null ? "" : s.trim().toLowerCase(Locale.ROOT);
+        return s.matches("[a-z]{2,16}") && !s.equals("paw") && !s.equals("kit") && !s.equals("star") ? s : "";
+    }
+
+    /** Four name endings the Clan offers for this prefix: the same for a seed and page, never the player's own. */
+    static List<String> offers(String prefix, String own, long seed, int page) {
+        RandomSource r = RandomSource.create(seed + page * 0x9E3779B97F4A7C15L);
+        List<String> out = new ArrayList<>();
+        while (out.size() < 4) {
+            String s = com.ninjacat.greatjourney.clanlands.life.ClanNames.randomSuffix(r);
+            if (com.ninjacat.greatjourney.clanlands.life.ClanNames.fine(prefix, s) && !out.contains(s) && !s.equals(own)) out.add(s);
+        }
+        return out;
+    }
+
+    private static void ceremony(ServerPlayer p, Clan clan, boolean again) {
         LifeData life = LifeData.get(p.serverLevel().getServer().overworld());
         String leader = life.leader(clan);
         int colour = BookClans.Info.of(clan).colour;
         String prefix = prefix(p);
         boolean healer = QuestState.path(p) == QuestState.Path.MEDICINE;
-        // seeded by world and player: the same four if the ceremony is asked again, a new four in every world
-        RandomSource r = RandomSource.create(p.getUUID().getLeastSignificantBits() ^ 0xCE7E30L ^ p.serverLevel().getServer().overworld().getSeed());
-        List<String> choices = new ArrayList<>();
-        while (choices.size() < 4) {
-            String s = com.ninjacat.greatjourney.clanlands.life.ClanNames.randomSuffix(r);
-            if (com.ninjacat.greatjourney.clanlands.life.ClanNames.fine(prefix, s) && !choices.contains(s)) choices.add(s);
-        }
+        // the name they chose when they made their cat, or one of four the Clan offers (seeded by world and player:
+        // the same four if the ceremony is asked again, a new four in every world), or four more, as often as asked
+        String own = ownSuffix(p);
+        int page = QuestState.root(p).getInt("ceremonyPage");
+        List<String> offered = offers(prefix, own, p.getUUID().getLeastSignificantBits() ^ 0xCE7E30L ^ p.serverLevel().getServer().overworld().getSeed(), page);
+        List<String> choices = new ArrayList<>(offered);
+        if (!own.isEmpty()) choices.add(0, own);
         QuestState.setCeremonyChoices(p, choices);
         WCatEntity leaderCat = leaderCat(p, clan, leader);
         List<Choice> options = new ArrayList<>();
-        for (String s : choices) options.add(Choice.of(prefix + s, "greatjourney quest warrior " + s));
+        if (!own.isEmpty()) options.add(new Choice(prefix + own + " (the name you chose)", "greatjourney quest warrior " + own, 0xFFD966));
+        for (String s : offered) options.add(Choice.of(prefix + s, "greatjourney quest warrior " + s));
+        options.add(new Choice("Other names", "greatjourney quest names", 0xAAAAAA));
+        String ask = own.isEmpty() ? "" : " Keep the name you came to us with, or take one your Clan gives you.";
+        if (again) {
+            // "Other names": only the question again, with the next four
+            String by = healer ? QuestState.mentorName(p) : leader;
+            Dialog.play(p, say(by, colour, "Then perhaps one of these, " + Joining.catName(p) + "?", healer ? null : leaderCat).withChoices(options.toArray(Choice[]::new)));
+            return;
+        }
         if (healer) {
             // only a medicine cat names a medicine cat: the mentor (or, gone, the Clan's medicine cat) is brought to camp
             WCatEntity healerCat = healerHere(p, clan);
@@ -270,7 +403,7 @@ final class Story {
                     say(by, colour, "They have trained hard to understand the ways of a medicine cat, and with your help they will serve their Clan for many moons.", byCat),
                     say(by, colour, Joining.catName(p) + ", do you promise to uphold the ways of a medicine cat, to stand apart from rivalry between Clan and Clan, "
                             + "and to protect all cats equally, even at the cost of your life?", byCat),
-                    say(by, colour, "Then by the powers of StarClan, what name will you carry as a medicine cat?", byCat)
+                    say(by, colour, "Then by the powers of StarClan, what name will you carry as a medicine cat?" + ask, byCat)
                             .withChoices(options.toArray(Choice[]::new)));
             return;
         }
@@ -278,7 +411,7 @@ final class Story {
                 say(leader, colour, "Cats of " + BookClans.Info.of(clan).title + ", gather round! Tonight we welcome a new warrior.", leaderCat),
                 say(leader, colour, "StarClan, look down on this apprentice. They have learned the warrior code and served the Clan with brave paws and a loyal heart.", leaderCat),
                 say(leader, colour, "Will you guard this Clan and keep the warrior code, even at the cost of your life? Then it is time for your warrior name.", leaderCat),
-                say(leader, colour, Joining.catName(p) + ", by the powers of StarClan, what name will you carry as a warrior?", leaderCat)
+                say(leader, colour, Joining.catName(p) + ", by the powers of StarClan, what name will you carry as a warrior?" + ask, leaderCat)
                         .withChoices(options.toArray(Choice[]::new)));
     }
 
@@ -306,6 +439,7 @@ final class Story {
         if (healer) com.ninjacat.greatjourney.clanlands.life.Nests.claim(p, clan, com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.MEDICINE);
         else com.ninjacat.greatjourney.clanlands.life.Nests.warrior(p, clan);            // their nest moves to the warriors' den
         QuestState.setStoryStep(p, QuestState.WARRIOR);
+        QuestState.root(p).remove("ceremonyPage");
         QuestState.setWarriorName(p, name);
         com.ninjacat.greatjourney.clanlands.life.Kits.grow(p, WCEPlayerData.Age.ADULT);   // full-grown with the full name
         QuestState.addStanding(p, 15);

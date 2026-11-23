@@ -189,7 +189,9 @@ final class Ceremonies {
 
     /** Ends pairings whose other half is gone (dead, gone from the Clan, grown) or has been paired with another cat. */
     private static void checkLinks(ServerLevel level, WCatEntity cat, RoleData d, ClanData.Clan clan) {
-        if (d.mentor != null) {
+        ClanKeeper k = Roles.keeper();
+        // an apprentice a player teaches is the pack's own pairing: the pack ends it (Roles.setPlayerMentor)
+        if (d.mentor != null && !(k != null && k.taughtByPlayer(cat))) {
             boolean keep;
             if (level.getEntity(d.mentor) instanceof WCatEntity m && m.isAlive()) {
                 keep = cat.getUUID().equals(Roles.apprenticeOf(m)) && cat.getRank() == Rank.APPRENTICE;
@@ -262,6 +264,8 @@ final class Ceremonies {
     private static void retire(ServerLevel level, WCatEntity cat, RoleData d, Rank rank, ClanData.Clan clan) {
         if (d.role != Role.NONE || d.apprentice != null || cat.isBaby() || (rank != Rank.WARRIOR && rank != Rank.DEPUTY)) return;
         if (Roles.moons(cat) < RoleConfig.RETIRE_MOONS.get()) return;
+        ClanKeeper keeper = Roles.keeper();
+        if (keeper != null && keeper.mentorsPlayer(cat)) return;     // a player's mentor sees the training through first
         long now = level.getGameTime();
         Long next = RETIRE_NEXT.get(clan.clanUUID);
         if (next != null && now < next) return;

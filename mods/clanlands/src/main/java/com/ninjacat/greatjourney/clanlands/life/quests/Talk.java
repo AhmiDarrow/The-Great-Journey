@@ -86,6 +86,7 @@ final class Talk {
         int colour = Kin.colour(p);
         String you = Joining.catName(p);
         List<Line> lines = new ArrayList<>();
+        if (Pupils.greet(p, cat)) return;                    // their own apprentice (Pupils)
 
         // reporting back on something this cat asked for
         for (Task t : QuestState.active(p)) {
@@ -104,13 +105,16 @@ final class Talk {
                 Choice.of("Do you need help?", "greatjourney quest help " + cat.getId()),
                 Choice.of("Tell me about the Clan", "greatjourney quest clan " + cat.getId())));
         // the leader decides a cat's place in the Clan: a medicine cat's path, the elders' den, the nursery (Paths)
-        if (role == Role.LEADER) choices.add(Choice.of("About my place in the Clan", "greatjourney quest place " + cat.getId()));
+        // (where a player leads, their deputy hears it; and the leader names a deputy by talking to a warrior)
+        boolean leading = Ranks.leads(p);
+        if (role == Role.LEADER || leading && role == Role.DEPUTY) choices.add(Choice.of("About my place in the Clan", "greatjourney quest place " + cat.getId()));
+        if (leading && role == Role.WARRIOR) choices.add(Choice.of("Be my deputy", "greatjourney quest deputy " + cat.getId()));
         choices.add(Choice.of("Goodbye", "greatjourney quest bye"));
         lines.add(Line.say(name, colour, greeting(role, name, you)).speakerEntity(cat).withChoices(choices.toArray(Choice[]::new)));
         Dialog.play(p, lines);
     }
 
-    private static boolean hasDeliveries(ServerPlayer p, Task t) {
+    static boolean hasDeliveries(ServerPlayer p, Task t) {
         for (Task.Objective o : t.objectives) {
             if (o.type == Task.Objective.Type.BRING) {
                 if (Bag.count(p, o.key) < o.goal) return false;

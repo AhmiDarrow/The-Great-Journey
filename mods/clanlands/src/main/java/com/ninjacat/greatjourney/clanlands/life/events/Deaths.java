@@ -113,8 +113,11 @@ public final class Deaths {
     }
 
     /** The deputy becomes leader (taking a "-star" name and nine lives), then names a new deputy. */
-    static List<Line> succession(ServerLevel ow, LifeData life, Clan c, List<WCatEntity> cats) {
+    public static List<Line> succession(ServerLevel ow, LifeData life, Clan c, List<WCatEntity> cats) {
         Info info = Info.of(c);
+        // a player who is the Clan's deputy, and here, leads (Ranks)
+        List<Line> ours = com.ninjacat.greatjourney.clanlands.life.quests.Ranks.succession(ow, life, c, cats);
+        if (ours != null) return ours;
         List<Line> lines = new ArrayList<>();
         WCatEntity heir = Cats.withRank(cats, WCatEntity.Rank.DEPUTY).stream().findFirst()
                 .orElse(cats.stream().filter(x -> x.getRank() == WCatEntity.Rank.WARRIOR && Roles.role(x) != Role.ELDER)
@@ -138,7 +141,10 @@ public final class Deaths {
         return lines;
     }
 
-    static List<Line> newDeputy(ServerLevel ow, LifeData life, Clan c, List<WCatEntity> cats, String leaderName) {
+    public static List<Line> newDeputy(ServerLevel ow, LifeData life, Clan c, List<WCatEntity> cats, String leaderName) {
+        // a player who has earned it is named (or already holds the place): no Clan cat is deputy beside them (Ranks)
+        List<Line> ours = com.ninjacat.greatjourney.clanlands.life.quests.Ranks.deputyVacancy(ow, life, c, leaderName);
+        if (ours != null) return ours;
         List<WCatEntity> warriors = Cats.withRank(cats, WCatEntity.Rank.WARRIOR).stream()
                 .filter(x -> !Cats.isLeader(life, c, x) && Roles.role(x) != Role.ELDER).toList();
         if (warriors.isEmpty()) return List.of();

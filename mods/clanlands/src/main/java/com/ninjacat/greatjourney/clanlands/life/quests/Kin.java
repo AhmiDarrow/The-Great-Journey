@@ -52,8 +52,11 @@ public final class Kin {
     static Role role(WCatEntity cat, LifeData life) {
         String n = name(cat);
         Clan c = cat.getClanUUID() == null ? null : life.clanOf(cat.getClanUUID());
-        if (c != null && n.equalsIgnoreCase(life.leader(c))) return Role.LEADER;
-        if (n.toLowerCase(java.util.Locale.ROOT).endsWith("star") && cat.getRank() == WCatEntity.Rank.WARRIOR) return Role.LEADER;
+        // Clan Lore's role says who has retired: a leader who stepped down for a player keeps the "-star" name as an elder
+        boolean retired = com.ninjacat.greatjourney.clanlore.role.Roles.role(cat) == com.ninjacat.greatjourney.clanlore.role.Role.ELDER;
+        boolean playerLeads = c != null && life.leaderPlayer(c) != null;
+        if (c != null && !playerLeads && n.equalsIgnoreCase(life.leader(c))) return Role.LEADER;
+        if (!retired && !playerLeads && n.toLowerCase(java.util.Locale.ROOT).endsWith("star") && cat.getRank() == WCatEntity.Rank.WARRIOR) return Role.LEADER;
         return switch (cat.getRank()) {
             case DEPUTY -> Role.DEPUTY;
             case MEDICINE -> Role.MEDICINE;
@@ -64,7 +67,7 @@ public final class Kin {
                 var lore = com.ninjacat.greatjourney.clanlore.role.Roles.role(cat);
                 if (lore == com.ninjacat.greatjourney.clanlore.role.Role.ELDER) yield Role.ELDER;
                 if (lore == com.ninjacat.greatjourney.clanlore.role.Role.QUEEN) yield Role.QUEEN;
-                if (lore == com.ninjacat.greatjourney.clanlore.role.Role.LEADER) yield Role.LEADER;
+                if (lore == com.ninjacat.greatjourney.clanlore.role.Role.LEADER && !playerLeads) yield Role.LEADER;
                 if (cat.getGender() == 1 && nearKits(cat)) yield Role.QUEEN;
                 yield Role.WARRIOR;
             }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5
+
+- **A lost mentor is always replaced.** If your mentor dies, leaves the Clan or retires, you are told at once wherever you are, and the leader names a new mentor as soon as you are back in camp. What you had already done of the step carries over. In the Campaign, your mentor is still your mentor after the Clans settle at the lake.
+- **An apprentice of your own.** A warrior or a full medicine cat is given one of the Clan's apprentices. Ask them along, teach them four lessons, and the leader gives them their warrior name. A medicine cat names their own apprentice.
+- **Deputy and leader.** Train an apprentice and earn the Clan's trust, and your leader can make you deputy. A deputy leads the Clan when the leader's last life is gone, or when the old leader steps down for them. A new leader walks to the Moonpool for nine lives and a "-star" name, and chooses a deputy by talking to a warrior. The journal says what the next step needs.
+- **Found a Clan of your own (Free Mode).** A loner can win over wild cats, lead three of them to land no Clan has marked, and found a Clan there. The journal shows what the new Clan still needs: a camp, six cats, a deputy and a medicine cat. Then its founder receives nine lives at the Moonpool, and the four Clans hear of it at their next Gathering.
+- **Your warrior name is yours to choose.** At your naming ceremony you can keep the name you chose when you made your cat, take one of four your Clan offers, or ask for other names as often as you like.
+- **Existing worlds load as they are.** Checked against worlds saved by 0.1.4: every cat keeps their mentor, their step and their standing.
+
 ## 0.1.4
 
 - **Many more warrior names.** Warrior names now end in one of 231 endings in the books' style (-pelt, -stripe, -frost, -flight, -whisker, -fang, -song, -blossom, -pool and many more), so the Clans can have tens of thousands of different warriors. Your own warrior ceremony offers four new endings in every world, and no name uses the same word twice (no "Firefire").

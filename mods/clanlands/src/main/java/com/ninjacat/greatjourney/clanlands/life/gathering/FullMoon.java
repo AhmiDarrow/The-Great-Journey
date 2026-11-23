@@ -243,6 +243,26 @@ final class FullMoon {
         return was;
     }
 
+    /**
+     * Who speaks for a Clan among its own cats: its leader; where a player leads, their deputy (else a warrior), so no
+     * stand-in wearing the player's name stands on the rock or sends them word.
+     */
+    static String voice(LifeData life, Clan c) {
+        var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (life.leaderPlayer(c) == null || server == null || life.clanId(c) == null) return life.leader(c);
+        var wc = net.snowteb.warriorcats_events.clan.ClanData.get(server.overworld()).getClan(life.clanId(c));
+        String warrior = null;
+        if (wc != null) {
+            for (var cat : wc.clanCats.values()) {
+                if (cat.catName == null) continue;
+                String name = cat.catName.getString().replace("♂", "").replace("♀", "").trim();
+                if ("DEPUTY".equals(cat.catRank)) return name;
+                if (warrior == null && "WARRIOR".equals(cat.catRank)) warrior = name;
+            }
+        }
+        return warrior != null ? warrior : life.leader(c);
+    }
+
     // --- the invitation
 
     private static void invite(ServerPlayer p, Clan c, Run r) {
@@ -250,7 +270,7 @@ final class FullMoon {
         ClanWorld w = ClanWorld.current();
         LifeData life = LifeData.get(p.getServer().overworld());
         Info info = Info.of(c);
-        String leader = life.leader(c);
+        String leader = voice(life, c);
         Landmark camp = Homeland.camp(w, c);
         boolean inCamp = Math.hypot(p.getX() - camp.x(), p.getZ() - camp.z()) < camp.radius() + 24;
         Choice go = Choice.of("Go", "greatjourney gathering go"), no = new Choice("Not tonight", "greatjourney gathering stay", 0xAAAAAA);
@@ -314,7 +334,7 @@ final class FullMoon {
         run.declined.add(p.getUUID());
         run.going.remove(p.getUUID());
         LifeData life = LifeData.get(p.getServer().overworld());
-        Dialog.play(p, Line.say(life.leader(c), Info.of(c).colour, "Then keep watch over the camp while we are gone. You'll hear the news when we're home."));
+        Dialog.play(p, Line.say(voice(life, c), Info.of(c).colour, "Then keep watch over the camp while we are gone. You'll hear the news when we're home."));
         return true;
     }
 
@@ -380,7 +400,7 @@ final class FullMoon {
         int i = 0;
         for (Clan c : Clan.values()) {
             double a = base + i++ * Math.PI / 2;
-            String leader = life.leader(c);
+            String leader = voice(life, c);
             taken.add(leader);
             // the leaders stand at the oak's roots (or up on the rock), looking out over the Clans
             WCatEntity l = Crowd.scene(ow, c, leader, BookClans.Role.LEADER, g.seatX() + Math.cos(a) * g.seatR(), g.seatZ() + Math.sin(a) * g.seatR(),
@@ -421,7 +441,7 @@ final class FullMoon {
             lines.add(Line.narrate("The full moon rides high over Fourtrees, and silver light falls between the four great oaks. In the hollow, cats of four Clans share tongues with old friends."));
             lines.add(Line.narrate("The four leaders leap up onto the Great Rock, and the hollow falls quiet."));
         }
-        lines.add(Line.say(life.leader(host), hi.colour, "Cats of all Clans, welcome! Let the Gathering begin.").speakerEntity(entity(ow, r.leaders.get(host))));
+        lines.add(Line.say(voice(life, host), hi.colour, "Cats of all Clans, welcome! Let the Gathering begin.").speakerEntity(entity(ow, r.leaders.get(host))));
         for (int k = 0; k < 4; k++) {
             Clan c = Clan.values()[(host.ordinal() + k) % 4];
             Entity who = entity(ow, r.leaders.get(c));
@@ -429,10 +449,10 @@ final class FullMoon {
             for (int j = 0; j < s.size(); j += 2) {
                 String text = (j == 0 ? Info.of(c).title + " has news. " : "") + s.get(j) + (j + 1 < s.size() ? " " + s.get(j + 1) : "");
                 if (s.size() == 1 && isFlavour(c, s.get(0))) text = s.get(0);
-                lines.add(Line.say(life.leader(c), Info.of(c).colour, text).speakerEntity(who));
+                lines.add(Line.say(voice(life, c), Info.of(c).colour, text).speakerEntity(who));
             }
         }
-        lines.add(Line.say(life.leader(host), hi.colour, "Then the Gathering is over. May StarClan light your paths home.").speakerEntity(entity(ow, r.leaders.get(host))));
+        lines.add(Line.say(voice(life, host), hi.colour, "Then the Gathering is over. May StarClan light your paths home.").speakerEntity(entity(ow, r.leaders.get(host))));
         lines.add(Line.narrate(g.island() ? "Cats call farewells across the clearing as each Clan gathers itself and streams back over the fallen tree, toward its own territory."
                 : "Cats call farewells across the hollow as each Clan gathers itself and climbs out between the oaks, toward its own territory."));
         Set<UUID> heard = new HashSet<>();
@@ -550,7 +570,7 @@ final class FullMoon {
             Clan c = Crowd.clanOf(p);
             if (c == null || heard.contains(p.getUUID()) || Journey.stage(p) != Journey.Stage.PLAYING) continue;
             Clan other = Clan.values()[(c.ordinal() + 1 + p.getRandom().nextInt(3)) % 4];
-            Dialog.subtitle(p, Line.say(life.leader(c), Info.of(c).colour, "We are home from the Gathering. " + life.leader(other)
+            Dialog.subtitle(p, Line.say(voice(life, c), Info.of(c).colour, "We are home from the Gathering. " + voice(life, other)
                     + " of " + Info.of(other).title + " says: " + said.get(other).get(0)));
         }
     }
@@ -590,7 +610,7 @@ final class FullMoon {
         if (g == null || !(g.island() ? ISLAND : Gatherings.FOURTREES).equals(area.id())) return;
         LifeData life = LifeData.get(level);
         Clan host = Clan.values()[(int) Math.floorMod(run.id, 4L)];
-        Line l = Line.say(life.leader(host), Info.of(host).colour,
+        Line l = Line.say(voice(life, host), Info.of(host).colour,
                 "StarClan has hidden the moon! There will be no more Gathering tonight. Go home, all of you.").speakerEntity(entity(level, run.leaders.get(host)));
         for (ServerPlayer p : witnesses(level, g)) Dialog.play(p, l);
         end(level, g, How.BROKEN);

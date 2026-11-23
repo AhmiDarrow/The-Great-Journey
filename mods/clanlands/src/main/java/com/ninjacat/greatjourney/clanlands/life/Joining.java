@@ -81,6 +81,8 @@ public final class Joining {
         boolean nest = Nests.claim(p, clan.clan, com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.APPRENTICES) != null;
         WCatEntity mentor = mentorFor(p, clan, id);
         String mentorName = mentor == null ? null : plainName(mentor);
+        // the cat the leader names is the cat who teaches them (Story keeps to it); another used to turn up in camp
+        if (mentor != null) com.ninjacat.greatjourney.clanlands.life.quests.QuestState.setMentor(p, mentorName.trim(), mentor.getUUID());
         // each speaker hands the window their own cat: the camp's cats may not have reached the client yet, and a
         // lookup by name from the player's side only reaches so far
         ceremony(p, clan, life.leader(clan.clan), catNamed(p, clan, id, life.leader(clan.clan)), mentorName, mentor, nest);
@@ -92,7 +94,11 @@ public final class Joining {
     }
 
     private static WCatEntity mentorFor(ServerPlayer p, Info clan, UUID clanId) {
-        List<WCatEntity> warriors = campCats(p, clan, clanId, c -> c.getRank() == WCatEntity.Rank.WARRIOR);
+        // a warrior in their prime: not the leader, an elder or a queen (all three are warriors by Warrior Cats Events' rank)
+        LifeData life = LifeData.get(p.serverLevel().getServer().overworld());
+        List<WCatEntity> warriors = campCats(p, clan, clanId, c -> c.getRank() == WCatEntity.Rank.WARRIOR
+                && com.ninjacat.greatjourney.clanlands.life.quests.Mentors.fit(c, life, false)
+                && !com.ninjacat.greatjourney.clanlands.life.events.Cats.isLeader(life, clan.clan, c));
         if (warriors.isEmpty()) return null;
         // a warrior with no apprentice (a Clan cat's or a player's) first; shuffled so the nearest isn't always it
         List<WCatEntity> shuffled = new ArrayList<>(warriors);

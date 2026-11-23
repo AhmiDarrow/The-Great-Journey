@@ -21,7 +21,9 @@ public final class Task {
         /** A medicine cat's duties: cure the sick, restock the herb store, ease the elders. */
         TEND, HERB_STORE, ELDER_HERBS,
         /** A task the Campaign's story gives (one at a time, see {@link Errands}). */
-        ERRAND
+        ERRAND,
+        /** A lesson a grown cat gives their own apprentice (one at a time, see {@link Pupils}). */
+        LESSON
     }
 
     public final Kind kind;

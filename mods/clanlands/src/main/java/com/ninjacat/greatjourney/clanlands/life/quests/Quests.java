@@ -32,6 +32,7 @@ public final class Quests {
         Journals.provider(QuestLog::view);
         NeoForge.EVENT_BUS.addListener(Talk::onInteract);
         NeoForge.EVENT_BUS.addListener(Tracking::onDeath);
+        NeoForge.EVENT_BUS.addListener(Ranks::onDeath);
         NeoForge.EVENT_BUS.addListener(Tracking::onFished);
         Patrols.init();
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> {
@@ -55,8 +56,16 @@ public final class Quests {
         }));
         q.then(Commands.literal("warrior").then(Commands.argument("suffix", StringArgumentType.word()).executes(c ->
                 Story.becomeWarrior(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "suffix")) ? 1 : 0)));
+        q.then(Commands.literal("names").executes(c -> Story.otherNames(c.getSource().getPlayerOrException()) ? 1 : 0));
         // a place in the Clan: the apprentice's path, and the grown cat's role (Paths)
         q.then(withCat("place", Paths::offer));
+        // a grown cat's own apprentice (Pupils), and a leader's choice of deputy (Ranks)
+        q.then(withCat("pupilcome", Pupils::come));
+        q.then(Commands.literal("pupilstay").executes(c -> {
+            Pupils.stay(c.getSource().getPlayerOrException());
+            return 1;
+        }));
+        q.then(withCat("deputy", Ranks::nameDeputy));
         q.then(Commands.literal("path").then(Commands.argument("path", StringArgumentType.word()).executes(c -> {
             String path = StringArgumentType.getString(c, "path");
             if (!path.equals("warrior") && !path.equals("medicine")) return 0;
@@ -96,6 +105,7 @@ public final class Quests {
                             return 1;
                         }))));
         root.then(q);
+        Founding.commands(root);
     }
 
     private static LiteralArgumentBuilder<CommandSourceStack> withCat(String name, BiConsumer<ServerPlayer, WCatEntity> action) {

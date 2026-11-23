@@ -20,6 +20,8 @@ final class Rewards {
         Bag.give(p, t.rewardItem, t.rewardCount);
         if (t.story) {
             Story.stepDone(p, t, giver);
+        } else if (t.kind == Task.Kind.LESSON) {
+            Pupils.lessonDone(p, giver);
         } else {
             List<Task> d = QuestState.duties(p);
             d.removeIf(x -> QuestState.same(x, t));

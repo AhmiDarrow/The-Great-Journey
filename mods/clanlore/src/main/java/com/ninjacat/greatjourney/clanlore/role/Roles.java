@@ -120,6 +120,20 @@ public final class Roles {
         changed(apprentice);
     }
 
+    /**
+     * Makes a player the apprentice's mentor (the pack pairs them and says so through
+     * {@link ClanKeeper#taughtByPlayer}), ending the pairing it had with a Clan cat; a null player ends it. The name
+     * is shown under the apprentice's name tag like any mentor's.
+     */
+    public static void setPlayerMentor(WCatEntity apprentice, UUID player, String name) {
+        RoleData d = data(apprentice);
+        if (java.util.Objects.equals(d.mentor, player) && (player == null || d.mentorName.equals(name))) return;
+        unlink(apprentice, true, false);
+        d.mentor = player;
+        d.mentorName = player == null ? "" : name;
+        changed(apprentice);
+    }
+
     /** Ends the cat's pairings, as mentor and as apprentice, on both sides (the other side if it is loaded). */
     public static void unlink(WCatEntity cat) {
         unlink(cat, true, true);

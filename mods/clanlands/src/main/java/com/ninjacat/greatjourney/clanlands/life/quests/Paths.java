@@ -80,10 +80,15 @@ public final class Paths {
         } else if (training(p, rank)) {
             text = "Is the medicine den not for you, " + you + "? There's no shame in it. A medicine cat's life is not an easy one.";
             choices.add(Choice.of("Train as a warrior instead", "greatjourney quest path warrior"));
+        } else if (Ranks.leads(p)) {
+            text = "You lead us, " + you + ", and the Clan follows you gladly. What is on your mind?";
+            choices.add(Choice.of("Step down and join the elders", "greatjourney quest role elder"));
         } else {
             switch (rank) {
                 case WARRIOR, DEPUTY -> {
                     text = "You have served the Clan well, " + you + ". What is on your mind?";
+                    choices.add(rank == ClanPlayerRank.WARRIOR ? Choice.of("Could I serve as your deputy?", "greatjourney quest role deputy")
+                            : Choice.of("What of the Clan's future?", "greatjourney quest role leader"));
                     choices.add(Choice.of("Retire to the elders' den", "greatjourney quest role elder"));
                     choices.add(Choice.of("Help raise the kits in the nursery", "greatjourney quest role queen"));
                 }
@@ -164,6 +169,8 @@ public final class Paths {
         Clan clan = Kin.bookClan(p);
         ClanPlayerRank rank = rank(p);
         if (wc == null || clan == null || rank == null) return false;
+        if (role.equals("deputy") || role.equals("leader")) return Ranks.ask(p, role);
+        if (role.equals("elder") && Ranks.leads(p)) return Ranks.stepDown(p);
         String you = Joining.catName(p);
         ClanPlayerRank to = null;
         DenKind den = null;

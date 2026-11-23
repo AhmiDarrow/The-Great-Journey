@@ -30,4 +30,9 @@ public interface ClanKeeper {
     default boolean mentorsPlayer(WCatEntity cat) {
         return false;
     }
+
+    /** Whether a player teaches this apprentice (the pack pairs them), so Clan Lore leaves its mentor alone. */
+    default boolean taughtByPlayer(WCatEntity cat) {
+        return false;
+    }
 }

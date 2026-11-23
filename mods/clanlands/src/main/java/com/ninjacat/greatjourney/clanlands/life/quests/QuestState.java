@@ -84,6 +84,8 @@ public final class QuestState {
         UUID old = mentorId(p);
         root(p).putString("mentor", name);
         if (id != null) root(p).putUUID("mentorId", id);
+        // since when: a cat of the same name who died before this is not this mentor (Mentors.lost)
+        if (id == null || !id.equals(old)) root(p).putLong("mentorSince", p.level().getGameTime());
         if (p.getServer() != null) Mentors.mark(p, old, id);    // the cat knows it has a pupil (Mentors)
     }
 
@@ -126,6 +128,16 @@ public final class QuestState {
         if (t == null) root(p).remove("errand"); else root(p).put("errand", t.save());
     }
 
+    // --- the lesson a grown cat is giving their own apprentice (one at a time; see Pupils)
+
+    public static Task lesson(ServerPlayer p) {
+        return root(p).contains("lesson") ? Task.load(root(p).getCompound("lesson")) : null;
+    }
+
+    static void setLesson(ServerPlayer p, Task t) {
+        if (t == null) root(p).remove("lesson"); else root(p).put("lesson", t.save());
+    }
+
     // --- duties
 
     public static List<Task> duties(ServerPlayer p) {
@@ -151,6 +163,8 @@ public final class QuestState {
         out.addAll(duties(p));
         Task e = errand(p);
         if (e != null) out.add(e);
+        Task l = lesson(p);
+        if (l != null) out.add(l);
         return out;
     }
 
@@ -162,6 +176,10 @@ public final class QuestState {
         }
         if (changed.kind == Task.Kind.ERRAND) {
             setErrand(p, changed);
+            return;
+        }
+        if (changed.kind == Task.Kind.LESSON) {
+            setLesson(p, changed);
             return;
         }
         List<Task> d = duties(p);

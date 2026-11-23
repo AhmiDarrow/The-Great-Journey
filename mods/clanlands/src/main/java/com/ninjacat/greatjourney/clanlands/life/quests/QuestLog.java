@@ -34,12 +34,19 @@ public final class QuestLog {
         }
         JournalView.Quest seek = com.ninjacat.greatjourney.clanlands.life.Starts.seekQuest(p);   // a clanless cat looking for a camp
         if (seek != null) quests.add(0, seek);
+        // a new leader's walk for their nine lives (Ranks), and a Clan of the player's own (Founding)
+        JournalView.Quest lives = book == null ? null : Ranks.quest(p, Ranks.leads(p) && QuestState.root(p).getBoolean("nineLives"), BookClans.Info.of(book).title);
+        if (lives != null) quests.add(0, lives);
+        JournalView.Quest own = Founding.quest(p);
+        if (own != null) quests.add(own);
         List<JournalView.Place> places = new ArrayList<>();
         Set<String> found = QuestState.places(p);
         for (Places.Place pl : Places.all()) places.add(new JournalView.Place(pl.name(), found.contains(pl.id()), pl.hint()));
         List<String> mates = new ArrayList<>();
         if (wc != null) {
-            if (book != null) mates.add(life.leader(book) + " — Leader");
+            UUID leading = book == null ? null : life.leaderPlayer(book);
+            // a player who leads is listed with the players below when they are here
+            if (book != null && (leading == null || p.serverLevel().getServer().getPlayerList().getPlayer(leading) == null)) mates.add(life.leader(book) + " — Leader");
             for (ClanData.ClanCat cat : wc.clanCats.values()) {
                 String n = cat.catName == null ? "?" : cat.catName.getString().replace(" ♂", "").replace(" ♀", "").trim();
                 if (book != null && n.equalsIgnoreCase(life.leader(book))) continue;
@@ -50,7 +57,7 @@ public final class QuestLog {
                 UUID id = e.getKey();
                 ServerPlayer member = server.getPlayerList().getPlayer(id);
                 if (member == null) continue;                           // stand-in leader or offline players
-                mates.add(Joining.catName(member) + " — " + niceRank(e.getValue().name()) + (member == p ? " (you)" : ""));
+                mates.add(Joining.catName(member) + " — " + (id.equals(leading) ? "Leader" : niceRank(e.getValue().name())) + (member == p ? " (you)" : ""));
             }
         }
         // the most recent first, and only so many: a long-lived world remembers hundreds
@@ -73,6 +80,7 @@ public final class QuestLog {
                 default -> "Newcomer";
             };
         }
+        if (Ranks.leads(p)) return "Leader";
         ClanData.ClanPlayerRank r = wc.members.get(p.getUUID());
         return r == null ? "Guest" : niceRank(r.name());
     }
@@ -89,19 +97,31 @@ public final class QuestLog {
         if (wc == null) {
             var seeking = com.ninjacat.greatjourney.clanlands.life.Starts.seeking(p);
             if (seeking != null) return "Find the " + seeking.title + " camp.";
+            String own = Founding.goal(p, null);
             return Journey.start(p) == Journey.Start.KITTYPET
                     ? "Explore the woods beyond your garden. Wild cats live there..."
-                    : "Visit a Clan camp if you wish to join a Clan.";
+                    : "Visit a Clan camp if you wish to join a Clan." + (own == null ? "" : " " + own);
+        }
+        Clan book = Kin.bookClan(p);
+        if (book == null) {
+            // a Clan players founded themselves: no mentor waits there
+            String own = Founding.goal(p, wc);
+            return own != null ? own : "Serve " + wc.name + ": talk to your Clanmates for duties.";
         }
         int step = QuestState.storyStep(p);
         if (step == 0) return "Go to your camp and meet your mentor. Your leader can talk with you about your place in the Clan.";
         boolean healer = QuestState.path(p) == QuestState.Path.MEDICINE;
+        LifeData life = LifeData.get(p.serverLevel().getServer().overworld());
+        if (step <= 6 && Mentors.lost(p, wc, life) != null) return "Go back to camp: " + life.leader(book) + " will name a new mentor for you.";
         if (step <= 6) return (healer ? "Earn your medicine cat name: " : "Earn your warrior name: ") + Tasks.title(QuestState.path(p), step) + ".";
         if (step == QuestState.CEREMONY) return healer ? "Go back to camp, where your mentor will name you a medicine cat." : "Go back to camp for your warrior ceremony.";
         ClanData.ClanPlayerRank r = wc.members.get(p.getUUID());
         if (r == ClanData.ClanPlayerRank.ELDER) return "Rest in the elders' den and share your stories. Ask your leader if you want your old duties back.";
         if (r == ClanData.ClanPlayerRank.QUEEN) return "Help raise the Clan's kits in the nursery. Ask your leader if you want to go back to your duties.";
-        if (healer) return "Heal your Clan: gather herbs, tend the sick, and share tongues with StarClan at the half moon.";
-        return "Serve your Clan: talk to your Clanmates for duties, and make the journey to the old forest.";
+        // a named cat: their own apprentice (or why none yet), and how far they are from deputy and leader
+        String pupil = Pupils.goal(p), rise = Ranks.goal(p);
+        String more = (pupil == null ? "" : " " + pupil) + (rise == null ? "" : " " + rise);
+        if (healer) return "Heal your Clan: gather herbs, tend the sick, and share tongues with StarClan at the half moon." + more;
+        return (Ranks.leads(p) ? "" : "Serve your Clan: talk to your Clanmates for duties, and make the journey to the old forest.") + more;
     }
 }

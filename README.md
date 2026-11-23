@@ -67,7 +67,9 @@ Every camp has one way in, a natural barrier all round, and dens where the books
 
 - **Talk to any Clan cat.** A dialogue window with the speaker's portrait, text that writes itself out and choices to answer with.
 - **Duties.** Ask a Clanmate if they need help: the medicine cat sends you for herbs, the deputy for hunting and border patrols, the elders want fresh moss and the queens food for the nursery.
-- **The apprentice path.** Your mentor teaches you the territory, hunting, herbs, a border patrol and the places every apprentice knows, then tests you. Pass, and the leader holds your warrior ceremony and you choose your warrior name.
+- **The apprentice path.** Your mentor teaches you the territory, hunting, herbs, a border patrol and the places every apprentice knows, then tests you. Pass, and the leader holds your warrior ceremony and you choose your warrior name. If your mentor dies or retires, the leader names another and you go on from where you were.
+- **Rise through the Clan.** A warrior or a full medicine cat is given an apprentice of their own to teach. Train one, earn the Clan's trust, and you can become deputy, then leader, with nine lives from StarClan and a "-star" name.
+- **Found a Clan of your own (Free Mode).** Win over wild cats as a loner, lead them to land no Clan has marked, and build your Clan there: a camp, warriors, a deputy, a medicine cat, and nine lives of your own.
 - **The journal** keeps your tasks, your duties, your Clanmates, the places you have found and the cats who walk with StarClan.
 - **Clan events:** badgers, foxes and eagles, border raids, injuries and seasonal sickness, new kits, warrior ceremonies, hunting patrols and a lost kit. Cats die as they do in the books, without gore: a vigil, a place in StarClan's memory, and a leader's nine lives.
 - **Weather from the books:** the lake's edge freezing in leaf-bare, RiverClan's marsh flooding after rain, the shallows drying to mud in a drought, lightning setting a tree alight, morning mist that spoils the hunting. The seasons are newleaf, greenleaf, leaf-fall and leaf-bare.

@@ -39,6 +39,7 @@ public final class Tracking {
         long now = p.level().getGameTime();
         for (Task t : QuestState.active(p)) {
             boolean tc = false;
+            if (!Pupils.counts(p, t)) continue;                             // a lesson, and the apprentice is not along
             for (Task.Objective o : t.objectives) {
                 if (o.done() || !Kin.anyPrey(id)) continue;                 // any prey, not only the Clan's favourite
                 switch (o.type) {
@@ -82,6 +83,7 @@ public final class Tracking {
             boolean changed = false;
             for (Task t : QuestState.active(p)) {
                 boolean tc = false;
+                if (!Pupils.counts(p, t)) continue;
                 for (Task.Objective o : t.objectives) {
                     int before = o.progress;
                     switch (o.type) {
@@ -126,6 +128,7 @@ public final class Tracking {
             if (changed) Ui.push(p);
             com.ninjacat.greatjourney.clanlands.life.Kits.tick(p);    // a kit grows old enough to train (Kits)
             Story.tick(p);
+            Founding.tick(p);                                      // a loner gathering a Clan of their own (Founding)
             Errands.tick(p);                                       // a Campaign errand done (Errands)
         }
     }

@@ -29,6 +29,8 @@ public final class LifeData extends SavedData {
     String tunnelKeeper;
     /** Lives each leader has left (nine, as in the books). */
     final Map<Clan, Integer> lives = new EnumMap<>(Clan.class);
+    /** The player who leads a Clan, where one does (their cat's name is the Clan's leader name, like any leader's). */
+    final Map<Clan, UUID> leaderPlayers = new EnumMap<>(Clan.class);
     /** Cats who have died and joined StarClan, oldest first, for future StarClan dreams. */
     final List<Fallen> starClan = new ArrayList<>();
 
@@ -58,6 +60,7 @@ public final class LifeData extends SavedData {
             if (ct.contains("leader")) d.leaders.put(c, ct.getString("leader"));
             if (ct.getBoolean("populated")) d.populated.add(c);
             if (ct.contains("lives")) d.lives.put(c, ct.getInt("lives"));
+            if (ct.hasUUID("leaderPlayer")) d.leaderPlayers.put(c, ct.getUUID("leaderPlayer"));
         }
         for (Tag t : tag.getList("starclan", Tag.TAG_COMPOUND)) {
             CompoundTag f = (CompoundTag) t;
@@ -82,6 +85,7 @@ public final class LifeData extends SavedData {
             if (leaders.containsKey(c)) ct.putString("leader", leaders.get(c));
             ct.putBoolean("populated", populated.contains(c));
             if (lives.containsKey(c)) ct.putInt("lives", lives.get(c));
+            if (leaderPlayers.containsKey(c)) ct.putUUID("leaderPlayer", leaderPlayers.get(c));
             tag.put(c.name(), ct);
         }
         ListTag list = new ListTag();
@@ -126,10 +130,25 @@ public final class LifeData extends SavedData {
         return null;
     }
 
+    /** A Clan cat becomes leader, with nine lives. */
     public void setLeader(Clan c, String name) {
         leaders.put(c, name);
         lives.put(c, LEADER_LIVES);
+        leaderPlayers.remove(c);
         setDirty();
+    }
+
+    /** A player becomes leader (or, already leading, takes their leader's name): nine lives, as for any leader. */
+    public void setLeaderPlayer(Clan c, UUID player, String name) {
+        leaders.put(c, name);
+        lives.put(c, LEADER_LIVES);
+        leaderPlayers.put(c, player);
+        setDirty();
+    }
+
+    /** The player who leads the Clan, or null where a Clan cat does. */
+    public UUID leaderPlayer(Clan c) {
+        return leaderPlayers.get(c);
     }
 
     public int lives(Clan c) {

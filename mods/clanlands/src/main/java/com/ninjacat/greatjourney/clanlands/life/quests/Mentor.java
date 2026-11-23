@@ -478,6 +478,7 @@ final class Mentor {
             ServerPlayer q = l.player();
             QuestState.root(q).putLong("mentorNext", q.level().getGameTime() + RETRY);
             if (QuestState.root(q).getBoolean("mentorHome")) return;          // called off for the night or the rain
+            if (!l.cat().isAlive()) return;                                   // the mentor died on the walk: Story names a new one
             if (!q.hasDisconnected() && q.isAlive()) Ui.subtitle(q, List.of(line(l.cat(), colour, "We'll finish this another time. Find me in camp.")));
         });
         if (lead == null) return false;

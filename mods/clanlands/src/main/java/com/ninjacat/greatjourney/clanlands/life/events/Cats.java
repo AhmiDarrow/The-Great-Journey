@@ -99,7 +99,7 @@ public final class Cats {
     }
 
     public static boolean isLeader(LifeData life, Clan c, WCatEntity cat) {
-        return plainName(cat).equals(life.leader(c));
+        return life.leaderPlayer(c) == null && plainName(cat).equals(life.leader(c));
     }
 
     /** Lower-case names already used in a Clan's camp, so new names never clash. */

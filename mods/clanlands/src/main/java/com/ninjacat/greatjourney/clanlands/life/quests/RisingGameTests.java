@@ -1,6 +1,8 @@
 package com.ninjacat.greatjourney.clanlands.life.quests;
 
+import com.ninjacat.greatjourney.clanlands.layout.Landmark;
 import com.ninjacat.greatjourney.clanlands.layout.Sectors.Clan;
+import com.ninjacat.greatjourney.clanlands.life.BookClans;
 import com.ninjacat.greatjourney.clanlands.life.Dialog;
 import com.ninjacat.greatjourney.clanlands.life.LifeData;
 import com.ninjacat.greatjourney.clanlands.life.events.Cats;
@@ -202,6 +204,110 @@ public final class RisingGameTests {
             h.assertTrue(Roles.mentorOf(paw) == null, "until the pairing ends");
         } finally {
             made.forEach(WCatEntity::discard);
+            QuestState.reset(p);
+        }
+        h.succeed();
+    }
+
+    /**
+     * A named cat is greeted and set to work as one (reported 2026-11-23: a warrior and a deputy were still treated as
+     * apprentices): no elder calls them "young one" or sends them for moss, no warrior sets them to practise, every
+     * Clanmate has something to ask, and the deputy, with no deputy above them, gets the patrols from the leader.
+     */
+    @GameTest(template = "empty")
+    public static void aNamedCatIsTreatedAsOne(GameTestHelper h) {
+        UUID cat = UUID.randomUUID();
+        for (Kin.Role you : new Kin.Role[] {Kin.Role.WARRIOR, Kin.Role.DEPUTY, Kin.Role.LEADER, Kin.Role.MEDICINE, Kin.Role.ELDER, Kin.Role.QUEEN}) {
+            for (Kin.Role giver : Kin.Role.values()) {
+                String hello = Talk.greeting(giver, "Testpelt", "Brackenfur", you);
+                h.assertFalse(hello.contains("young one") || hello.contains("apprentices fetched") || hello.contains("Are you a warrior"),
+                        "a " + giver + " greets a " + you + " as a named cat: " + hello);
+                for (long day = 0; day < 12; day++) {
+                    Task t = Tasks.dutyFor(you, giver, Clan.THUNDER, "Testpelt", cat, day);
+                    h.assertTrue(t != null && !t.objectives.isEmpty() && Task.load(t.save()) != null, "a " + giver + " has work for a " + you + " on day " + day);
+                    h.assertFalse(t.kind == Task.Kind.MOSS || t.kind == Task.Kind.STALK || t.kind == Task.Kind.DARE, "no apprentice's chore for a " + you + ": " + t.title);
+                    if (you == Kin.Role.LEADER) h.assertFalse(t.description.contains("sends you"), "nobody sends their leader: " + t.description);
+                    if (giver == Kin.Role.LEADER && you == Kin.Role.DEPUTY) {
+                        h.assertTrue(t.kind == Task.Kind.BORDER_PATROL || t.kind == Task.Kind.HUNT, "the leader gives their deputy the patrols: " + t.title);
+                        h.assertTrue(t.title.startsWith("Lead the"), "to lead: " + t.title);
+                    }
+                }
+            }
+        }
+        // an apprentice is still an apprentice, and a kit a kit
+        boolean moss = false, practice = false;
+        for (long day = 0; day < 40; day++) {
+            moss |= Tasks.dutyFor(Kin.Role.APPRENTICE, Kin.Role.ELDER, Clan.THUNDER, "Testpelt", cat, day).kind == Task.Kind.MOSS;
+            Task.Kind k = Tasks.dutyFor(Kin.Role.APPRENTICE, Kin.Role.WARRIOR, Clan.THUNDER, "Testpelt", cat, day).kind;
+            h.assertTrue(k == Task.Kind.CLIMB || k == Task.Kind.STALK, "a warrior sets an apprentice to practise");
+            practice |= k == Task.Kind.STALK;
+        }
+        h.assertTrue(moss && practice, "an apprentice still fetches the elders' moss and practises the crouch");
+        h.assertTrue(Talk.greeting(Kin.Role.ELDER, "Testpelt", "Brackenpaw", Kin.Role.APPRENTICE).contains("young one"), "and is a young one to the elders");
+        h.assertTrue(Tasks.dutyFor(Kin.Role.KIT, Kin.Role.LEADER, Clan.THUNDER, "Teststar", cat, 0) == null, "the leader asks nothing of a kit");
+        h.succeed();
+    }
+
+    /**
+     * An apprentice left out in the territory (its mentor died out there, or went on without it) comes home, where its
+     * mentor looks for it and where it is named (reported 2026-11-23: some never got their warrior name). One the Clan
+     * itself has sent out is left alone.
+     */
+    @GameTest(template = "empty")
+    public static void anApprenticeLeftBehindComesHome(GameTestHelper h) {
+        ServerPlayer p = player(h, "rising_stray");
+        WCatEntity paw = cat(h, "Straypaw", WCatEntity.Rank.APPRENTICE, new BlockPos(1, 2, 1), null);
+        try {
+            double x = paw.getX(), z = paw.getZ();
+            Landmark camp = new Landmark(Landmark.Kind.SHADOWCLAN_CAMP, x + 50, z, 5, 0, 0);
+            p.setPos(x, paw.getY(), z + 400);                       // far off: it is not watched as it goes
+            paw.setNoAi(false);
+            paw.addTag(BookClans.BUSY_TAG);
+            h.assertFalse(Pupils.comeHome(p, paw, camp), "an apprentice the Clan has sent out is not in camp");
+            h.assertTrue(Math.abs(paw.getX() - x) < 1 && Math.abs(paw.getZ() - z) < 1, "and is left where it is");
+            paw.removeTag(BookClans.BUSY_TAG);
+            h.assertTrue(Pupils.comeHome(p, paw, camp), "one left out in the territory is brought home");
+            h.assertTrue(Math.hypot(paw.getX() - camp.x(), paw.getZ() - camp.z()) <= 8, "to its camp");
+            h.assertTrue(Pupils.comeHome(p, paw, camp), "where it stays");
+        } finally {
+            paw.discard();
+            QuestState.reset(p);
+        }
+        h.succeed();
+    }
+
+    /**
+     * A Clan that needs a medicine cat takes one of its own apprentices and gives them a full name, never the one a
+     * player is training (seen in a world played 2026-11-23: apprentices made medicine cats and left "-paw" for good,
+     * a player's own among them, counted as trained with no name).
+     */
+    @GameTest(template = "empty")
+    public static void theClansMedicineCatIsNeverAPlayersApprentice(GameTestHelper h) {
+        LifeData life = LifeData.get(h.getLevel());
+        ServerPlayer p = player(h, "rising_healer");
+        WCatEntity mine = cat(h, "Minepaw", WCatEntity.Rank.APPRENTICE, new BlockPos(1, 2, 1), null);
+        WCatEntity other = cat(h, "Otherpaw", WCatEntity.Rank.APPRENTICE, new BlockPos(2, 2, 1), null);
+        WCatEntity warrior = cat(h, "Testpelt", WCatEntity.Rank.WARRIOR, new BlockPos(3, 2, 1), null);
+        try {
+            other.setPrefix(Component.literal("Other"));          // as every Clan cat has (a cat made bare here has "None")
+            mine.getPersistentData().putUUID(Pupils.KEY, p.getUUID());
+            mine.getPersistentData().putLong(Pupils.SEEN, h.getLevel().getGameTime());
+            h.assertTrue(Pupils.isPupil(mine), "the apprentice is a player's");
+            h.assertTrue(com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.chooseMedicineCat(life, Clan.THUNDER, List.of(mine, other, warrior)) != null,
+                    "the Clan finds a medicine cat");
+            h.assertTrue(mine.getRank() == WCatEntity.Rank.APPRENTICE && Kin.name(mine).equals("Minepaw"), "not the player's apprentice");
+            h.assertTrue(other.getRank() == WCatEntity.Rank.MEDICINE, "but one of its own");
+            h.assertTrue(!Kin.name(other).endsWith("paw") && Kin.name(other).startsWith("Other"), "who takes a full name: " + Kin.name(other));
+            h.assertTrue(warrior.getRank() == WCatEntity.Rank.WARRIOR, "and no warrior is taken while an apprentice will do");
+            other.setRank(WCatEntity.Rank.WARRIOR);
+            h.assertTrue(com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.chooseMedicineCat(life, Clan.THUNDER, List.of(mine, warrior)) != null,
+                    "with no apprentice of its own, the Clan still finds one");
+            h.assertTrue(mine.getRank() == WCatEntity.Rank.APPRENTICE && warrior.getRank() == WCatEntity.Rank.MEDICINE && Kin.name(warrior).equals("Testpelt"),
+                    "a warrior, who keeps their name");
+        } finally {
+            mine.discard();
+            other.discard();
+            warrior.discard();
             QuestState.reset(p);
         }
         h.succeed();

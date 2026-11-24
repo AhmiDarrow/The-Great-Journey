@@ -122,6 +122,8 @@ public final class QuestLog {
         String pupil = Pupils.goal(p), rise = Ranks.goal(p);
         String more = (pupil == null ? "" : " " + pupil) + (rise == null ? "" : " " + rise);
         if (healer) return "Heal your Clan: gather herbs, tend the sick, and share tongues with StarClan at the half moon." + more;
+        // a deputy has no deputy to ask: the leader gives them the patrols (Tasks.dutyFor)
+        if (r == ClanData.ClanPlayerRank.DEPUTY && !Ranks.leads(p)) return "Lead the patrols: ask " + life.leader(book) + " where the Clan needs them, and see to your Clanmates." + more;
         return (Ranks.leads(p) ? "" : "Serve your Clan: talk to your Clanmates for duties, and make the journey to the old forest.") + more;
     }
 }

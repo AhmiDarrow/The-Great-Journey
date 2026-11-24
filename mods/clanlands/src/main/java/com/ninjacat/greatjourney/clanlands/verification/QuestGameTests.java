@@ -175,7 +175,8 @@ public final class QuestGameTests {
                     h.assertTrue(t != null && !t.objectives.isEmpty(), role + " offers a duty on day " + day);
                 }
             }
-            h.assertTrue(Tasks.dutyFor(Kin.Role.KIT, Clan.THUNDER, "Testkit", cat, 0) == null, "kits give no duties");
+            h.assertTrue(Tasks.dutyFor(Kin.Role.KIT, Clan.THUNDER, "Testkit", cat, 0) != null, "a kit wants something to play with");
+            h.assertTrue(Tasks.dutyFor(Kin.Role.LEADER, Clan.THUNDER, "Teststar", cat, 0) == null, "the leader leaves apprentices to the deputy");
             if (ClanWorld.current() != null) {
                 for (int step = 1; step <= 6; step++) {
                     Task t = Tasks.storyStep(step, Clan.RIVER, "Testpelt", cat, 42L);

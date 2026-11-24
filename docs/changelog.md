@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.6
+
+- **A named cat is treated as one.** Once you have your warrior name, your Clanmates greet you as a warrior, a deputy, a leader, a medicine cat or an elder, and ask a warrior's work of you. No elder calls a deputy "young one" or sends them for moss, and no warrior sets them to practise the hunter's crouch.
+- **A deputy leads the patrols.** A deputy had no deputy to ask, and so had no patrols at all. Now your leader gives you the border patrol and the hunting patrol to lead, and the warriors nearby fall in behind you. A leader hears from their own deputy where the Clan needs them.
+- **More to do.** Every Clanmate now has something to ask, once a day each. The leader sends a warrior they trust to scout a place in the territory. The deputy and the medicine cat may want a place looked over. An elder asks how a place they remember looks these days. Warriors offer a hunting race or a climbing dare, or ask for a share of your prey after a long patrol. Apprentices ask a warrior to show them how to stalk and where the prey runs, and race another apprentice. Kits want a moss-ball, or to see a real mouse up close.
+- **Your apprentice always gets their name.** Your apprentice now stays at your side until you tell them to wait in camp (they used to leave after twenty minutes without a word, and the lessons stopped counting). One left behind in the territory, because you died, left the game or went on without them, comes home to camp by itself. The naming is held as soon as you are both in camp. The journal says when to ask them along, and why you have no apprentice yet.
+- **The Clan no longer takes your apprentice for its medicine cat.** A Clan with no medicine cat took its first apprentice, even one you were training, and left them a "-paw" for good. It also did this whenever its own medicine cat was only out gathering herbs. Now it names a new one only when it truly has none, never your apprentice, and the apprentice it chooses takes a full name. Medicine cats left as "-paw" in existing worlds are given their full names.
+- **A cat born in the nursery is named once.** An apprentice who grew up in the nursery was given a warrior name at their ceremony and then a different one when they finished growing. They now finish growing at the ceremony and keep one name.
+- **A named cat keeps their rank.** A cat who had earned their name and joined a Clan again was made an apprentice, with a mentor and no way on. They now join as a warrior or a medicine cat, and a world where this had already happened is put right. A named cat is always drawn full-grown.
+- **Smaller fixes.** A mentor out with their apprentice is still called to the Gathering. In the Campaign, StarClan speaks to you by name.
+
 ## 0.1.5
 
 - **A lost mentor is always replaced.** If your mentor dies, leaves the Clan or retires, you are told at once wherever you are, and the leader names a new mentor as soon as you are back in camp. What you had already done of the step carries over. In the Campaign, your mentor is still your mentor after the Clans settle at the lake.

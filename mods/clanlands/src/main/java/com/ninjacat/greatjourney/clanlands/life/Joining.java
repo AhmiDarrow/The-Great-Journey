@@ -64,7 +64,12 @@ public final class Joining {
         }
         // a kit (their cat is a kit) is too young to train: the nursery first, the apprentice ceremony later (Kits)
         boolean kit = Kits.kitAged(p);
-        data.addMember(p, id, kit ? ClanData.ClanPlayerRank.KIT : ClanData.ClanPlayerRank.APPRENTICE);
+        // a cat who has earned their name already (they left a Clan, or came from another) is no apprentice again: they
+        // were made one, with a mentor and no way on, and treated as one from then on
+        boolean named = !kit && com.ninjacat.greatjourney.clanlands.life.quests.QuestState.storyStep(p) >= com.ninjacat.greatjourney.clanlands.life.quests.QuestState.WARRIOR;
+        boolean healer = named && com.ninjacat.greatjourney.clanlands.life.quests.QuestState.path(p) == com.ninjacat.greatjourney.clanlands.life.quests.QuestState.Path.MEDICINE;
+        data.addMember(p, id, kit ? ClanData.ClanPlayerRank.KIT : !named ? ClanData.ClanPlayerRank.APPRENTICE
+                : healer ? ClanData.ClanPlayerRank.MEDICINE : ClanData.ClanPlayerRank.WARRIOR);
         com.ninjacat.greatjourney.clanlands.life.quests.Paths.joined(p);
         data.changeMemberPermissions(p.getUUID(), id, ClanData.ClanPermissions.MEMBER);
         Journey.clearOffer(p);
@@ -74,6 +79,21 @@ public final class Joining {
             boolean nursery = Nests.claim(p, clan.clan, com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.NURSERY) != null;
             List<Line> lines = Kits.welcome(catName(p), clan, life.leader(clan.clan), catNamed(p, clan, id, life.leader(clan.clan)));
             if (!nursery) lines.remove(lines.size() - 1);
+            Dialog.play(p, lines);
+            return true;
+        }
+        if (named) {
+            com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind den = healer
+                    ? com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.MEDICINE : com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.WARRIORS;
+            boolean nest = Nests.claim(p, clan.clan, den) != null;
+            String leader = life.leader(clan.clan), name = catName(p);
+            WCatEntity leaderCat = catNamed(p, clan, id, leader);
+            List<Line> lines = new ArrayList<>();
+            lines.add(Line.say(leader, clan.colour, "Cats of " + clan.title + ", gather round! A new cat joins our Clan today.").speakerEntity(leaderCat));
+            lines.add(Line.say(leader, clan.colour, name + ", you come to us with your name already earned, and you will keep it. From this day on you are a "
+                    + (healer ? "medicine cat" : "warrior") + " of " + clan.title + ".").speakerEntity(leaderCat));
+            lines.add(Line.narrate("The Clan calls your name: " + name + "! " + name + "!"));
+            if (nest) lines.add(Line.narrate("A nest of your own waits in the " + (healer ? "medicine den" : "warriors' den") + ". You will wake there."));
             Dialog.play(p, lines);
             return true;
         }

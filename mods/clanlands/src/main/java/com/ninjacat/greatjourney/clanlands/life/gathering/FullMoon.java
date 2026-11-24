@@ -174,7 +174,9 @@ final class FullMoon {
             if (Journey.stage(p) != Journey.Stage.PLAYING || p.isSpectator()) continue;
             Clan c = Crowd.clanOf(p);
             if (c != null) {
-                if (Journey.stamped(p, INVITED) != r.id && Lead.of(p) == null && Crowd.rank(p) != ClanData.ClanPlayerRank.KIT
+                if (Journey.stamped(p, INVITED) != r.id && Crowd.rank(p) != ClanData.ClanPlayerRank.KIT
+                        // (a mentor out with their own apprentice is still called: the apprentice goes home)
+                        && (Lead.of(p) == null || com.ninjacat.greatjourney.clanlands.life.quests.Pupils.isPupil(Lead.of(p).cat()))
                         && !com.ninjacat.greatjourney.clanlands.life.tour.Tour.touring(p) && !Gatherings.storyBusy(p)) invite(p, c, r);
                 if (g.on(p.getX(), p.getZ()) && r.arrived.add(p.getUUID())) r.lastArrival = now;
             } else if (dark && Journey.stamped(p, WATCHED) != r.id && Crowd.near(p, g.x(), g.z(), g.radius() + SHORE_NOTE) && !Gatherings.storyBusy(p)) {

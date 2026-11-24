@@ -93,7 +93,7 @@ final class Talk {
             if (Story.answers(p, cat, t)) {
                 lines.add(Line.say(name, colour, t.readyToHandIn() || hasDeliveries(p, t)
                         ? "Back already, " + you + "? Let's see what you have."
-                        : remind(t)).speakerEntity(cat).withChoices(
+                        : remind(t, Kin.role(p))).speakerEntity(cat).withChoices(
                         Choice.of(t.readyToHandIn() || hasDeliveries(p, t) ? "Hand it over" : "I'm still working on it",
                                 t.readyToHandIn() || hasDeliveries(p, t) ? "greatjourney quest give " + cat.getId() : "greatjourney quest bye"),
                         Choice.of("Goodbye", "greatjourney quest bye")));
@@ -110,7 +110,7 @@ final class Talk {
         if (role == Role.LEADER || leading && role == Role.DEPUTY) choices.add(Choice.of("About my place in the Clan", "greatjourney quest place " + cat.getId()));
         if (leading && role == Role.WARRIOR) choices.add(Choice.of("Be my deputy", "greatjourney quest deputy " + cat.getId()));
         choices.add(Choice.of("Goodbye", "greatjourney quest bye"));
-        lines.add(Line.say(name, colour, greeting(role, name, you)).speakerEntity(cat).withChoices(choices.toArray(Choice[]::new)));
+        lines.add(Line.say(name, colour, greeting(role, name, you, Kin.role(p))).speakerEntity(cat).withChoices(choices.toArray(Choice[]::new)));
         Dialog.play(p, lines);
     }
 
@@ -125,23 +125,64 @@ final class Talk {
         return true;
     }
 
-    private static String remind(Task t) {
+    private static String remind(Task t, Role mine) {
         for (Task.Objective o : t.objectives) {
-            if (!o.done()) return "Have you forgotten? " + o.text + ".";
+            // nobody asks their leader, or a warrior, whether they have forgotten
+            if (!o.done()) return (Kin.grown(mine) ? "There is still this to do: " : "Have you forgotten? ") + o.text + ".";
         }
         return "Come back when you're done.";
     }
 
-    static String greeting(Role role, String name, String you) {
+    /** How a Clanmate greets the player: by who they are, and by who the player has become ({@code mine}). */
+    static String greeting(Role role, String name, String you, Role mine) {
+        if (!Kin.grown(mine)) {
+            return switch (role) {
+                case LEADER -> "Greetings, " + you + ". StarClan has been good to us this moon. Is all well with you?";
+                case DEPUTY -> "There you are, " + you + ". There's always work to be done for the Clan.";
+                case MEDICINE -> "Mind the herbs, " + you + "! Oh, it's you. Are you hurt, or have you come to help?";
+                case QUEEN -> "Shh, the kits are finally asleep. Hello, " + you + ".";
+                case ELDER -> "Eh? Speak up, young one. In my day apprentices fetched our moss without being asked!";
+                case WARRIOR -> "Hello, " + you + ". Keep your eyes open on the borders.";
+                case APPRENTICE -> mine == Role.KIT ? "Hello, " + you + "! You'll be in the apprentices' den with us soon."
+                        : "Hey, " + you + "! Want to practise hunting crouches later?";
+                case KIT -> mine == Role.KIT ? you + "! Come and play moss-ball!" : "Are you a warrior? When I'm an apprentice I'm going to catch a fox!";
+            };
+        }
+        boolean leader = mine == Role.LEADER, deputy = mine == Role.DEPUTY, healer = mine == Role.MEDICINE, elder = mine == Role.ELDER;
         return switch (role) {
-            case LEADER -> "Greetings, " + you + ". StarClan has been good to us this moon. Is all well with you?";
-            case DEPUTY -> "There you are, " + you + ". There's always work to be done for the Clan.";
-            case MEDICINE -> "Mind the herbs, " + you + "! Oh, it's you. Are you hurt, or have you come to help?";
-            case QUEEN -> "Shh, the kits are finally asleep. Hello, " + you + ".";
-            case ELDER -> "Eh? Speak up, young one. In my day apprentices fetched our moss without being asked!";
-            case WARRIOR -> "Hello, " + you + ". Keep your eyes open on the borders.";
-            case APPRENTICE -> "Hey, " + you + "! Want to practise hunting crouches later?";
-            case KIT -> "Are you a warrior? When I'm an apprentice I'm going to catch a fox!";
+            case LEADER -> deputy ? "There you are, " + you + ". A leader is only as strong as their deputy. How do the patrols stand?"
+                    : healer ? "Greetings, " + you + ". Has StarClan spoken? Is the Clan well?"
+                    : elder ? "Greetings, " + you + ". The Clan has not forgotten what you gave it. Are the elders well looked after?"
+                    : "Greetings, " + you + ". You serve the Clan well. Is all quiet on the borders?";
+            case DEPUTY -> leader ? you + ". The patrols are out and the borders are quiet. What do you need of me?"
+                    : healer ? you + ". If any of my patrols come back limping, I'll send them straight to you."
+                    : elder ? you + "! The warriors still talk of your patrols. Rest your paws: we have the borders."
+                    : "There you are, " + you + ". I can always use a warrior I trust on the patrols.";
+            case MEDICINE -> leader ? "Mind the herbs! Oh, " + you + ". The Clan is well, for now. Are you hurt, or have you come to help?"
+                    : healer ? you + "! Come and see: the store is nearly sorted. Two medicine cats are better than one."
+                    : "Mind the herbs, " + you + "! Are you hurt, or have you come to help?";
+            case QUEEN -> leader ? "Shh, the kits are finally asleep. It's good of you to look in on the nursery, " + you + "."
+                    : "Shh, the kits are finally asleep. Hello, " + you + ". They ask after "
+                    + (healer ? "the medicine cat" : elder ? "your stories" : "the warriors") + " all day.";
+            case ELDER -> leader ? you + "! I remember you as a scrap of an apprentice, tripping over your own paws. And now you lead us."
+                    : deputy ? "The deputy, come to see the elders? You've done well, " + you + ". I always said you would."
+                    : elder ? "Ah, " + you + ". Come and sit. Did I ever tell you about the badger in the hollow?"
+                    : healer ? you + "! My joints tell me it will rain. You wouldn't have something for them?"
+                    : "Ah, " + you + ". I remember your warrior ceremony. Come to share tongues with an old cat?";
+            case WARRIOR -> leader ? you + ". The Clan is with you. Where do you need me?"
+                    : deputy ? you + ". Which patrol do you want me on?"
+                    : healer ? "Hello, " + you + ". My pads are holding up, before you ask."
+                    : elder ? "Hello, " + you + ". We're keeping the borders the way you taught us."
+                    : "Hello, " + you + ". Good hunting today?";
+            case APPRENTICE -> leader ? you + "! I've been practising my hunting crouch. Will you watch?"
+                    : deputy ? you + "! Can I go on a patrol soon? My mentor says I'm nearly ready."
+                    : healer ? "Hello, " + you + ". I've got a thorn in my pad. Only a small one."
+                    : "Hello, " + you + "! Will you show me how you stalk? You never make a sound.";
+            case KIT -> leader ? "It's " + you + "! Is it true you have nine lives? When I'm leader I'll have ten!"
+                    : deputy ? "You're the deputy! Can I be on your patrol? I'm nearly six moons. Nearly."
+                    : healer ? "I'm not sick! I don't need any yucky herbs, " + you + "!"
+                    : elder ? you + ", tell us a story! The one with the fox!"
+                    : "You're a real warrior! Did you ever fight a badger?";
         };
     }
 
@@ -156,15 +197,16 @@ final class Talk {
         if (duty == null) {
             Dialog.play(p, Line.say(name, colour, switch (role) {
                 case LEADER -> "My deputy sees to the patrols. Ask them, and serve your Clan well.";
-                case KIT -> "Help? Play moss-ball with me! ...No? Ask the deputy then.";
-                default -> "Not today, thank you. Ask the deputy if you want something to do.";
+                case KIT -> "Help? Play moss-ball with me!";
+                default -> "Not today, thank you.";
             }).speakerEntity(cat));
             return;
         }
         var ow = p.serverLevel().getServer().overworld();
         if (Tasks.keptIn(ow, duty.kind)) {
             Dialog.play(p, Line.say(name, colour, Tasks.night(ow)
-                    ? "At this hour? The Clan is asleep, " + Joining.catName(p) + ". Go to your nest, and ask me again at dawn."
+                    ? (Kin.grown(Kin.role(p)) ? "At this hour, " + Joining.catName(p) + "? It will keep until dawn. Even you must sleep."
+                    : "At this hour? The Clan is asleep, " + Joining.catName(p) + ". Go to your nest, and ask me again at dawn.")
                     : "In this rain? The scents are washed out and the prey has gone to ground. Ask me again when it clears.").speakerEntity(cat));
             return;
         }
@@ -184,7 +226,7 @@ final class Talk {
     /** This cat's duty for the player today: a warrior's work, or a medicine cat's for one on that path. */
     private static Task dutyFor(ServerPlayer p, Role role, String name, WCatEntity cat, long day) {
         return Paths.healer(p) ? Tasks.healerDutyFor(role, Kin.bookClan(p), name, cat.getUUID(), day)
-                : Tasks.dutyFor(role, Kin.bookClan(p), name, cat.getUUID(), day);
+                : Tasks.dutyFor(Kin.role(p), role, Kin.bookClan(p), name, cat.getUUID(), day);
     }
 
     static void accept(ServerPlayer p, WCatEntity cat) {
@@ -200,7 +242,9 @@ final class Talk {
         d.add(duty);
         QuestState.setDuties(p, d);
         if (duty.kind == Task.Kind.BORDER_PATROL) Patrols.sendAlong(p, cat, duty);
-        Dialog.play(p, Line.say(name, Kin.colour(p), "Good. Off you go, and may StarClan light your path.").speakerEntity(cat));
+        Role mine = Kin.role(p);
+        Dialog.play(p, Line.say(name, Kin.colour(p), mine == Role.LEADER || mine == Role.DEPUTY ? "Thank you, " + Joining.catName(p) + ". May StarClan light your path."
+                : Kin.grown(mine) ? "Good. May StarClan light your path." : "Good. Off you go, and may StarClan light your path.").speakerEntity(cat));
         Ui.push(p);
     }
 
@@ -209,7 +253,7 @@ final class Talk {
         for (Task t : QuestState.active(p)) {
             if (!Story.answers(p, cat, t)) continue;
             if (!hasDeliveries(p, t)) {
-                Dialog.play(p, Line.say(Kin.name(cat), Kin.colour(p), remind(t)).speakerEntity(cat));
+                Dialog.play(p, Line.say(Kin.name(cat), Kin.colour(p), remind(t, Kin.role(p))).speakerEntity(cat));
                 return;
             }
             for (Task.Objective o : t.objectives) {

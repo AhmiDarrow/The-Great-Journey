@@ -86,6 +86,21 @@ final class Story {
             QuestState.root(p).putLong("ceremonyAt", now);     // asked again at most every 30 s if the window is closed
             ceremony(p, clan);
         }
+        // a named cat is full-grown, however they came by the name (their cat drawn again as a kit, an older world)
+        if (step == QuestState.WARRIOR) {
+            com.ninjacat.greatjourney.clanlands.life.Kits.grow(p, WCEPlayerData.Age.ADULT);
+            // and no apprentice: one who joined a Clan again after earning their name was ranked an apprentice for good
+            ClanData.ClanPlayerRank rank = wc.members.get(p.getUUID());
+            if (rank == ClanData.ClanPlayerRank.KIT || rank == ClanData.ClanPlayerRank.APPRENTICE || rank == ClanData.ClanPlayerRank.MEDICINEAPP) {
+                boolean healer = QuestState.path(p) == QuestState.Path.MEDICINE;
+                ClanData.get(ow).changeMemberRank(p.getUUID(), wc.clanUUID, healer ? ClanData.ClanPlayerRank.MEDICINE : ClanData.ClanPlayerRank.WARRIOR);
+                com.ninjacat.greatjourney.clanlands.life.Nests.claim(p, clan, healer ? com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.MEDICINE
+                        : com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind.WARRIORS);
+                Ui.subtitle(p, List.of(Line.narrate("You have your name already, and the Clan knows it: you are " + (healer ? "a medicine cat" : "a warrior") + " of "
+                        + BookClans.Info.of(clan).title + ", not an apprentice. Your nest is in the " + (healer ? "medicine den." : "warriors' den."))));
+                Ui.push(p);
+            }
+        }
         if (step == QuestState.WARRIOR && !travelling) {
             Pupils.tick(p, clan, wc, camp, toCamp);            // an apprentice of their own (Pupils)
             Ranks.tick(p, clan, wc, camp, toCamp);             // deputy, leader, nine lives (Ranks)

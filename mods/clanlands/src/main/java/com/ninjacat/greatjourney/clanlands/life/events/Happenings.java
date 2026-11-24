@@ -303,6 +303,7 @@ final class Happenings {
     // 7: an apprentice earns their warrior name
     private static boolean ceremony(ServerLevel ow, Clan c, List<WCatEntity> cats, RandomSource r) {
         List<WCatEntity> ready = cats.stream().filter(x -> x.getRank() == WCatEntity.Rank.APPRENTICE && x.getAgeInMoons() >= 12
+                && !x.isBaby()                 // one born in the nursery is named by Warrior Cats Events when it grows up (named here, it was named over again)
                 && !com.ninjacat.greatjourney.clanlands.life.quests.Pupils.isPupil(x)).toList();   // a player's apprentice is named when its training is done
         if (ready.isEmpty()) return false;
         WCatEntity app = ready.get(r.nextInt(ready.size()));

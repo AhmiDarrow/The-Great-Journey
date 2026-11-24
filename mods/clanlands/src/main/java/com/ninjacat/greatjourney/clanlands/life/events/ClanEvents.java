@@ -229,26 +229,71 @@ public final class ClanEvents {
     static void keepMedicineCat(ServerLevel ow, Clan c) {
         if (!Cats.campLoaded(ow, c) || !Cats.campCatsLoaded(ow, c)) return;
         List<WCatEntity> cats = Cats.atCamp(ow, c);
-        if (cats.size() < 4 || cats.stream().anyMatch(x -> x.getRank() == WCatEntity.Rank.MEDICINE)) return;
         LifeData life = LifeData.get(ow);
-        WCatEntity heir = nameMedicineCat(life, c, cats);
-        if (heir == null) return;
-        Announce.tell(ow, c, Cats.campCentre(ow, c), medicineChosen(life, c, heir));
-        EventNews.record(c, Cats.plainName(heir) + " has become " + Info.of(c).title + "'s medicine cat.");
+        // a medicine cat still called "-paw" (chosen before the chosen were given their names) is named now
+        for (WCatEntity x : cats) {
+            String was = Cats.plainName(x);
+            UUID bound = x.getPlayerBoundUuid();                // a player's own cat shape is theirs to name
+            if (bound != null && !bound.equals(net.snowteb.warriorcats_events.clan.ClanData.EMPTY_UUID)) continue;
+            if (x.getRank() != WCatEntity.Rank.MEDICINE || x.isBaby() || !was.endsWith("paw") || x.getTags().contains("greatjourney_gathering")) continue;
+            Happenings.makeWarrior(x, Cats.namesIn(cats), x.getRandom());
+            x.setRank(WCatEntity.Rank.MEDICINE);
+            x.updateClanCatData();
+            Announce.tell(ow, c, x.blockPosition(), com.ninjacat.greatjourney.clanlands.life.Dialog.Line.say(life.leader(c), Info.of(c).colour,
+                    was + ", you have served " + Info.of(c).title + " as its medicine cat, and it is time you had your full name. From this moment you will be known as "
+                            + Cats.plainName(x) + "."));
+            EventNews.record(c, was + " of " + Info.of(c).title + " has earned the medicine cat name " + Cats.plainName(x) + ".");
+        }
+        if (cats.size() < 4 || hasMedicineCat(ow, life, c, cats)) return;
+        com.ninjacat.greatjourney.clanlands.life.Dialog.Line said = chooseMedicineCat(life, c, cats);
+        if (said != null) Announce.tell(ow, c, Cats.campCentre(ow, c), said);
     }
 
-    /** Makes one of {@code cats} the Clan's medicine cat (an apprentice if there is one, else a warrior who is not the leader); null if none fits. */
-    static WCatEntity nameMedicineCat(LifeData life, Clan c, List<WCatEntity> cats) {
-        WCatEntity heir = cats.stream().filter(x -> x.isAlive() && x.getRank() == WCatEntity.Rank.APPRENTICE).findFirst()
-                .orElse(cats.stream().filter(x -> x.isAlive() && x.getRank() == WCatEntity.Rank.WARRIOR && !Cats.isLeader(life, c, x)).findFirst().orElse(null));
-        if (heir != null) heir.setRank(WCatEntity.Rank.MEDICINE);
-        return heir;
+    /**
+     * Whether the Clan has a medicine cat: one in camp, or one the Clan's own list still has (out for herbs, or away
+     * at the half moon: Warrior Cats Events drops a cat from the list when it dies). Looking only in camp, the Clan
+     * named a second medicine cat, and a third, whenever its own was out gathering (seen in a world played
+     * 2026-11-23). The keeper of the tunnels is a medicine cat too, and no camp's.
+     */
+    static boolean hasMedicineCat(ServerLevel ow, LifeData life, Clan c, List<WCatEntity> cats) {
+        if (cats.stream().anyMatch(x -> x.isAlive() && x.getRank() == WCatEntity.Rank.MEDICINE)) return true;
+        UUID id = life.clanId(c);
+        net.snowteb.warriorcats_events.clan.ClanData.Clan wc = id == null ? null : net.snowteb.warriorcats_events.clan.ClanData.get(ow).getClan(id);
+        if (wc == null) return false;
+        for (Map.Entry<UUID, net.snowteb.warriorcats_events.clan.ClanData.ClanCat> e : wc.clanCats.entrySet()) {
+            net.snowteb.warriorcats_events.clan.ClanData.ClanCat cc = e.getValue();
+            if (!WCatEntity.Rank.MEDICINE.name().equals(cc.catRank) || cc.catName == null) continue;
+            if (ow.getEntity(e.getKey()) instanceof WCatEntity x && !x.isAlive()) continue;         // dying this very moment
+            String n = cc.catName.getString().replace("♂", "").replace("♀", "").trim();
+            if (!n.equalsIgnoreCase(life.tunnelKeeper())) return true;
+        }
+        return false;
     }
 
-    static com.ninjacat.greatjourney.clanlands.life.Dialog.Line medicineChosen(LifeData life, Clan c, WCatEntity heir) {
+    /**
+     * The Clan names its medicine cat from {@code cats}: one of its own apprentices, who takes a full name at once
+     * (nobody is left to name them later: they stayed "-paw" for good), else a warrior. Never an apprentice a player
+     * is training (theirs was taken from them, unnamed, and counted as trained), nor one still growing (Warrior Cats
+     * Events makes that one a warrior when it grows up), nor a player's mentor while another warrior will do.
+     * Returns the leader's words, or null if no cat fits.
+     */
+    public static com.ninjacat.greatjourney.clanlands.life.Dialog.Line chooseMedicineCat(LifeData life, Clan c, List<WCatEntity> cats) {
+        java.util.function.Predicate<WCatEntity> warrior = x -> x.isAlive() && !x.isBaby() && x.getRank() == WCatEntity.Rank.WARRIOR && !Cats.isLeader(life, c, x);
+        WCatEntity heir = cats.stream().filter(x -> x.isAlive() && !x.isBaby() && x.getRank() == WCatEntity.Rank.APPRENTICE
+                        && !com.ninjacat.greatjourney.clanlands.life.quests.Pupils.isPupil(x)).findFirst()
+                .or(() -> cats.stream().filter(warrior).filter(x -> !com.ninjacat.greatjourney.clanlands.life.quests.Mentors.mentorsPlayer(x)).findFirst())
+                .or(() -> cats.stream().filter(warrior).findFirst()).orElse(null);
+        if (heir == null) return null;
         Info info = Info.of(c);
+        String was = Cats.plainName(heir);
+        if (heir.getRank() == WCatEntity.Rank.APPRENTICE) Happenings.makeWarrior(heir, Cats.namesIn(cats), heir.getRandom());
+        heir.setRank(WCatEntity.Rank.MEDICINE);
+        heir.updateClanCatData();                         // the Clan's list knows its medicine cat at once (hasMedicineCat reads it)
+        String now = Cats.plainName(heir);
+        EventNews.record(c, was + " has become " + info.title + "'s medicine cat" + (now.equals(was) ? "." : ", and is " + now + " now."));
         return com.ninjacat.greatjourney.clanlands.life.Dialog.Line.say(life.leader(c), info.colour, info.title + " cannot be without a medicine cat. "
-                + Cats.plainName(heir) + ", StarClan has chosen you. Learn the herbs, and listen for their voices.");
+                + was + ", StarClan has chosen you. Learn the herbs, and listen for their voices."
+                + (now.equals(was) ? "" : " From this moment you will be known as " + now + "."));
     }
 
     /** /greatjourney event &lt;clan&gt; &lt;kind&gt; (operators): makes an event happen now, for testing. */

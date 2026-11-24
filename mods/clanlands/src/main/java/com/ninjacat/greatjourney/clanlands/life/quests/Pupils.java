@@ -16,11 +16,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
 import net.snowteb.warriorcats_events.clan.ClanData;
 import net.snowteb.warriorcats_events.clan.ClanData.ClanPlayerRank;
 import net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity;
@@ -51,8 +54,8 @@ public final class Pupils {
     static final long AWAY = 24000L * 8;
     /** A lesson counts only with the apprentice this near. */
     static final double NEAR = 48;
-    /** How long the apprentice keeps at its mentor's side once asked along. */
-    static final int ALONG = 20 * 60 * 20;
+    /** Holds the land a stray apprentice was last seen on for ten seconds, so it loads and can come home. */
+    private static final TicketType<ChunkPos> FETCH = TicketType.create("greatjourney_pupil", Comparator.comparingLong(ChunkPos::toLong), 200);
 
     static UUID pupilId(ServerPlayer p) {
         CompoundTag root = QuestState.root(p);
@@ -126,6 +129,20 @@ public final class Pupils {
         }
         WCatEntity cat = loaded(p);
         if (cat == null) {
+            // left out in the territory (its mentor died out there, or outran it) while its mentor is home: the land it
+            // was last seen on is loaded for a moment, and it comes home below. It used to stay out there for good, and
+            // the naming in camp never came (reported 2026-11-23)
+            if (root.contains("pupilAt") && toCamp < camp.radius() + 100 && p.level() == ow) {
+                BlockPos seen = BlockPos.of(root.getLong("pupilAt"));
+                ChunkPos at = new ChunkPos(seen);
+                // (in this Clan's lands only: not the forest the Clans left behind)
+                if (Math.hypot(seen.getX() - camp.x(), seen.getZ() - camp.z()) < 3000) ow.getChunkSource().addRegionTicket(FETCH, at, 2, at);
+            } else if (!root.contains("pupilAt") && !root.getBoolean("pupilStray") && wc.clanCats.containsKey(id)
+                    && toCamp < camp.radius() + 40 && Cats.campCatsLoaded(ow, clan)) {
+                // left out there before its place was kept (0.1.5): it cannot be fetched, so its mentor is told where to look
+                root.putBoolean("pupilStray", true);
+                Ui.push(p);
+            }
             // not loaded: still theirs while the Clan's own list has it (it drops a cat that dies or leaves)
             if (wc.clanCats.containsKey(id) || toCamp > camp.radius() + 100 || !Cats.campCatsLoaded(ow, clan)) return;
             // looked for in camp first: the Campaign makes the Clan's cats anew when it settles, under the same names
@@ -146,22 +163,29 @@ public final class Pupils {
             end(p, paw + " is gone from the Clan.", REST);
             return;
         }
+        int step = root.getInt("pupilStep");
         if (cat.getRank() != WCatEntity.Rank.APPRENTICE) {
-            // named some other way (the Clan held the ceremony while the mentor was away): the training still counts
+            // named some other way (grown up, or the Clan held the ceremony while the mentor was away): the training
+            // still counts, in full if every lesson was given
+            boolean done = step > LESSONS;
             root.putInt("pupilsTrained", trained(p) + 1);
-            QuestState.addStanding(p, 10);
-            end(p, "Your apprentice has their name: " + Kin.name(cat) + ". You taught them well.", REST);
+            QuestState.addStanding(p, done ? 15 : 10);
+            if (done) p.giveExperiencePoints(100);
+            end(p, "Your apprentice has their name: " + Kin.name(cat) + ". You taught them well" + (done ? ", and the Clan honours you for it (+15 standing)." : "."), REST);
             return;
         }
-        // the mark, both ways, and the name as it is now
+        // the mark, both ways, the name as it is now, and where it was last seen
         cat.getPersistentData().putUUID(KEY, p.getUUID());
         cat.getPersistentData().putLong(SEEN, now);
         Roles.setPlayerMentor(cat, p.getUUID(), Joining.catName(p));
         if (!Kin.name(cat).equals(paw)) root.putString("pupilName", Kin.name(cat));
+        root.putLong("pupilAt", cat.blockPosition().asLong());
+        root.remove("pupilStray");
+        boolean home = comeHome(p, cat, camp);
 
-        int step = root.getInt("pupilStep");
         if (step > LESSONS) {
-            if (toCamp < camp.radius() + 6 && cat.distanceTo(p) <= NEAR) graduate(p, clan, wc, cat, healer);
+            // in camp together: the naming (the apprentice anywhere in camp, not only at its mentor's heels)
+            if (toCamp < camp.radius() + 6 && home) graduate(p, clan, wc, cat, healer);
             return;
         }
         Task lesson = QuestState.lesson(p);
@@ -179,6 +203,33 @@ public final class Pupils {
         }
     }
 
+    /**
+     * An apprentice not at its mentor's side belongs in camp, where its mentor looks for it: one left out in the
+     * territory (its mentor died, logged out, or went on without it) is brought home, out of its mentor's sight, or
+     * walks home while they watch. One the Clan itself has sent out (a patrol, a Gathering, an event) is left to it.
+     * Returns whether the apprentice is in camp now.
+     */
+    static boolean comeHome(ServerPlayer p, WCatEntity cat, Landmark camp) {
+        ServerLevel ow = p.getServer().overworld();
+        double away = Math.hypot(cat.getX() - camp.x(), cat.getZ() - camp.z());
+        if (away <= camp.radius() + 40) return true;
+        if (Lead.leading(cat) || cat.isNoAi() || cat.isPassenger() || cat.getTags().contains(BookClans.BUSY_TAG)
+                || cat.getTags().contains(com.ninjacat.greatjourney.clanlands.life.events.CampRoutine.TAG) || cat.getTags().contains("greatjourney_gathering")
+                || cat.onBorderPatrolFlag || cat.onHuntingPatrolFlag || cat.returnHomeFlag || cat.returningFromPatrol) return false;
+        BlockPos to = BookClans.safeSpot(ow, (int) Math.floor(camp.x()) + cat.getRandom().nextInt(7) - 3, (int) Math.floor(camp.z()) + cat.getRandom().nextInt(7) - 3, 4);
+        net.minecraft.world.phys.Vec3 spot = new net.minecraft.world.phys.Vec3(to.getX() + 0.5, to.getY(), to.getZ() + 0.5);
+        boolean seen = p.level() == ow && (Lead.inSight(p, cat.position()) || Lead.inSight(p, spot));
+        if (!seen) {
+            cat.getNavigation().stop();
+            cat.teleportTo(spot.x, spot.y, spot.z);
+            cat.fallDistance = 0;
+            return true;
+        }
+        // watched: it walks, unless its mentor has come up to it (to ask it along)
+        if (cat.distanceTo(p) > 16 && cat.getNavigation().isDone()) cat.getNavigation().moveTo(camp.x(), to.getY(), camp.z(), 1.2);
+        return false;
+    }
+
     /** Ends the pairing (the apprentice named, lost, or given up), with a word to the player and a rest before the next. */
     private static void end(ServerPlayer p, String words, long rest) {
         WCatEntity cat = loaded(p);
@@ -191,6 +242,8 @@ public final class Pupils {
         root.remove("pupilId");
         root.remove("pupilName");
         root.remove("pupilStep");
+        root.remove("pupilAt");
+        root.remove("pupilStray");
         root.putLong("pupilNext", p.getServer().overworld().getGameTime() + rest);
         QuestState.setLesson(p, null);
         Ui.subtitle(p, List.of(Line.narrate(words)));
@@ -337,10 +390,13 @@ public final class Pupils {
         return true;
     }
 
-    /** "Come with me": the apprentice keeps at its mentor's side for a good while (or until told to wait in camp). */
+    /**
+     * "Come with me": the apprentice keeps at its mentor's side until told to wait in camp. It used to leave after
+     * twenty minutes without a word, the lessons stopped counting, and it was left wherever it stood.
+     */
     static void come(ServerPlayer p, WCatEntity cat) {
         if (!cat.getUUID().equals(pupilId(p))) return;
-        Lead lead = Lead.accompany(p, cat, 4, ALONG, (l, how) -> { });
+        Lead lead = Lead.accompany(p, cat, 4, Integer.MAX_VALUE, (l, how) -> { });
         Ui.subtitle(p, List.of(Line.say(Kin.name(cat), Kin.colour(p), lead != null ? "Right behind you!" : "I can't just now. Ask me again in a moment.").speakerEntity(cat)));
     }
 
@@ -387,6 +443,13 @@ public final class Pupils {
         ServerLevel ow = p.getServer().overworld();
         LifeData life = LifeData.get(ow);
         BookClans.Info info = BookClans.Info.of(clan);
+        if (cat.isBaby()) {
+            // born in the nursery and not full-grown yet: Warrior Cats Events names such a cat itself the moment it
+            // grows up (and would name it over again later, whatever we called it), so it grows up now and the Clan's
+            // own ceremony for it follows; its training is counted in full the next second (tick)
+            cat.setAge(0);
+            return;
+        }
         String before = Kin.name(cat), you = Joining.catName(p);
         String prefix = Cats.prefixOf(cat);
         String after = Cats.warriorName(prefix, cat.getRandom(), Cats.namesIn(Cats.atCamp(ow, clan)));
@@ -420,9 +483,19 @@ public final class Pupils {
 
     /** One line for the journal on the player's apprentice, or null with none. */
     static String goal(ServerPlayer p) {
-        if (pupilId(p) == null) return null;
+        if (pupilId(p) == null) {
+            // why none yet, for a cat who could teach: the journal said nothing, and the wait looked like a fault
+            ClanData.Clan wc = Joining.clanOf(p);
+            if (wc == null || !teaches(wc.members.get(p.getUUID()))) return null;
+            return p.getServer().overworld().getGameTime() < QuestState.root(p).getLong("pupilNext") ? "Your next apprentice will be named in a day or so."
+                    : "When the Clan has an apprentice to spare, your leader will give you one in camp, by day.";
+        }
         Task lesson = QuestState.lesson(p);
-        return lesson != null ? "Train your apprentice, " + pupilName(p) + ": " + lesson.title + "."
-                : "Take " + pupilName(p) + " back to camp for their naming ceremony.";
+        String lost = QuestState.root(p).getBoolean("pupilStray")
+                ? " " + pupilName(p) + " is not in camp: go back to where you last hunted together, and they will come home." : "";
+        Lead lead = Lead.of(p);
+        boolean along = lead != null && lead.cat().getUUID().equals(pupilId(p));
+        return (lesson != null ? "Train your apprentice, " + pupilName(p) + ": " + lesson.title + "." + (along ? "" : " Ask them to come with you first.")
+                : "Go back to camp with " + pupilName(p) + " for their naming ceremony.") + lost;
     }
 }

@@ -96,11 +96,11 @@ public final class Deaths {
             lines.addAll(succession(ow, life, c, cats));
         } else if (cat.getRank() == WCatEntity.Rank.DEPUTY) {
             lines.addAll(newDeputy(ow, life, c, cats, life.leader(c)));
-        } else if (cat.getRank() == WCatEntity.Rank.MEDICINE && cats.stream().noneMatch(x -> x.getRank() == WCatEntity.Rank.MEDICINE)) {
+        } else if (cat.getRank() == WCatEntity.Rank.MEDICINE && !ClanEvents.hasMedicineCat(ow, life, c, cats)) {
             // the Clan names its new medicine cat at the vigil, as it does a deputy (the once-a-minute look in
             // ClanEvents only catches a medicine cat lost some other way)
-            WCatEntity heir = ClanEvents.nameMedicineCat(life, c, cats);
-            if (heir != null) lines.add(ClanEvents.medicineChosen(life, c, heir));
+            Line said = ClanEvents.chooseMedicineCat(life, c, cats);
+            if (said != null) lines.add(said);
         }
         Announce.tell(ow, c, cat.blockPosition(), lines);
     }

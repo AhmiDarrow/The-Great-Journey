@@ -15,6 +15,12 @@ public final class Task {
     /** What kind of duty this is, so a giver can be asked again and completed counts can be kept. */
     public enum Kind {
         HERBS, HUNT, FISH, BORDER_PATROL, MOSS, FEED_ELDER, FEED_QUEEN, MOSS_BALL, CLIMB, STALK,
+        /**
+         * More to do (asked for 2026-11-23): a place looked over for the leader, the deputy or the medicine cat; a place
+         * an elder remembers; a hunting race or prey shared with a warrior; a lesson or a dare with an apprentice; and
+         * something for a kit to play with.
+         */
+        SCOUT, ELDER_TALE, RACE, SHARE_PREY, TEACH, DARE, PLAY,
         STORY_TERRITORY, STORY_HUNT, STORY_HERBS, STORY_PATROL, STORY_PLACES, STORY_ASSESSMENT,
         /** The medicine cat's path (its first step is STORY_TERRITORY, its fifth STORY_PLACES). */
         STORY_MED_HERBS, STORY_MED_REMEDIES, STORY_MED_ELDERS, STORY_MED_TEST,

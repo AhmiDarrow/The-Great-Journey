@@ -65,7 +65,7 @@ Every camp has one way in, a natural barrier all round, and dens where the books
 ## Clan life
 
 - **Talk to any Clan cat.** A dialogue window with the speaker's portrait, text that writes itself out and choices to answer with.
-- **Duties.** Ask a Clanmate if they need help: the medicine cat sends you for herbs, the deputy for hunting and border patrols, the elders want fresh moss and the queens food for the nursery.
+- **Duties.** Ask a Clanmate if they need help, and each has something for a cat of your rank: the medicine cat sends you for herbs, the deputy for hunting and border patrols, the queens want food for the nursery and the kits a moss-ball. The elders want fresh moss from an apprentice and news of an old haunt from a warrior. Warriors dare you to a hunting race, apprentices ask a warrior to show them the hunter's crouch, and the leader sends a warrior they trust to scout. A deputy leads the patrols.
 - **The apprentice path.** Your mentor teaches you the territory, hunting, herbs, a border patrol and the places every apprentice knows, then tests you. Pass, and the leader holds your warrior ceremony and you choose your warrior name. If your mentor dies or retires, the leader names another and you go on from where you were.
 - **Rise through the Clan.** A warrior or a full medicine cat is given an apprentice of their own to teach. Train one, earn the Clan's trust, and you can become deputy, then leader, with nine lives from StarClan and a "-star" name.
 - **Found a Clan of your own (Free Mode).** Win over wild cats as a loner, lead them to land no Clan has marked, and build your Clan there: a camp, warriors, a deputy, a medicine cat, and nine lives of your own.

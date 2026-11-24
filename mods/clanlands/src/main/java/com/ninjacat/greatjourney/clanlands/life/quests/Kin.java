@@ -74,6 +74,32 @@ public final class Kin {
         };
     }
 
+    /**
+     * The player's own place in their Clan, as their Clanmates see it: a kit or an apprentice until they are named.
+     * Reported after play (2026-11-23): a warrior and a deputy were still greeted, and set to work, as apprentices.
+     */
+    static Role role(ServerPlayer p) {
+        ClanData.Clan wc = Joining.clanOf(p);
+        ClanData.ClanPlayerRank r = wc == null ? null : wc.members.get(p.getUUID());
+        if (r == null) return Role.APPRENTICE;
+        if (Ranks.leads(p)) return Role.LEADER;
+        return switch (r) {
+            case LEADER -> Role.LEADER;
+            case DEPUTY -> Role.DEPUTY;
+            case MEDICINE -> Role.MEDICINE;
+            case WARRIOR -> Role.WARRIOR;
+            case ELDER -> Role.ELDER;
+            case QUEEN -> Role.QUEEN;
+            case KIT -> Role.KIT;
+            default -> Role.APPRENTICE;
+        };
+    }
+
+    /** A named cat: anyone past their apprenticeship. */
+    static boolean grown(Role r) {
+        return r != Role.KIT && r != Role.APPRENTICE;
+    }
+
     private static boolean nearKits(WCatEntity cat) {
         return !cat.level().getEntitiesOfClass(WCatEntity.class, cat.getBoundingBox().inflate(20),
                 k -> k.getRank() == WCatEntity.Rank.KIT && java.util.Objects.equals(k.getClanUUID(), cat.getClanUUID())).isEmpty();

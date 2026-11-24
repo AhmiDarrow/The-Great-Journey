@@ -44,13 +44,31 @@ public final class Tasks {
     static final String MOSS = "minecraft:moss_block|minecraft:moss_carpet";
     static final String MOSS_BALL = "warriorcats_events:moss_ball";
 
-    /** The duty this cat asks for today (or null if it has none, like kits and the leader). */
+    /** The duty this cat asks of an apprentice today (null from the leader, who leaves apprentices to the deputy). */
     public static Task dutyFor(Role role, Clan clan, String giver, UUID giverId, long day) {
+        return dutyFor(Role.APPRENTICE, role, clan, giver, giverId, day);
+    }
+
+    /**
+     * The duty this cat asks today of a player who is {@code you} in the Clan. An apprentice is sent and set to
+     * practise; a named cat is asked for a warrior's work (no fetching moss, no practice); the deputy is given the
+     * patrols to lead by the leader, and a leader hears from their deputy where the Clan needs them. Reported after
+     * play (2026-11-23): a warrior and a deputy were still set an apprentice's chores, and a deputy, with no deputy
+     * above them to ask, had no patrols at all.
+     */
+    public static Task dutyFor(Role you, Role role, Clan clan, String giver, UUID giverId, long day) {
         // mixed: the legacy random's first draw hardly changes between seeds 31 apart, so a deputy sent the same duty
         // (patrol, or hunt) for a hundred days running (the playtest found a deputy with no patrol in forty days)
         RandomSource r = RandomSource.create(it.unimi.dsi.fastutil.HashCommon.mix(giverId.getLeastSignificantBits() ^ day * 31L));
+        boolean grown = Kin.grown(you);
+        String c = clanName(clan);
         return switch (role) {
             case MEDICINE -> {
+                if (r.nextInt(3) == 0) {
+                    Spot s = spot(clan, r);
+                    if (s != null) yield scout(s, "Herbs in leaf at " + s.name, giver + " needs to know whether the herbs have come up near " + s.name
+                            + " before sending anyone to gather them. Go and look, and bring back word.", giver, giverId);
+                }
                 String[] herb = HERBS[r.nextInt(HERBS.length)];
                 int n = 3 + r.nextInt(3);
                 yield new Task(Kind.HERBS, "Herbs for " + giver,
@@ -58,19 +76,87 @@ public final class Tasks {
                         giver, giverId, false, list(Objective.bring("Bring " + n + " " + herb[1] + " to " + giver, herb[0], n)),
                         4, 20, "warriorcats_events:traveling_herbs", 1);
             }
-            case DEPUTY -> {
-                if (clan != null && r.nextBoolean()) {
-                    yield borderPatrol(clan, giver, giverId, r);
+            case LEADER -> {
+                if (!grown) yield null;
+                if (you == Role.DEPUTY) {
+                    // the deputy has no deputy to ask: the leader gives them the patrols to lead
+                    Task t = clan != null && r.nextBoolean() ? borderPatrol(clan, giver, giverId, r) : hunt(clan, giver, giverId, r);
+                    yield t.kind == Kind.BORDER_PATROL
+                            ? reworded(t, "Lead the border patrol", giver + " asks their deputy to take a patrol round " + c
+                            + "'s borders: renew the scent markers and watch for intruders. The warriors nearby fall in behind you.")
+                            : reworded(t, "Lead the hunting patrol", "The fresh-kill pile is low, and " + giver + " looks to their deputy. Take a hunting patrol out for "
+                            + Kin.preyWords(clan) + ", and see the Clan fed.");
                 }
-                yield hunt(clan, giver, giverId, r);
+                Spot s = spot(clan, r);
+                if (s == null) yield reworded(hunt(clan, giver, giverId, r), "Hunt for the Clan",
+                        giver + " asks it of you as a warrior they trust: the fresh-kill pile is low, and the Clan must eat.");
+                String what = pick(r, "strange scents", "Twolegs", "a fox", "another Clan's scent");
+                yield scout(s, "Scout " + s.name, giver + " has heard of " + what + " near " + s.name
+                        + ", and wants a warrior they trust to look. Go there, and bring back word.", giver, giverId);
             }
-            case ELDER -> r.nextBoolean()
-                    ? new Task(Kind.MOSS, "Fresh bedding for " + giver,
-                    giver + "'s old bones ache on stale bedding. Gather fresh moss for the elders' den.",
-                    giver, giverId, false, list(Objective.bring("Bring 4 moss to " + giver, MOSS, 4)), 3, 15, "", 0)
-                    : new Task(Kind.FEED_ELDER, "Fresh-kill for " + giver,
-                    "Elders eat first after the queens. Bring " + giver + " something tasty from the fresh-kill pile or your own hunting.",
-                    giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 3, 15, "", 0);
+            case DEPUTY -> {
+                int way = grown ? r.nextInt(3) : r.nextInt(2);
+                Spot s = way == 2 ? spot(clan, r) : null;
+                if (s != null) yield scout(s, "Check " + s.name, giver + " wants eyes on " + s.name + " before the next patrol goes out. Go and look it over.", giver, giverId);
+                Task t = clan != null && way == 0 ? borderPatrol(clan, giver, giverId, r) : hunt(clan, giver, giverId, r);
+                if (you != Role.LEADER) yield t;
+                // nobody sends their leader: the deputy says where the Clan would be glad of them
+                yield t.kind == Kind.BORDER_PATROL
+                        ? reworded(t, "Walk the borders", giver + " has a patrol ready. The Clan likes to see its leader on the borders: walk them with your warriors.")
+                        : reworded(t, "Hunt for your Clan", giver + " reports the fresh-kill pile is low. Even a leader feeds the Clan first: bring back "
+                        + Kin.preyWords(clan) + " for " + c + ".");
+            }
+            case ELDER -> {
+                // fresh bedding is an apprentice's chore: a named cat is asked for prey, or to go and see a place for them
+                int way = r.nextInt(3);
+                Spot s = way == 2 || grown && way == 0 ? spot(clan, r) : null;
+                if (s != null) yield new Task(Kind.ELDER_TALE, "A place " + giver + " remembers",
+                        giver + " talks of " + s.name + ", and wonders how it looks these days. Go and see it, and come back to tell them.",
+                        giver, giverId, false, list(Objective.visit("Go and see " + s.name, s.x, s.z, s.radius)), 3, 20, "", 0);
+                yield way == 0 && !grown
+                        ? new Task(Kind.MOSS, "Fresh bedding for " + giver,
+                        giver + "'s old bones ache on stale bedding. Gather fresh moss for the elders' den.",
+                        giver, giverId, false, list(Objective.bring("Bring 4 moss to " + giver, MOSS, 4)), 3, 15, "", 0)
+                        : new Task(Kind.FEED_ELDER, "Fresh-kill for " + giver,
+                        "Elders eat first after the queens. Bring " + giver + " something tasty from the fresh-kill pile or your own hunting.",
+                        giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 3, 15, "", 0);
+            }
+            case WARRIOR -> {
+                if (!grown) yield r.nextBoolean()
+                        ? climb(clan, giver, giverId)
+                        : new Task(Kind.STALK, "Stalking practice",
+                        giver + " wants to see your hunter's crouch. Creep up on prey and pounce before it hears you.",
+                        giver, giverId, false, list(Objective.stalk("Catch prey while crouching (sneak)", Kin.preySet(clan), 2)), 3, 25, "", 0);
+                // between warriors: a race, a dare, or a favour
+                yield switch (r.nextInt(3)) {
+                    case 0 -> new Task(Kind.RACE, "A hunting race with " + giver,
+                            giver + " bets they can out-hunt you today. Three pieces of prey, one quickly after another: the first to three wins.",
+                            giver, giverId, false, list(Objective.catchInTime("Catch 3 prey within five minutes", Kin.preySet(clan), 3, 300)), 3, 25, "", 0);
+                    case 1 -> reworded(climb(clan, giver, giverId), "A climbing dare",
+                            giver + " dares you: the highest branch near camp, at least sixteen blocks above the camp floor. \"Unless you've grown too slow for it.\"");
+                    default -> new Task(Kind.SHARE_PREY, "Prey for " + giver,
+                            giver + " is just back from a long patrol, too footsore to hunt. Bring them something from your own hunting, as they would for you.",
+                            giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 3, 25, "", 0);
+                };
+            }
+            case APPRENTICE -> grown
+                    ? r.nextBoolean()
+                    ? new Task(Kind.TEACH, "Show " + giver + " the crouch",
+                    giver + " keeps treading on twigs. Show them how a warrior stalks: catch two pieces of prey from the hunter's crouch.",
+                    giver, giverId, false, list(Objective.stalk("Catch 2 prey from the hunter's crouch (sneak)", Kin.preySet(clan), 2)), 3, 25, "", 0)
+                    : new Task(Kind.TEACH, "Show " + giver + " where the prey runs",
+                    giver + " has come back with empty paws three days running. Show them how it is done: catch " + Kin.preyWords(clan) + " for the Clan.",
+                    giver, giverId, false, list(Objective.catchPrey("Catch 3 prey", Kin.preySet(clan), 3)), 3, 25, "", 0)
+                    : new Task(Kind.DARE, "A race with " + giver,
+                    giver + " bets they can catch two pieces of prey before you do. Prove them wrong.",
+                    giver, giverId, false, list(Objective.catchPrey("Catch 2 prey", Kin.preySet(clan), 2)), 3, 20, "", 0);
+            case KIT -> r.nextBoolean()
+                    ? new Task(Kind.PLAY, "A real mouse for " + giver,
+                    giver + " has never seen fresh-kill up close, only scraps. Bring one piece of prey to show them (they will want to pounce on it).",
+                    giver, giverId, false, list(Objective.bring("Bring 1 prey to " + giver, ANY_PREY, 1)), 2, 10, "", 0)
+                    : new Task(Kind.PLAY, "A moss-ball for " + giver,
+                    giver + " has lost the nursery's moss-ball down a hole, and is very sorry about it. Make another and bring it to them.",
+                    giver, giverId, false, list(Objective.bring("Bring a moss-ball to " + giver, MOSS_BALL, 1)), 2, 10, "", 0);
             case QUEEN -> r.nextBoolean()
                     ? new Task(Kind.FEED_QUEEN, "Food for the nursery",
                     giver + " is nursing kits and can't hunt. Bring her prey so the kits grow strong.",
@@ -78,13 +164,42 @@ public final class Tasks {
                     : new Task(Kind.MOSS_BALL, "A moss-ball for the kits",
                     "The kits are bouncing off the nursery walls. Make them a moss-ball to play with and bring it to " + giver + ".",
                     giver, giverId, false, list(Objective.bring("Bring a moss-ball to " + giver, MOSS_BALL, 1)), 2, 10, "", 0);
-            case WARRIOR -> r.nextBoolean()
-                    ? climb(clan, giver, giverId)
-                    : new Task(Kind.STALK, "Stalking practice",
-                    giver + " wants to see your hunter's crouch. Creep up on prey and pounce before it hears you.",
-                    giver, giverId, false, list(Objective.stalk("Catch prey while crouching (sneak)", Kin.preySet(clan), 2)), 3, 25, "", 0);
-            default -> null;
         };
+    }
+
+    /** A place in the Clan's own land worth the walk. */
+    record Spot(String name, double x, double z, double radius) {}
+
+    /**
+     * Somewhere in the Clan's own land to be sent to look at: one of the books' places within a duty's walk of camp, or
+     * the far reaches of the territory. Null with no world (or no Clan) to look in.
+     */
+    static Spot spot(Clan clan, RandomSource r) {
+        ClanWorld w = ClanWorld.current();
+        if (w == null || clan == null) return null;
+        Landmark camp = Homeland.camp(w, clan);
+        List<Spot> out = new ArrayList<>();
+        for (Places.Place pl : Places.all()) {
+            double d = Math.hypot(pl.x() - camp.x(), pl.z() - camp.z());
+            if (d < camp.radius() + 60 || d > ROUTE_CAP / 2 || Homeland.territoryAt(w, pl.x(), pl.z()) != clan) continue;
+            out.add(new Spot(Character.toLowerCase(pl.name().charAt(0)) + pl.name().substring(1), pl.x(), pl.z(), Math.min(30, pl.reach())));
+        }
+        double[] far = Kin.farEdgePoint(w, clan);
+        if (Math.hypot(far[0] - camp.x(), far[1] - camp.z()) > camp.radius() + 60) out.add(new Spot("the far reaches of our territory", far[0], far[1], 20));
+        return out.isEmpty() ? null : out.get(r.nextInt(out.size()));
+    }
+
+    private static Task scout(Spot s, String title, String text, String giver, UUID giverId) {
+        return new Task(Kind.SCOUT, title, text, giver, giverId, false, list(Objective.visit("Go to " + s.name, s.x, s.z, s.radius)), 4, 25, "", 0);
+    }
+
+    /** The same work, asked in other words (of a deputy, of a leader). */
+    private static Task reworded(Task t, String title, String text) {
+        return new Task(t.kind, title, text, t.giverName, t.giverId, t.story, t.objectives, t.standing, t.xp, t.rewardItem, t.rewardCount);
+    }
+
+    private static String pick(RandomSource r, String... ways) {
+        return ways[r.nextInt(ways.length)];
     }
 
     // --- when cats go out: not at night, and not on hunts and patrols in the rain
@@ -110,7 +225,7 @@ public final class Tasks {
     /** A duty or a step that takes a cat out of camp to hunt, patrol or roam, which nobody is sent on in the rain. */
     static boolean outing(Kind kind) {
         return switch (kind) {
-            case HUNT, FISH, BORDER_PATROL, CLIMB, STALK, STORY_HUNT, STORY_PATROL, STORY_PLACES, STORY_ASSESSMENT -> true;
+            case HUNT, FISH, BORDER_PATROL, CLIMB, STALK, SCOUT, ELDER_TALE, RACE, TEACH, DARE, STORY_HUNT, STORY_PATROL, STORY_PLACES, STORY_ASSESSMENT -> true;
             default -> false;
         };
     }

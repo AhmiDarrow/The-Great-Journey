@@ -738,7 +738,7 @@ public final class Campaign {
         setChapter(p, Chapter.SUN_DROWN);
         Dialog.play(p,
                 Line.narrate("That night you dream. You stand in a clearing under a sky crowded with stars."),
-                Line.say("Bluestar", STARCLAN, "Dark times have come to the forest, young one. The Twolegs will not stop."),
+                Line.say("Bluestar", STARCLAN, "Dark times have come to the forest, " + Joining.catName(p) + ". The Twolegs will not stop."),
                 Line.say("Spottedleaf", STARCLAN, "Go to where the sun drowns. Far to the " + seaward() + ", where the land ends in water. Listen to the one you meet there."),
                 Line.say("Spottedleaf", STARCLAN, healer(p)
                         ? "You are a medicine cat, " + Joining.catName(p) + ". We speak to you so that you can speak to your Clan, and they will listen."
@@ -759,7 +759,7 @@ public final class Campaign {
         }
         if (Dialog.busy(p) || now - d.getLong("signAsked") < 400) return;
         d.putLong("signAsked", now);
-        Dialog.play(p, Line.say("Bluestar", STARCLAN, "The stars are fading, young one. It is time to go back to your Clan.")
+        Dialog.play(p, Line.say("Bluestar", STARCLAN, "The stars are fading, " + Joining.catName(p) + ". It is time to go back to your Clan.")
                 .withChoices(Choice.of("Wake up", "greatjourney campaign wake")));
     }
 

@@ -99,6 +99,8 @@ public final class Kits {
             }
             return;
         }
+        // a medicine cat's apprentice whose cat is still drawn as a kit simply grows
+        if (rank == ClanData.ClanPlayerRank.MEDICINEAPP && kitAged(p)) grow(p, WCEPlayerData.Age.APPRENTICE);
         if (rank != ClanData.ClanPlayerRank.KIT) return;
         long since = Journey.stamped(p, SINCE);
         long now = p.level().getGameTime();

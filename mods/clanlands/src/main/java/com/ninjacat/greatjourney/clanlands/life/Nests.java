@@ -119,6 +119,7 @@ public final class Nests extends SavedData {
     /** The den a Clan player sleeps in, by their place in the Clan. */
     public static DenKind denFor(ServerPlayer p, ClanData.Clan wc) {
         ClanData.ClanPlayerRank rank = wc == null ? null : wc.members.get(p.getUUID());
+        if (com.ninjacat.greatjourney.clanlands.life.quests.Ranks.leads(p)) return DenKind.LEADER;
         if (rank != null) {
             switch (rank) {
                 case MEDICINE, MEDICINEAPP -> {

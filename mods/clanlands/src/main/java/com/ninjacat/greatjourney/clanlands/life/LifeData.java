@@ -111,6 +111,11 @@ public final class LifeData extends SavedData {
         setDirty();
     }
 
+    /** The name of the medicine cat who keeps the tunnels (no camp's medicine cat), or null before there is one. */
+    public String tunnelKeeper() {
+        return tunnelKeeper;
+    }
+
     public UUID clanId(Clan c) {
         return clanIds.get(c);
     }

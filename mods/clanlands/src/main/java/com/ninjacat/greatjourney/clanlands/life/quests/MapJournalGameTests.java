@@ -84,12 +84,14 @@ public final class MapJournalGameTests {
             h.assertTrue(site != null && Founding.siteProblem(w, site[0], site[1]) == null, "land for a new Clan is found and can be built on");
 
             var data = new ClanPayloads.MapData(0, List.of("The lake"), 0, 0, 4, 1, new byte[1], new byte[1], List.of(), List.of(), true, 1, 2, 3,
-                    List.of(new MapMark("q:1", "x".repeat(400), 5, 6, 3, true)));
+                    List.of(new MapMark("q:1", "x".repeat(400), 5, 6, 3, true)),
+                    List.of(new ClanPayloads.MapSpot(ClanPayloads.MapSpot.EVENT, "Latest news", 7, 8)));
             var buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), h.getLevel().registryAccess());
             ClanPayloads.MapData.STREAM_CODEC.encode(buf, data);
             var back = ClanPayloads.MapData.STREAM_CODEC.decode(buf);
             h.assertTrue(back.marks().size() == 1 && back.marks().get(0).followed() && back.marks().get(0).number() == 3
-                    && back.marks().get(0).label().length() == 256 && buf.readableBytes() == 0, "the marks cross to the client, long words clipped");
+                    && back.marks().get(0).label().length() == 256 && back.spots().equals(data.spots()) && buf.readableBytes() == 0,
+                    "the marks and spots cross to the client, long words clipped");
         } finally {
             giver.discard();
             QuestState.reset(p);
@@ -119,6 +121,62 @@ public final class MapJournalGameTests {
             p.getInventory().clearContent();
             QuestState.reset(p);
         }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void questCatsAndTheLatestEventAreOnTheMap(GameTestHelper h) {
+        ServerPlayer p = player(h, "map_spots");
+        WCatEntity mentor = ModEntities.WCAT.get().create(h.getLevel());
+        var at = h.absolutePos(new BlockPos(4, 2, 4));
+        Friendship.reset();
+        try {
+            mentor.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+            mentor.setCustomName(Component.literal("Sandpelt"));
+            mentor.setNoAi(true);
+            h.getLevel().addFreshEntity(mentor);
+            h.assertTrue(QuestMarks.spots(p).isEmpty(), "a cat with no quest sees no cats on the map");
+            QuestState.setStoryStep(p, 2);
+            QuestState.setMentor(p, "Sandpelt", mentor.getUUID());
+            var spots = QuestMarks.spots(p);
+            h.assertTrue(spots.size() == 1 && spots.get(0).label().equals("Your mentor, Sandpelt") && Math.abs(spots.get(0).x() - mentor.getX()) < 0.01,
+                    "the mentor is on it while they train the player: " + spots);
+            QuestState.setStoryStep(p, QuestState.WARRIOR);
+            h.assertTrue(QuestMarks.spots(p).isEmpty(), "and not once the training is done");
+            h.assertTrue(Friendship.meet(p, com.ninjacat.greatjourney.clanlands.layout.Sectors.Clan.RIVER, at), "a cat waits at the border");
+            h.assertTrue(Friendship.met(p) == null && QuestMarks.spots(p).isEmpty(), "not on the map before they have been spoken to");
+            Friendship.greeting(p, p);
+            h.assertTrue(QuestMarks.spots(p).stream().anyMatch(s -> s.kind() == ClanPayloads.MapSpot.FRIEND), "then they are");
+            UUID clan = UUID.randomUUID();
+            var events = com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.class;
+            long now = h.getLevel().getGameTime();
+            com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.noticed(clan, at, "A badger!", now);
+            var news = com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.latest(clan, now + 100);
+            h.assertTrue(news != null && news.words().equals("A badger!") && news.x() == at.getX() + 0.5, "the latest event is kept with its place");
+            h.assertTrue(com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.latest(clan, now + 20L * 60 * 6) == null,
+                    "and is no longer news after a few minutes: " + events.getSimpleName());
+        } finally {
+            h.getLevel().getEntitiesOfClass(WCatEntity.class, p.getBoundingBox().inflate(16), c -> c.getTags().contains(Friendship.TAG))
+                    .forEach(net.minecraft.world.entity.Entity::discard);
+            Friendship.reset();
+            mentor.discard();
+            QuestState.reset(p);
+            Dialog.forget(p);
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void theBigMapZoomsAndMovesWithoutLosingItsEdges(GameTestHelper h) {
+        var full = com.ninjacat.greatjourney.clanlands.life.rpg.MapView.FULL;
+        h.assertTrue(java.util.Arrays.equals(full.whole(10, 20, 200), new int[] {10, 20, 200}), "unzoomed, the map fills its frame");
+        var in = full.zoomAt(2, 0.25, 0.75);
+        int[] w = in.whole(0, 0, 200);
+        h.assertTrue(in.zoom() == 2 && w[2] == 400 && w[0] == -50 && w[1] == -150, "the point under the mouse stays under it: " + w[0] + "," + w[1]);
+        h.assertTrue(in.zoomAt(0.1, 0.5, 0.5).equals(full), "zoomed all the way out, it is the whole map again");
+        var far = in.drag(10, 10).whole(0, 0, 200);
+        h.assertTrue(far[0] == 0 && far[1] == 0, "dragged far, it stops at the map's edge");
+        h.assertTrue(full.zoomAt(1000, 0.5, 0.5).zoom() == com.ninjacat.greatjourney.clanlands.life.rpg.MapView.MAX_ZOOM, "and zooms only so far");
         h.succeed();
     }
 

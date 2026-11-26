@@ -109,12 +109,13 @@ final class Strangers {
                 Choice.of(k == Kind.KITTYPET ? "What is life with Twolegs like?" : "How do you live out here?", "greatjourney quest stranger life " + id),
                 Choice.of("What do you know of the Clans?", "greatjourney quest stranger clans " + id),
                 Choice.of("Have you seen anything lately?", "greatjourney quest stranger news " + id)));
-        if (k == Kind.LONER && !clanCat) {
-            Task owed = owed(p, e);
-            if (owed != null && owed.readyToHandIn()) {
-                done(p, e, owed);
-                return;
-            }
+        // a favour already taken is handed in whatever the player has become since; only a cat of no Clan is asked anew
+        Task owed = k == Kind.LONER ? owed(p, e) : null;
+        if (owed != null && owed.readyToHandIn()) {
+            done(p, e, owed);
+            return;
+        }
+        if (k == Kind.LONER && (!clanCat || owed != null)) {
             choices.add(Choice.of(owed != null ? "About what you asked of me..." : "Need a paw with anything?", "greatjourney quest stranger favour " + id));
         }
         choices.add(Choice.of("Goodbye", "greatjourney quest bye"));
@@ -146,10 +147,11 @@ final class Strangers {
     }
 
     private static boolean favour(ServerPlayer p, Entity e, Kind k) {
-        if (k != Kind.LONER || Joining.clanOf(p) != null) return false;
+        if (k != Kind.LONER) return false;
         String n = name(e, k);
         long day = p.level().getDayTime() / 24000L;
         Task owed = owed(p, e);
+        if (owed == null && Joining.clanOf(p) != null) return false;
         String say;
         if (owed != null) {
             String left = "";

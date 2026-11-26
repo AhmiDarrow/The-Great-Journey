@@ -12,6 +12,7 @@ import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapData;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapLegend;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapPoi;
+import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapSpot;
 import com.ninjacat.greatjourney.clanlands.world.ClanWorld;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -349,7 +350,7 @@ public final class ClanMaps {
     public static MapData preview(ClanWorld w, int region) {
         Base b = build(w, region);
         return new MapData(region, REGIONS, b.minX, b.minZ, b.cell, SIZE, b.cells, b.shade, b.legend, b.pois,
-                false, 0, 0, 0, List.of());
+                false, 0, 0, 0, List.of(), List.of());
     }
 
     /** Which region the player is in (where the layout weighs most), else the one whose middle is nearest. */
@@ -388,6 +389,23 @@ public final class ClanMaps {
         marks = f;
     }
 
+    private static volatile Function<ServerPlayer, List<MapSpot>> spots = p -> List.of();
+
+    /** Installs who lists what else is on the map just now: cats in a quest, the latest event. */
+    public static void spots(Function<ServerPlayer, List<MapSpot>> f) {
+        spots = f;
+    }
+
+    private static List<MapSpot> spotsFor(ServerPlayer p) {
+        try {
+            List<MapSpot> all = spots.apply(p);
+            return all.size() <= MARKS ? all : List.copyOf(all.subList(0, MARKS));
+        } catch (RuntimeException e) {
+            org.slf4j.LoggerFactory.getLogger(ClanMaps.class).warn("Map spots failed", e);
+            return List.of();
+        }
+    }
+
     /** Every quest's place for this player, the followed quest's flagged. */
     public static List<MapMark> marksFor(ServerPlayer p) {
         try {
@@ -411,6 +429,6 @@ public final class ClanMaps {
         if (region < 0 || region > 2) region = here ? regionAt(w, p.getX(), p.getZ()) : LAKE;
         Base b = base(w, region);
         return new MapData(region, REGIONS, b.minX, b.minZ, b.cell, SIZE, b.cells, b.shade, b.legend, b.pois,
-                here, p.getX(), p.getZ(), p.getYRot(), marksFor(p));
+                here, p.getX(), p.getZ(), p.getYRot(), marksFor(p), spotsFor(p));
     }
 }

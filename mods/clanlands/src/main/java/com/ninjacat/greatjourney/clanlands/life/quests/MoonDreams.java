@@ -68,6 +68,7 @@ final class MoonDreams {
     static List<Line> watcher(ServerPlayer p, Teller t) {
         List<Choice> choices = new ArrayList<>();
         for (Teller o : Teller.values()) if (o != t) choices.add(new Choice(o.title, "greatjourney quest teller " + o.key(), o.colour));
+        if (DarkForest.silenced(p)) choices.add(DarkForest.wayBack(p));
         choices.add(new Choice("Let " + t.title + " watch still", "greatjourney quest bye", 0xAAAAAA));
         return List.of(
                 Line.say(t.title, t.colour, t.judge(Joining.catName(p), Deeds.honour(p), QuestState.standing(p))),

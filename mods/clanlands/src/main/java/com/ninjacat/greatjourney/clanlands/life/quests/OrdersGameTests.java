@@ -104,6 +104,36 @@ public final class OrdersGameTests {
         h.succeed();
     }
 
+    /** A real right-click, through the game's event bus and every handler on it, in the order they were registered. */
+    private static void click(ServerPlayer p, net.minecraft.world.entity.Entity target) {
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.EntityInteract(
+                p, net.minecraft.world.InteractionHand.MAIN_HAND, target));
+    }
+
+    @GameTest(template = "empty")
+    public static void aRightClickReachesTheClanlessCatItIsMeantFor(GameTestHelper h) {
+        ServerPlayer p = player(h, "orders_click");
+        BlockPos at = h.absolutePos(new BlockPos(4, 2, 4));
+        Friendship.reset();
+        try {
+            p.getInventory().clearContent();
+            h.assertTrue(Friendship.meet(p, com.ninjacat.greatjourney.clanlands.layout.Sectors.Clan.RIVER, at), "a friend waits at the border");
+            var friend = h.getLevel().getEntitiesOfClass(WCatEntity.class, p.getBoundingBox().inflate(16),
+                    c -> c.getTags().contains(Friendship.TAG)).get(0);
+            h.assertTrue(Friendship.met(p) == null, "not spoken to yet");
+            click(p, friend);
+            h.assertTrue(friend.getUUID().equals(Friendship.met(p)),
+                    "the click reaches the friendship: it is not taken for a cat of another Clan (Warrior Cats gives a clanless cat the empty id)");
+        } finally {
+            h.getLevel().getEntitiesOfClass(WCatEntity.class, p.getBoundingBox().inflate(16), c -> c.getTags().contains(Friendship.TAG))
+                    .forEach(net.minecraft.world.entity.Entity::discard);
+            Friendship.reset();
+            Dialog.forget(p);
+            QuestState.reset(p);
+        }
+        h.succeed();
+    }
+
     @GameTest(template = "empty")
     public static void starClanSpeaksAtTheMoonpool(GameTestHelper h) {
         ServerPlayer p = player(h, "orders_dream");

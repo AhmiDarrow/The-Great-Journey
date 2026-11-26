@@ -126,6 +126,11 @@ public final class BookGameTests {
             h.assertTrue(QuestState.standing(p) < 50 && Deeds.honour(p) < DarkForest.NOTICED, "at a cost in standing and honour");
             h.assertFalse(DarkForest.reckoning(p).isEmpty(), "then StarClan asks for an answer");
             h.assertTrue(DarkForest.answer(p, "keep") && DarkForest.silenced(p), "keep on, and StarClan falls silent");
+            int standing = QuestState.standing(p);
+            h.assertTrue(DarkForest.reckoning(p).isEmpty() && !DarkForest.answer(p, "keep") && QuestState.standing(p) == standing,
+                    "StarClan does not ask, or charge, a second time");
+            h.assertFalse(DarkForest.answer(p, "turn"), "the way back is taken only when it is offered");
+            DarkForest.wayBack(p);
             h.assertTrue(DarkForest.answer(p, "turn") && !DarkForest.silenced(p) && Deeds.honour(p) >= 0, "turn away, and the way back opens");
             h.assertTrue(DarkForest.reckoning(p).isEmpty(), "with nothing left to answer for");
         } finally {

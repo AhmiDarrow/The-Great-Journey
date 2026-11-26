@@ -43,7 +43,10 @@ final class Talk {
             if (!Dialog.busy(p)) Strangers.greet(p, e.getTarget(), stranger);
             return;
         }
-        if (!(e.getTarget() instanceof WCatEntity cat) || cat.getClanUUID() == null || cat.getCustomName() == null) return;
+        // (a cat of no Clan carries Warrior Cats Events' empty id, never none: such a cat is someone else's to answer,
+        // the friend at the border, a wanderer at a founded camp, Purdy or the Tribe)
+        if (!(e.getTarget() instanceof WCatEntity cat) || cat.getClanUUID() == null || ClanData.EMPTY_UUID.equals(cat.getClanUUID())
+                || cat.getCustomName() == null) return;
         e.setCanceled(true);
         e.setCancellationResult(InteractionResult.SUCCESS);
         if (Dialog.busy(p)) return;
@@ -170,8 +173,8 @@ final class Talk {
 
     /** "Take a patrol out": this cat and up to two more free ones go on Warrior Cats Events' own patrol, by themselves. */
     static void sendPatrol(ServerPlayer p, WCatEntity cat, boolean hunt) {
-        Clan clan = Kin.bookClan(p);
-        if (!commands(p) || clan == null) return;
+        if (!commands(p) || !clanmate(p, cat)) return;
+        Clan clan = Kin.bookClan(p);                         // null in a Clan players founded
         ServerLevel ow = p.serverLevel().getServer().overworld();
         String name = Kin.name(cat);
         int colour = Kin.colour(p);
@@ -186,7 +189,8 @@ final class Talk {
         party.sort(java.util.Comparator.comparingDouble(c -> c == cat ? -1 : c.distanceToSqr(cat)));
         java.util.Map<Integer, net.minecraft.core.BlockPos> points = new java.util.HashMap<>();
         for (int i = 0; i < 4; i++) {
-            net.minecraft.core.BlockPos at = com.ninjacat.greatjourney.clanlands.life.events.Cats.inTerritory(ow, clan, p.getRandom(), 60, 120);
+            net.minecraft.core.BlockPos at = clan != null ? com.ninjacat.greatjourney.clanlands.life.events.Cats.inTerritory(ow, clan, p.getRandom(), 60, 120)
+                    : roundHome(ow, p, cat);
             if (at != null) points.put(points.size(), at);
         }
         if (party.isEmpty() || points.isEmpty()) {
@@ -212,6 +216,22 @@ final class Talk {
                         + (first ? " The Clan sees its patrols well led today (+2 standing)." : "")));
     }
 
+    /** Whether this cat belongs to the player's own Clan: no other takes their orders. */
+    private static boolean clanmate(ServerPlayer p, WCatEntity cat) {
+        ClanData.Clan wc = Joining.clanOf(p);
+        return wc != null && wc.clanUUID.equals(cat.getClanUUID());
+    }
+
+    /** A spot 20 to 60 blocks round a founded Clan's camp (or, before it has claimed one, round the cat). */
+    private static net.minecraft.core.BlockPos roundHome(ServerLevel ow, ServerPlayer p, WCatEntity cat) {
+        ClanData.Clan wc = Joining.clanOf(p);
+        double x = wc.coreTerritory != null ? wc.coreTerritory.getMiddleBlockX() : cat.getX();
+        double z = wc.coreTerritory != null ? wc.coreTerritory.getMiddleBlockZ() : cat.getZ();
+        double a = p.getRandom().nextDouble() * Math.PI * 2, d = 20 + p.getRandom().nextDouble() * 40;
+        int bx = (int) Math.floor(x + Math.cos(a) * d), bz = (int) Math.floor(z + Math.sin(a) * d);
+        return ow.hasChunk(bx >> 4, bz >> 4) ? com.ninjacat.greatjourney.clanlands.life.events.Cats.surface(ow, bx, bz) : null;
+    }
+
     /** "Patrol where I show you": Warrior Cats Events' own patrol map, for this one cat. */
     static void patrolMap(ServerPlayer p, WCatEntity cat) {
         ClanData.Clan wc = Joining.clanOf(p);
@@ -223,7 +243,7 @@ final class Talk {
 
     /** "Bring a patrol and come with me": this cat and the free warriors near it walk with the player ({@link Patrols}). */
     static void gather(ServerPlayer p, WCatEntity cat) {
-        if (!commands(p)) return;
+        if (!commands(p) || !clanmate(p, cat)) return;
         int n = Patrols.gather(p, cat);
         Dialog.play(p, Line.say(Kin.name(cat), Kin.colour(p), n == 0 ? "There's no cat free to go just now, " + Joining.catName(p) + "."
                 : n == 1 ? "I'm right behind you." : "Patrol, on " + Joining.catName(p) + "! We're right behind you.").speakerEntity(cat),

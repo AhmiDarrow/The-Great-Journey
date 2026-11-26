@@ -30,6 +30,9 @@ public final class ClanClient {
 
     public static final KeyMapping JOURNAL_KEY = new KeyMapping("key.clanlands.journal", InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_J, "key.categories.greatjourney");
+    /** Opens the full-screen Clan map. No key of its own: the player gives it one in Controls. */
+    public static final KeyMapping MAP_KEY = new KeyMapping("key.clanlands.map", InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_UNKNOWN, "key.categories.greatjourney");
 
     private static ClanPayloads.OpenDialogue waitingScene;
 
@@ -59,6 +62,7 @@ public final class ClanClient {
     @SubscribeEvent
     static void keys(RegisterKeyMappingsEvent event) {
         event.register(JOURNAL_KEY);
+        event.register(MAP_KEY);
     }
 
     @SubscribeEvent
@@ -95,6 +99,12 @@ public final class ClanClient {
         }
         while (JOURNAL_KEY.consumeClick()) {
             if (mc.screen == null) PacketDistributor.sendToServer(new ClanPayloads.RequestJournal());
+        }
+        while (MAP_KEY.consumeClick()) {
+            if (mc.screen == null && !TourClient.active()) {
+                MapPainter.show(-1);
+                mc.setScreen(new ClanMapScreen(null));
+            }
         }
     }
 }

@@ -45,7 +45,15 @@ public final class Deaths {
         ServerLevel ow = level.getServer().overworld();
         LifeData life = LifeData.get(ow);
         Clan c = life.clanOf(cat.getClanUUID());
-        if (c == null) return;
+        if (c == null) {
+            // a Clan players founded: under Spottedleaf its cats are spared as any are
+            if (cat.getClanUUID() != null && !ClanData.EMPTY_UUID.equals(cat.getClanUUID()) && ClanData.get(ow).getClan(cat.getClanUUID()) != null
+                    && Director.spares(ow, causeOf(e.getSource()))) {
+                e.setCanceled(true);
+                cat.setHealth(Math.max(2, cat.getMaxHealth() * 0.2F));
+            }
+            return;
+        }
         String name = Cats.plainName(cat);
         String cause = PENDING_CAUSE.containsKey(cat.getUUID()) ? PENDING_CAUSE.remove(cat.getUUID()) : causeOf(e.getSource());
         Info info = Info.of(c);

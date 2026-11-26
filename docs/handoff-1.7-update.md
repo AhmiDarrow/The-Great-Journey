@@ -41,6 +41,11 @@ release's files before running it.
 Also to play: click a mark on the big map to follow it; "Show on map" on a second task; a border patrol's numbered
 points; hand prey in and see it on the camp's pile; the pace of Midnight's storm over an hour.
 
+Added to 0.1.8 before release: quest cats and the latest event on the map (`QuestMarks.spots`), zoom, drag and an
+unbound key for the big map (`rpg/MapView`), and a bug sweep of everything since 0.1.6 (14 fixes; see the "Fixed"
+lines in the changelog and the notes in clanlands.md). To play as well: those cats moving on the map, the map key,
+a border fight with Clanmates beside you, and greeting the friend and the wanderer with an empty paw.
+
 ## Needs playing
 
 Tests cover what these do, not how they happen in the world.

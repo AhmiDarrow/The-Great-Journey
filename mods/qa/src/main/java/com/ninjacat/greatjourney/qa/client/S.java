@@ -353,15 +353,21 @@ final class S {
     }
 
     static Step journal(String name) {
-        final int[] tab = {0};
+        final int[] tab = {0}, zoomed = {0};
         return of(name, 20 * 40, false, (mc, age) -> {
             if (mc.screen instanceof com.ninjacat.greatjourney.clanlands.client.ClanMapScreen big) {
                 if (tab[0] == 14 && age % 30 == 0) {
                     Driver.shot(mc, name + "-map-big");
+                    // zoomed on a point left of the middle, then photographed
+                    for (int i = 0; i < 4; i++) big.mouseScrolled(big.width * 0.35, big.height * 0.4, 0, 1);
+                    zoomed[0] = age;
+                    tab[0]++;
+                } else if (tab[0] == 15 && age >= zoomed[0] + 30) {
+                    Driver.shot(mc, name + "-map-zoom");
                     tab[0]++;
                 } else if (tab[0] == 13) {
                     tab[0]++;
-                } else if (tab[0] > 14) {
+                } else if (tab[0] > 15) {
                     Driver.pass(mc, name + " opened, map shown");
                     mc.setScreen(null);
                     return true;

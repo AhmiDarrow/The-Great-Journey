@@ -65,6 +65,24 @@ public final class ClanEvents {
         }
     }
 
+    /** Where a Clan's latest event happened, in the words it was first told in. */
+    public record Latest(double x, double z, String words, long at) {}
+
+    /** The map shows the latest event for this long (five minutes). */
+    static final long NEWS_SHOWN = 20L * 60 * 5;
+    private static final Map<UUID, Latest> latest = new HashMap<>();
+
+    /** Something has happened to the Clan with this id, at {@code where}. */
+    public static void noticed(UUID clan, net.minecraft.core.BlockPos where, String words, long now) {
+        if (clan != null && where != null) latest.put(clan, new Latest(where.getX() + 0.5, where.getZ() + 0.5, words, now));
+    }
+
+    /** The Clan's latest event while it is still news, or null. */
+    public static Latest latest(UUID clan, long now) {
+        Latest l = latest.get(clan);
+        return l == null || now - l.at() > NEWS_SHOWN || now < l.at() ? null : l;
+    }
+
     private static long nextRoll = -1;
     private static final Map<Clan, Long> lastEvent = new EnumMap<>(Clan.class);
     /** The running big event, if any: its kind, Clan and the creatures taking part. */
@@ -107,6 +125,7 @@ public final class ClanEvents {
 
     static void reset() {
         nextRoll = -1;
+        latest.clear();
         lastEvent.clear();
         activeKind = null;
         activeClan = null;

@@ -98,6 +98,7 @@ public final class Campaign {
         Journals.provider(p -> decorate(p, QuestLog.view(p)));
         // the Clan map marks every quest's place, the Campaign's chapter among them
         com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.marks(Campaign::mapMarks);
+        com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.spots(com.ninjacat.greatjourney.clanlands.life.quests.QuestMarks::spots);
     }
 
     /** Every quest's place for the Clan map, the Campaign chapter's first. */

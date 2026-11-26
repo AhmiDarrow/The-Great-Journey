@@ -32,7 +32,7 @@ final class Riddles {
         Clan clan = Kin.bookClan(p);
         if (clan == null || Prophecy.of(data) != null) return List.of();
         Prophecy.Meaning m = Prophecy.Meaning.values()[r.nextInt(Prophecy.Meaning.values().length)];
-        Prophecy.keep(data, new Prophecy(clan, m, p.getServer().overworld().getGameTime() + SOONEST + r.nextInt((int) SPREAD), false));
+        Prophecy.keep(data, new Prophecy(clan, m, p.getServer().overworld().getDayTime() + SOONEST + r.nextInt((int) SPREAD), false));
         QuestState.root(p).remove(GUESSED);
         return List.of(Line.narrate("As the stars fade, many voices speak together:"), Line.say("StarClan", STAR, m.riddle),
                 Line.narrate("A prophecy. Puzzle out what it means with your medicine cat before it comes true. It is in your journal."));

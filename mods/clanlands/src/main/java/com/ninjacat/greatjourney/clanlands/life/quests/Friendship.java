@@ -53,6 +53,8 @@ final class Friendship {
     /** The friends waiting at a border now: by player, the cat and when they give up waiting. */
     private static final Map<UUID, UUID> HERE = new HashMap<>();
     private static final Map<UUID, Long> UNTIL = new HashMap<>();
+    /** Players who have spoken with the friend now waiting. */
+    private static final java.util.Set<UUID> SPOKEN = new java.util.HashSet<>();
 
     private static CompoundTag state(ServerPlayer p) {
         CompoundTag root = QuestState.root(p);
@@ -79,6 +81,7 @@ final class Friendship {
     static void reset() {
         HERE.clear();
         UNTIL.clear();
+        SPOKEN.clear();
     }
 
     /** The other Clan whose land lies within a short walk of here, or null. */
@@ -148,6 +151,7 @@ final class Friendship {
     private static void leave(ServerLevel ow, ServerPlayer p) {
         UUID id = HERE.remove(p.getUUID());
         UNTIL.remove(p.getUUID());
+        SPOKEN.remove(p.getUUID());
         Entity e = id == null ? null : ow.getEntity(id);
         if (e != null) e.discard();
     }
@@ -161,11 +165,18 @@ final class Friendship {
         Ui.play(p, greeting(p, e.getTarget()));
     }
 
+    /** The friend waiting now, once the player has met them (spoken with them, today or before), or null. */
+    static UUID met(ServerPlayer p) {
+        UUID id = HERE.get(p.getUUID());
+        return id != null && (SPOKEN.contains(p.getUUID()) || bond(p) > 0) ? id : null;
+    }
+
     /** What the friend says, and the answers open to the player, by how far the friendship has come. */
     static List<Line> greeting(ServerPlayer p, Entity cat) {
         Clan other = clanOfFriend(p);
         int colour = other == null ? 0xC8C8C8 : Info.of(other).colour, bond = bond(p);
         boolean asked = bond >= TEST;
+        SPOKEN.add(p.getUUID());
         state(p).putString(ASKING, asked ? "test" : "meet");
         String words = asked ? "My Clan is starving, " + Deeds.name(p) + ". Let us hunt on your side tonight. Just tonight. Please."
                 : bond == 0 ? "Don't call your patrol. I only wanted to see the stream from this side. ...You're not going to shout, are you?"

@@ -31,7 +31,8 @@ final class DarkForest {
     static final long APART = 24000L * 2;
     static final int TRAINING_XP = 120;
     private static final int COLOUR = 0x9A3030, STAR = 0xCFE3FF;
-    private static final String VISITS = "darkVisits", NEXT = "darkNext", OFFERED = "darkOffered", SILENCED = "darkSilenced";
+    private static final String VISITS = "darkVisits", NEXT = "darkNext", OFFERED = "darkOffered", SILENCED = "darkSilenced",
+            ASKED = "darkAsked";
 
     static boolean noticed(ServerPlayer p, Teller t) {
         return t == Teller.TIGERSTAR || Deeds.honour(p) <= NOTICED;
@@ -81,7 +82,9 @@ final class DarkForest {
                 Deeds.weigh(p, -3, -1);
             }
             case "turn", "keep" -> {
-                if (root.getInt(VISITS) < RECKONING) return false;
+                // only to the question StarClan has just put (or, silenced, the way back it holds open)
+                if (!root.getBoolean(ASKED) || root.getInt(VISITS) < RECKONING || what.equals("keep") && silenced(p)) return false;
+                root.remove(ASKED);
                 if (what.equals("turn")) {
                     root.remove(VISITS);
                     root.remove(SILENCED);
@@ -102,9 +105,19 @@ final class DarkForest {
         return true;
     }
 
-    /** StarClan's question in a dream at the Moonpool, once there is something to answer for; else nothing. */
+    /** The way back, offered to a silenced cat in each dream. */
+    static Choice wayBack(ServerPlayer p) {
+        QuestState.root(p).putBoolean(ASKED, true);
+        return Choice.of("Turn away from the Dark Forest", "greatjourney quest dark turn");
+    }
+
+    /**
+     * StarClan's question in a dream at the Moonpool, once there is something to answer for; else nothing. Asked once:
+     * a cat who chose to keep on is not made to pay again, only offered the way back ({@link #wayBack}).
+     */
     static List<Line> reckoning(ServerPlayer p) {
-        if (QuestState.root(p).getInt(VISITS) < RECKONING) return List.of();
+        if (QuestState.root(p).getInt(VISITS) < RECKONING || silenced(p)) return List.of();
+        QuestState.root(p).putBoolean(ASKED, true);
         return List.of(Line.say("StarClan", STAR, "We have seen where you go when you sleep, " + Deeds.name(p) + ". Choose.")
                 .withChoices(Choice.of("Turn away from him", "greatjourney quest dark turn"),
                         new Choice("I will keep training", "greatjourney quest dark keep", 0xFF7755)));

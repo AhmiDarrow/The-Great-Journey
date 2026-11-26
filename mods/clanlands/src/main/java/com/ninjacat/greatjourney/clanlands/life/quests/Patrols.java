@@ -88,6 +88,12 @@ final class Patrols {
         NeoForge.EVENT_BUS.addListener(Patrols::onHurt);
     }
 
+    /** The cats walking with this player just now: a patrol they lead, or the warriors on their border patrol. */
+    static List<UUID> walkers(ServerPlayer p) {
+        Walk w = BY_PLAYER.get(p.getUUID());
+        return w == null ? List.of() : List.copyOf(w.cats);
+    }
+
     /** Whether {@code p} leads a patrol of their own now. */
     static boolean leads(ServerPlayer p) {
         Walk w = BY_PLAYER.get(p.getUUID());

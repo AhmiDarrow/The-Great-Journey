@@ -3,9 +3,19 @@
 ## 0.1.8
 
 - **Every quest is on your Clan map.** The camp you are looking for, each point of a border patrol (numbered), the cat to take a finished task back to, the walk to the Moonpool for nine lives, land where you could found a Clan, and tonight's Gathering or half-moon meeting all have their mark. The quest you are following is the gold star; the others are pale blue. Your story's step is followed until you choose another: press **Show on map** on a task's journal page, or click a mark on the big map.
+- **See your quest's cats on the map.** While it is going on, the map shows your apprentice, your mentor while they train you, the cats walking on your patrol, trespassers you have come upon at the border and a friend you have spoken with across it, as long as they are near enough to be loaded. An orange "!" marks where your Clan's latest event happened, for a few minutes.
+- **A better big map.** Zoom with the mouse wheel and drag to move about. You can open it straight from the world: give **Open the Clan Map** a key in Options, Controls (it has none until you do).
 - **Your journal says what a task is worth.** Each task shows its reward, and once there is nothing left to do it says so and tells you whom to take it back to. The Clan page shows what your standing opens: at 40 trespassing patrols heed your warning, at 60 StarClan calls you trusted, at 120 you may be named deputy, and at 200 you may lead.
 - **Prey you hand in feeds your Clan.** Prey you bring for a task now goes onto the fresh-kill pile, where your Clanmates eat it, and in leaf-bare it keeps the elders, queens and kits well. If the pile is full, what will not fit stays with you. A founded Clan's hungry day now asks you to bring two pieces home.
 - **Storytellers keep their own pace.** Every storyteller used to settle to about one event every ten minutes for a Clan. Now Spottedleaf spaces them out, Tigerstar presses harder, and Midnight keeps a long calm and then sends them one on another's heels, with one warning for the whole storm.
+- **Fixed: the friend across the border and the wanderer at your camp can be talked to.** Greeting them with an empty paw got you the answer meant for a cat of another Clan, so a friendship could not go on and a wanderer whose question you closed left unanswered.
+- **Fixed: a founded Clan's leader can send patrols out.** "Take a patrol round our territory" and "Take a hunting patrol out" did nothing in a Clan you founded.
+- **Fixed: a loner's favour can always be handed in,** even after you have joined or founded a Clan. It used to stay in your journal for good.
+- **Fixed: StarClan asks about the Dark Forest once.** A cat who chose to keep training was asked, and charged, at every dream, and could not ask for another storyteller. Later dreams now offer the way back among the other choices.
+- **Fixed: no cat dies in a border fight.** Your own Clanmates could be killed by trespassers. Only grown warriors join in now, and clawing the trespassers starts the fight even if you never chose it.
+- **Fixed: warnings and prophecies are not lost.** One that came due as you reached camp could vanish before its cats had appeared. A foretold fire comes even if the storm has passed. A prophecy's "two or three days" now counts the nights you sleep through.
+- **Fixed: Midnight's storm.** What she warns of now comes first, before the rest of her storm.
+- **Fixed: Spottedleaf protects a Clan you founded.** And prey that trespassers carry off is now missing from your pile even when you were far from camp.
 
 ## 0.1.7
 

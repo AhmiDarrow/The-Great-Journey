@@ -48,6 +48,7 @@ public final class StoryData extends SavedData {
     public void setTeller(Teller t) {
         tag.putString("teller", t.key());
         tag.remove("burst");
+        tag.remove("stormWarned");
         setDirty();
     }
 

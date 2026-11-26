@@ -148,14 +148,25 @@ public final class JournalScreen extends Screen {
             return;
         }
         y = ClanMapScreen.regionButtons(g, d, x, y, w, mouseX, mouseY) + 3;
+        // the goal and the key scroll under the buttons: a long goal and the old forest's many kinds of ground
+        // ran the key off the bottom of the book
+        int top = y, bottom = pageY() + pageH() - 4;
+        g.enableScissor(leftX(), top, leftX() + pageW(), bottom);
+        y -= leftScroll;
         String goal = MapPainter.goalLine(d);
         if (!goal.isEmpty()) y = drawWrapped(g, goal, x, y, w, 0x8C2F2F, false) + 3;
-        MapPainter.legend(g, font, d, x, y, w);
-        MapPainter.draw(g, font, d, mapX(), mapY(), mapSide(), false);
+        int end = MapPainter.legend(g, font, d, x, y, w);
+        g.disableScissor();
+        int max = Math.max(0, end + leftScroll - 2 - bottom);
+        leftScroll = Math.min(leftScroll, max);
+        int ax = leftX() + pageW() - 10;
+        if (leftScroll > 0) g.drawString(font, "▲", ax, top, UiStyle.argb(UiStyle.BARK, 0.8f), false);
+        if (leftScroll < max) g.drawString(font, "▼", ax, bottom - font.lineHeight, UiStyle.argb(UiStyle.BARK, 0.8f), false);
+        MapPainter.draw(g, font, d, mapX(), mapY(), mapSide(), false, com.ninjacat.greatjourney.clanlands.life.rpg.MapView.FULL);
         String hint = "Click the map to see it big";
         g.drawString(font, hint, rightX() + (pageW() + 2 - font.width(hint)) / 2, mapY() + mapSide() + 6,
                 UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
-        java.util.List<Component> tip = MapPainter.hover(d, mapX(), mapY(), mapSide(), mouseX, mouseY);
+        java.util.List<Component> tip = MapPainter.hover(d, mapX(), mapY(), mapSide(), com.ninjacat.greatjourney.clanlands.life.rpg.MapView.FULL, mouseX, mouseY);
         if (tip != null) g.renderComponentTooltip(font, tip, mouseX, mouseY);
     }
 

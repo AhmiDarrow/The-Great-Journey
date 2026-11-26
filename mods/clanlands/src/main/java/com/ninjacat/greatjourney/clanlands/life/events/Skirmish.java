@@ -76,6 +76,11 @@ public final class Skirmish {
 
     static Running now;
 
+    /** The trespassers this player has come upon, while their skirmish runs. */
+    public static List<UUID> met(ServerPlayer p) {
+        return now == null || !p.getUUID().equals(now.player) ? List.of() : List.copyOf(now.cats);
+    }
+
     static void reset() {
         now = null;
     }
@@ -190,7 +195,7 @@ public final class Skirmish {
     /** The player's answer: "warn", "fight" or "mercy". */
     static boolean answer(ServerPlayer p, String what) {
         Running s = now;
-        ServerLevel ow = p.serverLevel();
+        ServerLevel ow = p.getServer().overworld();             // where the trespassers are, wherever the answer is typed
         Dialog.clear(p);
         if (s == null || !p.getUUID().equals(s.player)) return false;
         WCatEntity first = first(ow, s);
@@ -206,24 +211,7 @@ public final class Skirmish {
                 Deeds.weigh(p, 4, 1);
                 end(ow, s, Deeds.name(p) + " of " + us.title + " warned a " + them.title + " patrol off " + us.title + "'s land.", false);
             }
-            case "fight" -> {
-                if (s.fighting) return true;
-                s.fighting = true;
-                for (UUID id : s.cats) {
-                    if (!(ow.getEntity(id) instanceof WCatEntity c)) continue;
-                    c.addTag(HOSTILE_TAG);
-                    c.setTarget(p);
-                }
-                UUID mine = LifeData.get(ow).clanId(s.home);
-                if (mine != null) {
-                    for (WCatEntity c : ow.getEntitiesOfClass(WCatEntity.class, p.getBoundingBox().inflate(16),
-                            x -> mine.equals(x.getClanUUID()) && !x.isBaby())) {
-                        if (first != null) c.setTarget(first);
-                    }
-                }
-                subtitle(p, Line.say(s.speaker, them.colour, "Have it your way! " + them.title + ", attack!").speakerEntity(first),
-                        Line.narrate("Beat them until they run. Claws only: no warrior needs to kill to win."));
-            }
+            case "fight" -> fight(ow, s, p);
             case "mercy" -> {
                 boolean hungry = Seasons.isLeafBare(ow);
                 play(p, Line.say(s.speaker, them.colour, hungry ? "...Our kits are starving. I won't forget this."
@@ -239,6 +227,30 @@ public final class Skirmish {
             }
         }
         return true;
+    }
+
+    /** It comes to claws: the trespassers go for the player, and Clanmates close by go for them. */
+    private static void fight(ServerLevel ow, Running s, ServerPlayer p) {
+        if (s.fighting) return;
+        s.fighting = true;
+        for (UUID id : s.cats) {
+            if (!(ow.getEntity(id) instanceof WCatEntity c)) continue;
+            c.addTag(HOSTILE_TAG);
+            c.setTarget(p);
+        }
+        WCatEntity first = first(ow, s);
+        UUID mine = LifeData.get(ow).clanId(s.home);
+        if (mine != null && first != null) {
+            // grown warriors only: no apprentice or elder is sent into it
+            for (WCatEntity c : ow.getEntitiesOfClass(WCatEntity.class, p.getBoundingBox().inflate(16),
+                    x -> mine.equals(x.getClanUUID()) && !x.isBaby() && (x.getRank() == WCatEntity.Rank.WARRIOR || x.getRank() == WCatEntity.Rank.DEPUTY)
+                            && com.ninjacat.greatjourney.clanlore.role.Roles.role(x) != com.ninjacat.greatjourney.clanlore.role.Role.ELDER)) {
+                c.setTarget(first);
+            }
+        }
+        Info them = Info.of(s.theirs);
+        subtitle(p, Line.say(s.speaker, them.colour, "Have it your way! " + them.title + ", attack!").speakerEntity(first),
+                Line.narrate("Beat them until they run. Claws only: no warrior needs to kill to win."));
     }
 
     private static WCatEntity first(ServerLevel ow, Running s) {
@@ -261,16 +273,43 @@ public final class Skirmish {
         play(p, choices());
     }
 
-    /** A trespasser is never killed: a blow that would do it sends it running instead. */
+    /**
+     * No cat dies in a border fight: a blow that would kill a trespasser, or any cat a trespasser strikes, leaves them
+     * standing. And a player who goes at the trespassers with claws, whatever they chose, has chosen to fight.
+     */
     static void beforeDamage(LivingDamageEvent.Pre e) {
         LivingEntity hurt = e.getEntity();
-        if (!hurt.getTags().contains(TAG) || hurt.level().isClientSide()) return;
+        if (hurt.level().isClientSide()) return;
+        Entity by = e.getSource().getEntity();
+        boolean trespasser = hurt.getTags().contains(TAG);
+        if (!trespasser && !(hurt instanceof WCatEntity && by != null && by.getTags().contains(TAG))) return;
+        Running s = now;
+        if (trespasser && s != null && by instanceof ServerPlayer p && s.cats.contains(hurt.getUUID())) {
+            ServerPlayer mine = p.getUUID().equals(s.player) ? p : p.getServer().getPlayerList().getPlayer(s.player);
+            fight(p.getServer().overworld(), s, mine != null ? mine : p);
+        }
         float spare = Math.max(0, hurt.getHealth() - 2);
         if (e.getNewDamage() > spare) e.setNewDamage(spare);
     }
 
     /** Once a second: beaten cats run; with none left to fight the border is held; and a patrol left alone goes home fed. */
+    private static final String OWED = "owed.";
+
+    /** Takes from each live camp's pile what trespassers carried off while it was out of reach. */
+    private static void collect(ServerLevel ow) {
+        StoryData data = StoryData.get(ow);
+        for (Clan c : Clan.values()) {
+            long owed = data.number(OWED + c.name());
+            if (owed <= 0 || ClanWorld.current() == null || !Cats.campLoaded(ow, c)) continue;
+            CampSite site = CampSite.of(ow, c, Cats.camp(c));
+            if (site == null || site.pile == null || !ow.hasChunk(site.pile.getX() >> 4, site.pile.getZ() >> 4)) continue;
+            while (owed > 0 && BookEvents.steal(ow, site.pile)) owed--;
+            data.put(OWED + c.name(), 0);                       // a bare pile had no more to lose
+        }
+    }
+
     static void everySecond(ServerLevel ow) {
+        if (ow.getServer().getTickCount() % 100 == 0) collect(ow);
         if (now != null) step(ow, ow.getServer().getPlayerList().getPlayer(now.player));
     }
 
@@ -310,10 +349,11 @@ public final class Skirmish {
             Entity e = ow.getEntity(id);
             if (e != null) e.discard();
         }
-        if (preyLost && Cats.campLoaded(ow, s.home)) {
-            // what they took is what the Clan would have eaten
-            CampSite site = CampSite.of(ow, s.home, Cats.camp(s.home));
-            if (site != null && site.pile != null) BookEvents.steal(ow, site.pile);
+        if (preyLost) {
+            // what they took is what the Clan would have eaten: missed from the pile now, or when it is next there to see
+            StoryData data = StoryData.get(ow);
+            data.put(OWED + s.home.name(), data.number(OWED + s.home.name()) + 1);
+            collect(ow);
         }
         EventNews.record(s.home, news);
         EventNews.record(s.theirs, news);

@@ -104,6 +104,22 @@ final class Homestead {
         ServerLevel ow = p.serverLevel();
         RandomSource r = p.getRandom();
         WCatEntity one = cats.get(r.nextInt(cats.size()));
+        BlockPos where = what == Happening.WANDERER ? p.blockPosition() : one.blockPosition();
+        boolean happened = happens(p, clan, title, cats, what, ow, r, one);
+        if (happened) {
+            com.ninjacat.greatjourney.clanlands.life.events.ClanEvents.noticed(clan, where, switch (what) {
+                case WANDERER -> "A wanderer waits at the edge of " + title + "'s camp.";
+                case KITS -> "A kit is born to " + title + ".";
+                case SICKNESS -> Kin.name(one) + " is sick.";
+                case DOG -> "A stray dog is at " + title + "'s camp.";
+                case HUNGER -> title + " goes hungry.";
+            }, ow.getGameTime());
+        }
+        return happened;
+    }
+
+    private static boolean happens(ServerPlayer p, UUID clan, String title, List<WCatEntity> cats, Happening what, ServerLevel ow,
+                                   RandomSource r, WCatEntity one) {
         switch (what) {
             case WANDERER -> {
                 WCatEntity cat = cat(ow, near(ow, p, r, 7), r, false);

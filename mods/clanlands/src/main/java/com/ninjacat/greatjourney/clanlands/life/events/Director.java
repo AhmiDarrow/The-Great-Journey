@@ -115,7 +115,10 @@ public final class Director {
         StoryData data = StoryData.get(ow);
         long now = ow.getGameTime();
         if (!data.has("calmSince")) data.put("calmSince", now);
-        if (t == Teller.MIDNIGHT && data.number("burst") <= 0 && now - data.number("calmSince") > MIDNIGHT_CALM) data.put("burst", STORM);
+        if (t == Teller.MIDNIGHT && data.number("burst") <= 0 && now - data.number("calmSince") > MIDNIGHT_CALM) {
+            data.put("burst", STORM);
+            data.put("stormWarned", 0);
+        }
     }
 
     /** A trouble has begun: the calm is over, and a storm has one less to give. */
@@ -143,15 +146,20 @@ public final class Director {
     /**
      * Gives a dangerous event as a warning to come true later; false when this event comes without one (or there is no
      * storyteller), for the caller to make it happen now. While a warning waits, another danger is let go rather than
-     * left to strike unforetold; but Midnight's one warning stands for her whole storm, and what else comes in it
-     * comes at once.
+     * left to strike unforetold. Midnight warns once for a whole storm: what she warned of comes first, and the
+     * storm's other dangers after it come at once.
      */
     static boolean forewarn(ServerLevel ow, Clan c, ClanEvents.Kind k) {
         Teller t = StoryData.active(ow);
         Teller.Danger d = danger(k);
         StoryData data = StoryData.get(ow);
         if (t == null || d == null) return false;
-        if (!data.part("omen").isEmpty()) return !(t == Teller.MIDNIGHT && data.number("burst") > 0);
+        boolean storm = t == Teller.MIDNIGHT && data.number("burst") > 0;
+        if (!data.part("omen").isEmpty()) return true;
+        if (storm) {
+            if (data.number("stormWarned") > 0) return false;
+            data.put("stormWarned", 1);
+        }
         CompoundTag o = new CompoundTag();
         o.putString("clan", c.name());
         o.putString("kind", k.name());
@@ -184,28 +192,30 @@ public final class Director {
     static void fulfil(ServerLevel ow) {
         StoryData data = StoryData.get(ow);
         Prophecy pr = Prophecy.of(data);
-        long now = ow.getGameTime();
+        // (counted by the day's clock, which a night slept through moves on: "two or three days later")
+        long now = ow.getDayTime();
         if (pr == null || now < pr.due() || StoryData.active(ow) == null) return;
         if (now > pr.due() + PROPHECY_WAIT) {
             Prophecy.keep(data, null);
             return;
         }
         ClanEvents.Kind k = ClanEvents.Kind.valueOf(pr.meaning().name());
-        if (!Cats.campActive(ow, pr.clan()) || k.major && ClanEvents.activeKind != null || Weather.isWeather(k) && Weather.running(ow) != null) return;
-        Prophecy.keep(data, null);
+        if (!ready(ow, pr.clan(), k)) return;
         Info info = Info.of(pr.clan());
         BlockPos camp = Cats.campCentre(ow, pr.clan());
         if (pr.solved() && k == ClanEvents.Kind.SICKNESS) {
             // forewarned of a cough, the Clan has its herbs in and it passes them by
+            Prophecy.keep(data, null);
             Announce.tell(ow, pr.clan(), camp, Line.narrate("The prophecy comes true, and passes by: the herb store was full in time. "
                     + info.title + " stays well."));
             EventNews.record(pr.clan(), info.title + " heeded a prophecy, and a sickness passed it by.");
             return;
         }
-        Announce.tell(ow, pr.clan(), camp, Line.narrate(pr.solved() ? "The prophecy is coming true, and " + info.title + " stands ready for it."
-                : "Too late, the words of the prophecy make sense."));
-        boolean ran = Weather.isWeather(k) ? Weather.start(ow, pr.clan(), k, ow.getRandom(), true) : Happenings.run(ow, pr.clan(), k, ow.getRandom());
-        if (ran) {
+        // if it cannot happen just now (no cat that fits), it waits for another moment
+        if (run(ow, pr.clan(), k)) {
+            Prophecy.keep(data, null);
+            Announce.tell(ow, pr.clan(), camp, Line.narrate(pr.solved() ? "The prophecy has come true, and " + info.title + " stands ready for it."
+                    : "Too late, the words of the prophecy make sense."));
             if (pr.solved()) brace(ow, pr.clan());
             happened(ow, k);
             EventNews.record(pr.clan(), pr.solved() ? "A prophecy came true, and found " + info.title + " ready." : "A prophecy over " + info.title + " came true.");
@@ -233,14 +243,20 @@ public final class Director {
             data.keep("omen", null);
             return;
         }
-        if (!Cats.campActive(ow, c) || k.major && ClanEvents.activeKind != null) return;
+        if (!ready(ow, c, k) || !run(ow, c, k)) return;
         data.keep("omen", null);
-        if (run(ow, c, k)) happened(ow, k);
+        happened(ow, k);
+    }
+
+    /** Whether a foretold event can happen now: the camp live with its cats loaded, and nothing of its sort under way. */
+    private static boolean ready(ServerLevel ow, Clan c, ClanEvents.Kind k) {
+        return Cats.campActive(ow, c) && Cats.campCatsLoaded(ow, c) && !(k.major && ClanEvents.activeKind != null)
+                && !(Weather.isWeather(k) && Weather.running(ow) != null);
     }
 
     /** Makes an event happen, weather or otherwise. */
     static boolean run(ServerLevel ow, Clan c, ClanEvents.Kind k) {
-        return Weather.isWeather(k) ? Weather.start(ow, c, k, ow.getRandom(), false) : Happenings.run(ow, c, k, ow.getRandom());
+        return Weather.isWeather(k) ? Weather.start(ow, c, k, ow.getRandom(), true) : Happenings.run(ow, c, k, ow.getRandom());
     }
 
     /** Camp cats braced for what they were warned of: harder to hurt, and hitting harder, for a few minutes. */

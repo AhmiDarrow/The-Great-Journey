@@ -1,10 +1,12 @@
 package com.ninjacat.greatjourney.clanlands.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import com.ninjacat.greatjourney.clanlands.life.rpg.MapView;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapData;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapLegend;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapPoi;
+import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapSpot;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.Minecraft;
@@ -85,59 +87,79 @@ final class MapPainter {
         return Math.max(0, Math.min(255, (int) Math.round(v)));
     }
 
-    /** Where a world position lands on a map drawn at x, y with side {@code s}. */
+    /** Whether a point on screen lies within the map's frame. */
+    private static boolean inFrame(double[] q, int x, int y, int s) {
+        return q[0] >= x && q[1] >= y && q[0] < x + s && q[1] < y + s;
+    }
+
+    /** Where a world position lands on a map drawn whole at x, y with side {@code s}. */
     static double[] toScreen(MapData d, double wx, double wz, int x, int y, int s) {
         double span = (double) d.cell() * d.size();
         return new double[] {x + (wx - d.minX()) / span * s, y + (wz - d.minZ()) / span * s};
     }
 
     /** What the mouse is over on the map, for a tooltip (null: nothing). */
-    static List<Component> hover(MapData d, int x, int y, int s, double mx, double my) {
+    static List<Component> hover(MapData d, int x, int y, int s, MapView view, double mx, double my) {
         if (mx < x || my < y || mx >= x + s || my >= y + s) return null;
+        int[] w = view.whole(x, y, s);
         double best = 7;
         String name = null;
         for (MapPoi p : d.pois()) {
             if (p.kind() == MapPoi.AREA) continue;
-            double[] q = toScreen(d, p.x(), p.z(), x, y, s);
+            double[] q = toScreen(d, p.x(), p.z(), w[0], w[1], w[2]);
             double dist = Math.hypot(q[0] - mx, q[1] - my);
             if (dist < best) {
                 best = dist;
                 name = p.name();
             }
         }
-        MapMark m = markAt(d, x, y, s, mx, my);
+        for (MapSpot sp : d.spots()) {
+            double[] q = toScreen(d, sp.x(), sp.z(), w[0], w[1], w[2]);
+            double dist = Math.hypot(q[0] - mx, q[1] - my);
+            if (inFrame(q, x, y, s) && dist <= best) {
+                best = dist;
+                name = sp.label();
+            }
+        }
+        MapMark m = markAt(d, x, y, s, view, mx, my);
         if (m != null) {
-            double[] q = markScreen(d, m, x, y, s);
+            double[] q = markScreen(d, m, x, y, s, view);
             if (Math.hypot(q[0] - mx, q[1] - my) <= best) {
                 best = Math.hypot(q[0] - mx, q[1] - my);
                 name = (m.followed() ? "★ " : "") + (m.number() > 0 ? m.number() + ". " : "") + m.label()
-                        + (inside(d, m.x(), m.z()) ? "" : " (off this map, that way)");
+                        + (onView(d, m, x, y, s, view) ? "" : " (off the map shown, that way)");
             }
         }
         if (d.here()) {
-            double[] q = toScreen(d, d.px(), d.pz(), x, y, s);
+            double[] q = toScreen(d, d.px(), d.pz(), w[0], w[1], w[2]);
             if (Math.hypot(q[0] - mx, q[1] - my) < best) name = "You are here";
         }
         return name == null ? null : List.of(Component.literal(name));
     }
 
-    /** Whether a mark is drawn: the followed quest's always (at the edge when off this map), the others where they fall. */
-    private static boolean shown(MapData d, MapMark m) {
-        return m.followed() || inside(d, m.x(), m.z());
+    private static boolean onView(MapData d, MapMark m, int x, int y, int s, MapView view) {
+        int[] w = view.whole(x, y, s);
+        return inFrame(toScreen(d, m.x(), m.z(), w[0], w[1], w[2]), x, y, s);
     }
 
-    private static double[] markScreen(MapData d, MapMark m, int x, int y, int s) {
-        return clampTo(toScreen(d, m.x(), m.z(), x, y, s), x, y, s);
+    /** Whether a mark is drawn: the followed quest's always (at the edge when out of view), the others where they fall. */
+    private static boolean shown(MapData d, MapMark m, int x, int y, int s, MapView view) {
+        return m.followed() || onView(d, m, x, y, s, view);
+    }
+
+    private static double[] markScreen(MapData d, MapMark m, int x, int y, int s, MapView view) {
+        int[] w = view.whole(x, y, s);
+        return clampTo(toScreen(d, m.x(), m.z(), w[0], w[1], w[2]), x, y, s);
     }
 
     /** The mark nearest the mouse (the followed quest's winning a tie), or null with none near. */
-    static MapMark markAt(MapData d, int x, int y, int s, double mx, double my) {
+    static MapMark markAt(MapData d, int x, int y, int s, MapView view, double mx, double my) {
         if (mx < x || my < y || mx >= x + s || my >= y + s) return null;
         MapMark best = null;
         double near = 7;
         for (MapMark m : d.marks()) {
-            if (!shown(d, m)) continue;
-            double[] q = markScreen(d, m, x, y, s);
+            if (!shown(d, m, x, y, s, view)) continue;
+            double[] q = markScreen(d, m, x, y, s, view);
             double dist = Math.hypot(q[0] - mx, q[1] - my);
             if (dist < near || dist == near && m.followed()) {
                 near = dist;
@@ -166,22 +188,23 @@ final class MapPainter {
      * Draws the map at x, y, {@code s} pixels square: ground, area labels, camps and places (named, when
      * {@code names} and there is room), the goal and the player.
      */
-    static void draw(GuiGraphics g, Font font, MapData d, int x, int y, int s, boolean names) {
+    static void draw(GuiGraphics g, Font font, MapData d, int x, int y, int s, boolean names, MapView view) {
         UiStyle.rounded(g, x - 3, y - 3, s + 6, s + 6, 3, UiStyle.argb(UiStyle.BARK, 1f));
         if (texture == null) return;
-        g.blit(TEXTURE, x, y, s, s, 0, 0, d.size(), d.size(), d.size(), d.size());
+        int[] w = view.whole(x, y, s);                  // the whole map's square; the frame cuts it
         g.enableScissor(x, y, x + s, y + s);
+        g.blit(TEXTURE, w[0], w[1], w[2], w[2], 0, 0, d.size(), d.size(), d.size(), d.size());
         List<int[]> taken = new ArrayList<>();
         // big areas: words on the ground, no marker
         for (MapPoi p : d.pois()) {
             if (p.kind() != MapPoi.AREA) continue;
-            double[] q = toScreen(d, p.x(), p.z(), x, y, s);
-            label(g, font, p.name(), (int) q[0], (int) q[1] - 4, 0xF6EBD0, 0x2A2014, true, taken, x, y, s);
+            double[] q = toScreen(d, p.x(), p.z(), w[0], w[1], w[2]);
+            if (inFrame(q, x, y, s)) label(g, font, p.name(), (int) q[0], (int) q[1] - 4, 0xF6EBD0, 0x2A2014, true, taken, x, y, s);
         }
         // camps (Clan colour) and the books' places (ink diamonds)
         for (MapPoi p : d.pois()) {
             if (p.kind() == MapPoi.AREA) continue;
-            double[] q = toScreen(d, p.x(), p.z(), x, y, s);
+            double[] q = toScreen(d, p.x(), p.z(), w[0], w[1], w[2]);
             int px = (int) q[0], py = (int) q[1];
             if (p.kind() == MapPoi.CAMP) {
                 g.fill(px - 3, py - 3, px + 4, py + 4, UiStyle.argb(0x1A120A, 1f));
@@ -194,16 +217,16 @@ final class MapPainter {
         if (names) {
             for (MapPoi p : d.pois()) {
                 if (p.kind() == MapPoi.AREA) continue;
-                double[] q = toScreen(d, p.x(), p.z(), x, y, s);
-                label(g, font, p.name(), (int) q[0], (int) q[1] + 5, 0x2A2014, 0xF6EBD0, false, taken, x, y, s);
+                double[] q = toScreen(d, p.x(), p.z(), w[0], w[1], w[2]);
+                if (inFrame(q, x, y, s)) label(g, font, p.name(), (int) q[0], (int) q[1] + 5, 0x2A2014, 0xF6EBD0, false, taken, x, y, s);
             }
         }
         // the other quests' places: pale pins, under the followed quest's gold stars (at the map's edge, pointing the
         // way, when one of those lies off this map). A patrol's points carry their numbers.
         for (boolean followed : new boolean[] {false, true}) {
             for (MapMark m : d.marks()) {
-                if (m.followed() != followed || !shown(d, m)) continue;
-                double[] q = markScreen(d, m, x, y, s);
+                if (m.followed() != followed || !shown(d, m, x, y, s, view)) continue;
+                double[] q = markScreen(d, m, x, y, s, view);
                 int gx = (int) q[0], gy = (int) q[1];
                 if (followed) {
                     g.fill(gx - 4, gy - 4, gx + 5, gy + 5, UiStyle.argb(0x2A190C, 0.85f));
@@ -214,9 +237,16 @@ final class MapPainter {
                 if (m.number() > 0) number(g, font, m.number(), gx + 4, gy - 8, followed ? 0xFFD447 : 0xBFE0FF);
             }
         }
+        // the cats of the player's quests as dots, and the latest event as an orange "!"
+        for (MapSpot sp : d.spots()) {
+            double[] q = toScreen(d, sp.x(), sp.z(), w[0], w[1], w[2]);
+            if (!inFrame(q, x, y, s)) continue;
+            if (sp.kind() == MapSpot.EVENT) event(g, font, (int) q[0], (int) q[1]);
+            else dot(g, (int) q[0], (int) q[1], spotColour(sp.kind()));
+        }
         // the player: a red dot with a line showing which way they face
         if (d.here()) {
-            double[] q = toScreen(d, d.px(), d.pz(), x, y, s);
+            double[] q = toScreen(d, d.px(), d.pz(), w[0], w[1], w[2]);
             int px = (int) q[0], py = (int) q[1];
             double yaw = Math.toRadians(d.yaw()), dx = -Math.sin(yaw), dz = Math.cos(yaw);
             for (int t = 2; t <= 7; t++) {
@@ -227,6 +257,23 @@ final class MapPainter {
             g.fill(px - 2, py - 2, px + 3, py + 3, UiStyle.argb(0xD0302A, 1f));
         }
         g.disableScissor();
+    }
+
+    private static int spotColour(int kind) {
+        return kind == MapSpot.STRANGER ? 0xFF7A2E : kind == MapSpot.FRIEND ? 0xE48AD8 : 0x7BE06A;
+    }
+
+    private static void dot(GuiGraphics g, int x, int y, int rgb) {
+        g.fill(x - 2, y - 3, x + 3, y + 4, UiStyle.argb(0x10180C, 1f));
+        g.fill(x - 3, y - 2, x + 4, y + 3, UiStyle.argb(0x10180C, 1f));
+        g.fill(x - 1, y - 2, x + 2, y + 3, UiStyle.argb(rgb, 1f));
+        g.fill(x - 2, y - 1, x + 3, y + 2, UiStyle.argb(rgb, 1f));
+    }
+
+    private static void event(GuiGraphics g, Font font, int x, int y) {
+        g.fill(x - 4, y - 5, x + 4, y + 5, UiStyle.argb(0x2A190C, 1f));
+        g.fill(x - 3, y - 4, x + 3, y + 4, UiStyle.argb(0xF08A24, 1f));
+        g.drawString(font, "!", x - 1, y - 4, UiStyle.argb(0xFFFFFF, 1f), false);
     }
 
     /** Another quest's place: a pale blue square on its corner. */
@@ -302,6 +349,12 @@ final class MapPainter {
         y += row + 1;
         pin(g, x + 3, y + 3);
         g.drawString(font, "Other quests", x + 10, y, UiStyle.argb(UiStyle.INK, 1f), false);
+        lx = x + col;
+        dot(g, lx + 3, y + 3, spotColour(MapSpot.CAT));
+        g.drawString(font, "Quest cats", lx + 10, y, UiStyle.argb(UiStyle.INK, 1f), false);
+        y += row + 1;
+        event(g, font, x + 3, y + 4);
+        g.drawString(font, "Latest event", x + 10, y, UiStyle.argb(UiStyle.INK, 1f), false);
         return y + row + 2;
     }
 

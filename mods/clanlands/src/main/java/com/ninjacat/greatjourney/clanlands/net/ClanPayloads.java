@@ -188,12 +188,20 @@ public final class ClanPayloads {
     }
 
     /**
+     * Something on the map just now, beside the quests' places: a cat in a quest (the player's own side, a trespasser
+     * met on the border, a friend across it), or where the Clan's latest event happened.
+     */
+    public record MapSpot(int kind, String label, double x, double z) {
+        public static final int CAT = 0, STRANGER = 1, FRIEND = 2, EVENT = 3;
+    }
+
+    /**
      * S2C: one region's map. {@code cells} holds a legend index per cell (row by row, {@code size} x {@code size},
      * each {@code cell} blocks wide from {@code minX}, {@code minZ}); {@code shade} the relief, 0-255.
      */
     public record MapData(int region, List<String> regions, int minX, int minZ, int cell, int size, byte[] cells,
                           byte[] shade, List<MapLegend> legend, List<MapPoi> pois, boolean here, double px, double pz,
-                          float yaw, List<MapMark> marks) implements CustomPacketPayload {
+                          float yaw, List<MapMark> marks, List<MapSpot> spots) implements CustomPacketPayload {
         public static final Type<MapData> TYPE = id("map_data");
         /** Largest map the client accepts (cells per side). */
         public static final int MAX_SIZE = 256;
@@ -233,6 +241,13 @@ public final class ClanPayloads {
                 b.writeVarInt(m.number);
                 b.writeBoolean(m.followed);
             }
+            b.writeVarInt(p.spots.size());
+            for (MapSpot s : p.spots) {
+                b.writeVarInt(s.kind);
+                b.writeUtf(clip(s.label, 256), 256);
+                b.writeDouble(s.x);
+                b.writeDouble(s.z);
+            }
         }, b -> {
             int region = b.readVarInt();
             int nr = Math.min(b.readVarInt(), 8);
@@ -252,7 +267,10 @@ public final class ClanPayloads {
             int nm = Math.min(b.readVarInt(), 128);
             List<MapMark> marks = new ArrayList<>(nm);
             for (int i = 0; i < nm; i++) marks.add(new MapMark(b.readUtf(96), b.readUtf(256), b.readDouble(), b.readDouble(), b.readVarInt(), b.readBoolean()));
-            return new MapData(region, regions, minX, minZ, cell, size, cells, shade, legend, pois, here, px, pz, yaw, marks);
+            int ns = Math.min(b.readVarInt(), 128);
+            List<MapSpot> spots = new ArrayList<>(ns);
+            for (int i = 0; i < ns; i++) spots.add(new MapSpot(b.readVarInt(), b.readUtf(256), b.readDouble(), b.readDouble()));
+            return new MapData(region, regions, minX, minZ, cell, size, cells, shade, legend, pois, here, px, pz, yaw, marks, spots);
         });
 
         private static String clip(String s, int max) {

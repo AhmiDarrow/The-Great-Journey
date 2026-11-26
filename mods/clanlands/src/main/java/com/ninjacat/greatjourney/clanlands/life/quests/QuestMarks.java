@@ -8,6 +8,13 @@ import com.ninjacat.greatjourney.clanlands.life.Joining;
 import com.ninjacat.greatjourney.clanlands.life.Starts;
 import com.ninjacat.greatjourney.clanlands.life.gathering.Gatherings;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark;
+import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapSpot;
+import com.ninjacat.greatjourney.clanlands.life.events.ClanEvents;
+import com.ninjacat.greatjourney.clanlands.life.events.Skirmish;
+import java.util.HashSet;
+import java.util.Set;
+import net.minecraft.server.level.ServerLevel;
+import net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity;
 import com.ninjacat.greatjourney.clanlands.world.ClanWorld;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,6 +84,33 @@ public final class QuestMarks {
         if (found != null) out.add(found);
         out.addAll(Gatherings.marks(p));
         return out;
+    }
+
+    /**
+     * What else is on the map just now: the cats of the player's quests, while they are loaded (their apprentice, their
+     * mentor while they train, the patrol walking with them, trespassers they have come upon, a friend they have spoken
+     * with), and where their Clan's latest event happened.
+     */
+    public static List<MapSpot> spots(ServerPlayer p) {
+        List<MapSpot> out = new ArrayList<>();
+        ServerLevel ow = p.getServer().overworld();
+        if (p.level() != ow) return out;
+        Set<UUID> seen = new HashSet<>();
+        cat(out, seen, ow, Pupils.pupilId(p), MapSpot.CAT, "Your apprentice, %s");
+        int step = QuestState.storyStep(p);
+        if (step > 0 && step < QuestState.WARRIOR) cat(out, seen, ow, QuestState.mentorId(p), MapSpot.CAT, "Your mentor, %s");
+        for (UUID id : Patrols.walkers(p)) cat(out, seen, ow, id, MapSpot.CAT, "%s, on your patrol");
+        for (UUID id : Skirmish.met(p)) cat(out, seen, ow, id, MapSpot.STRANGER, "%s, on your side of the border");
+        cat(out, seen, ow, Friendship.met(p), MapSpot.FRIEND, "%s, across the border");
+        ClanData.Clan wc = Joining.clanOf(p);
+        ClanEvents.Latest news = wc == null ? null : ClanEvents.latest(wc.clanUUID, ow.getGameTime());
+        if (news != null) out.add(new MapSpot(MapSpot.EVENT, "Latest news: " + news.words(), news.x(), news.z()));
+        return out;
+    }
+
+    private static void cat(List<MapSpot> out, Set<UUID> seen, ServerLevel ow, UUID id, int kind, String words) {
+        if (id == null || !(ow.getEntity(id) instanceof WCatEntity c) || !c.isAlive() || !seen.add(id)) return;
+        out.add(new MapSpot(kind, String.format(words, Kin.name(c)), c.getX(), c.getZ()));
     }
 
     /** A task's places still to reach; with none, whoever it goes back to. */

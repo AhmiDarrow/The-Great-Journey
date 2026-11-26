@@ -42,6 +42,7 @@ final class Announce {
      * from camp never interrupts what they are doing.
      */
     static void tell(ServerLevel level, Clan c, BlockPos where, List<Line> lines) {
+        if (!lines.isEmpty()) ClanEvents.noticed(LifeData.get(level).clanId(c), where, lines.get(0).text(), level.getServer().overworld().getGameTime());
         for (ServerPlayer p : audience(level, c, where)) {
             boolean witness = where != null && p.level() == level && p.blockPosition().distSqr(where) <= WITNESS * WITNESS;
             if (witness) Dialog.play(p, lines);

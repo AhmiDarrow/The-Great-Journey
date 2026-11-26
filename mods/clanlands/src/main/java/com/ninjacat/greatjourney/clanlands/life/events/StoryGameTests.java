@@ -117,7 +117,12 @@ public final class StoryGameTests {
 
             h.assertTrue(Skirmish.begin(level, Clan.THUNDER, Clan.WIND, p, at), "another day, another patrol");
             before = com.ninjacat.greatjourney.clanlands.life.quests.QuestState.standing(p);
+            StoryData story = StoryData.get(level);
+            long owed = story.number("owed.THUNDER");
             h.assertTrue(Skirmish.answer(p, "mercy") && Skirmish.now == null, "they can be let go");
+            h.assertTrue(story.number("owed.THUNDER") == owed + 1 || com.ninjacat.greatjourney.clanlands.world.ClanWorld.current() != null,
+                    "with the camp's pile out of reach, the prey is owed from it");
+            story.put("owed.THUNDER", owed);
             h.assertTrue(com.ninjacat.greatjourney.clanlands.life.quests.QuestState.standing(p) < before, "which costs standing");
             h.assertFalse(Skirmish.answer(p, "warn"), "and there is nothing left to answer");
         } finally {
@@ -164,8 +169,12 @@ public final class StoryGameTests {
             h.assertTrue(Director.rest(level, rest) > rest, "Midnight's calm is long");
             data.put("burst", Director.STORM);
             h.assertTrue(Director.rest(level, rest) == 0, "and her storm gives no rest at all: events bunch");
+            data.put("stormWarned", 0);
             h.assertTrue(Director.forewarn(level, Clan.THUNDER, ClanEvents.Kind.BADGER), "her storm is warned of once");
-            h.assertFalse(Director.forewarn(level, Clan.THUNDER, ClanEvents.Kind.RAID), "and what else comes in it comes at once");
+            h.assertTrue(Director.forewarn(level, Clan.THUNDER, ClanEvents.Kind.RAID) && data.part("omen").getString("kind").equals("BADGER"),
+                    "nothing else strikes before what she warned of");
+            data.keep("omen", null);
+            h.assertFalse(Director.forewarn(level, Clan.THUNDER, ClanEvents.Kind.RAID), "once it has come, the rest of the storm comes at once");
             data.setTeller(Teller.BLUESTAR);
             h.assertTrue(Director.forewarn(level, Clan.THUNDER, ClanEvents.Kind.RAID), "under the others no danger strikes beside a waiting warning");
         } finally {
@@ -174,9 +183,41 @@ public final class StoryGameTests {
         h.succeed();
     }
 
+    @GameTest(template = "empty")
+    public static void noCatDiesInABorderFightAndClawsStartOne(GameTestHelper h) {
+        var level = h.getLevel();
+        var p = net.neoforged.neoforge.common.util.FakePlayerFactory.get(level,
+                new com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes("story_claws".getBytes()), "story_claws"));
+        var at = h.absolutePos(new net.minecraft.core.BlockPos(3, 2, 3));
+        p.setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+        var mate = net.snowteb.warriorcats_events.entity.ModEntities.WCAT.get().create(level);
+        Skirmish.reset();
+        try {
+            h.assertTrue(Skirmish.begin(level, Clan.THUNDER, Clan.SHADOW, p, at), "trespassers");
+            var foe = (net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity) level.getEntity(Skirmish.now.cats.get(0));
+            foe.hurt(level.damageSources().playerAttack(p), 1);
+            h.assertTrue(Skirmish.now.fighting && foe.getTags().contains(Skirmish.HOSTILE_TAG), "clawing them starts the fight, with no word chosen");
+            mate.moveTo(at.getX() + 1.5, at.getY(), at.getZ() + 0.5);
+            mate.finalizeSpawn(level, level.getCurrentDifficultyAt(at), net.minecraft.world.entity.MobSpawnType.EVENT, null);
+            level.addFreshEntity(mate);
+            mate.invulnerableTime = 0;
+            mate.hurt(level.damageSources().mobAttack(foe), 10_000);
+            h.assertTrue(mate.isAlive(), "a trespasser's blow kills no cat");
+        } finally {
+            if (Skirmish.now != null) for (var id : Skirmish.now.cats) {
+                var e = level.getEntity(id);
+                if (e != null) e.discard();
+            }
+            Skirmish.reset();
+            mate.discard();
+            com.ninjacat.greatjourney.clanlands.life.quests.QuestState.reset(p);
+        }
+        h.succeed();
+    }
+
     /** Puts the world's story back as it was before a test changed it. */
     static void restore(StoryData data, CompoundTag before) {
-        for (String k : new String[] {"teller", "burst", "omen", "mournUntil", "calmSince", "prophecy"}) {
+        for (String k : new String[] {"teller", "burst", "stormWarned", "omen", "mournUntil", "calmSince", "prophecy", "owed.THUNDER"}) {
             if (before.contains(k, net.minecraft.nbt.Tag.TAG_COMPOUND)) data.keep(k, before.getCompound(k));
             else if (before.contains(k, net.minecraft.nbt.Tag.TAG_STRING)) data.setTeller(Teller.byKey(before.getString(k)));
             else if (before.contains(k)) data.put(k, before.getLong(k));

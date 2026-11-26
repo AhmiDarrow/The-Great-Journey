@@ -1,5 +1,6 @@
 package com.ninjacat.greatjourney.clanlands.client;
 
+import com.ninjacat.greatjourney.clanlands.life.rpg.MapView;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapData;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
@@ -9,12 +10,17 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * The Clan map, big: the map as large as the window allows, every place named on it, and beside it the region
- * buttons, where the followed quest lies, and the key. Clicking a quest's mark follows that quest. Opened by clicking
- * the map in the journal; Esc goes back there.
+ * buttons, where the followed quest lies, and the key. The wheel zooms in and out and dragging moves about; clicking a
+ * quest's mark follows that quest. Opened by clicking the map in the journal (Esc goes back there) or straight from the
+ * world by its own key (Esc, or the key again, closes it).
  */
 public final class ClanMapScreen extends Screen {
     private static final int PANEL = 196;
+    /** The journal to go back to, or null when opened straight from the world. */
     private final Screen back;
+    private MapView view = MapView.FULL;
+    private int viewedRegion = -1;
+    private boolean dragging;
 
     public ClanMapScreen(Screen back) {
         super(Component.literal("Clan map"));
@@ -53,7 +59,11 @@ public final class ClanMapScreen extends Screen {
             g.drawString(font, "Drawing the map...", px, py + 4, UiStyle.argb(UiStyle.INK, 1f), false);
             return;
         }
-        MapPainter.draw(g, font, d, mapX(), mapY(), side(), true);
+        if (d.region() != viewedRegion) {                  // another region: start from the whole of it
+            viewedRegion = d.region();
+            view = MapView.FULL;
+        }
+        MapPainter.draw(g, font, d, mapX(), mapY(), side(), true, view);
         int y = py + 3;
         y = regionButtons(g, d, px, y, pw, mouseX, mouseY) + 4;
         String goal = MapPainter.goalLine(d);
@@ -65,9 +75,11 @@ public final class ClanMapScreen extends Screen {
             y += 4;
         }
         MapPainter.legend(g, font, d, px, y, pw);
-        g.drawString(font, "Click a mark to follow it", px, py + side() - 2 * (font.lineHeight + 1) - 2, UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
-        g.drawString(font, "Esc: back to the journal", px, py + side() - font.lineHeight - 2, UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
-        List<Component> tip = MapPainter.hover(d, mapX(), mapY(), side(), mouseX, mouseY);
+        String[] hints = {"Wheel: zoom. Drag: move.", "Click a mark to follow it", back == null ? "Esc: close" : "Esc: back to the journal"};
+        for (int i = 0; i < hints.length; i++) {
+            g.drawString(font, hints[i], px, py + side() - (hints.length - i) * (font.lineHeight + 1) - 1, UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
+        }
+        List<Component> tip = MapPainter.hover(d, mapX(), mapY(), side(), view, mouseX, mouseY);
         if (tip != null) g.renderComponentTooltip(font, tip, mouseX, mouseY);
     }
 
@@ -106,18 +118,50 @@ public final class ClanMapScreen extends Screen {
                 MapPainter.show(r);
                 return true;
             }
-            var mark = MapPainter.markAt(d, mapX(), mapY(), side(), mx, my);
+            var mark = MapPainter.markAt(d, mapX(), mapY(), side(), view, mx, my);
             if (mark != null) {
                 follow(mark.quest());
                 MapPainter.show(d.region());
+                return true;
+            }
+            if (button == 0 && onMap(mx, my)) {
+                dragging = true;
                 return true;
             }
         }
         return super.mouseClicked(mx, my, button);
     }
 
+    private boolean onMap(double mx, double my) {
+        return mx >= mapX() && my >= mapY() && mx < mapX() + side() && my < mapY() + side();
+    }
+
+    @Override
+    public boolean mouseScrolled(double mx, double my, double sx, double sy) {
+        if (!onMap(mx, my) || sy == 0) return super.mouseScrolled(mx, my, sx, sy);
+        view = view.zoomAt(sy > 0 ? 1.25 : 0.8, (mx - mapX()) / side(), (my - mapY()) / side());
+        return true;
+    }
+
+    @Override
+    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+        if (!dragging) return super.mouseDragged(mx, my, button, dx, dy);
+        view = view.drag(dx / side(), dy / side());
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(double mx, double my, int button) {
+        dragging = false;
+        return super.mouseReleased(mx, my, button);
+    }
+
     @Override
     public boolean keyPressed(int key, int scan, int mods) {
+        if (back == null && ClanClient.MAP_KEY.matches(key, scan)) {
+            minecraft.setScreen(null);
+            return true;
+        }
         if (key == GLFW.GLFW_KEY_ESCAPE) {
             minecraft.setScreen(back);
             return true;

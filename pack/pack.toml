@@ -1,7 +1,7 @@
 # Pack metadata, read by tools/export_curseforge.py. The mod list lives in pack/mods.json (tools/resolve_mods.py).
 name = "The Great Journey"
 author = "AhmiDarrow"
-version = "0.1.8"
+version = "0.1.9"
 
 [versions]
 minecraft = "1.21.1"

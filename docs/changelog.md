@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.8
+## 0.1.9
 
 - **Every quest is on your Clan map.** The camp you are looking for, each point of a border patrol (numbered), the cat to take a finished task back to, the walk to the Moonpool for nine lives, land where you could found a Clan, and tonight's Gathering or half-moon meeting all have their mark. The quest you are following is the gold star; the others are pale blue. Your story's step is followed until you choose another: press **Show on map** on a task's journal page, or click a mark on the big map.
 - **See your quest's cats on the map.** While it is going on, the map shows your apprentice, your mentor while they train you, the cats walking on your patrol, trespassers you have come upon at the border and a friend you have spoken with across it, as long as they are near enough to be loaded. An orange "!" marks where your Clan's latest event happened, for a few minutes.

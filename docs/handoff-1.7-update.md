@@ -30,7 +30,10 @@ bullets, which hold the developer notes for everything below) and [wce-integrati
 
 Tests: `OrdersGameTests`, `events/StoryGameTests`, `quests/BookGameTests`, `LeadGameTests`.
 
-## 0.1.8 (same day)
+## 0.1.9 (same day)
+
+Two Core files numbered 0.1.8 went to CurseForge before this work was finished; no pack ever used them, so it ships as
+0.1.9.
 
 Quest marks on the Clan map with "Show on map" (`quests/QuestMarks`, `client/MapPainter`), storytellers pacing a Clan's
 rest (`Director.rest`), prey handed in going to the fresh-kill pile (`Bag.handOver`, `Hunger.stock`), and rewards,
@@ -41,7 +44,7 @@ release's files before running it.
 Also to play: click a mark on the big map to follow it; "Show on map" on a second task; a border patrol's numbered
 points; hand prey in and see it on the camp's pile; the pace of Midnight's storm over an hour.
 
-Added to 0.1.8 before release: quest cats and the latest event on the map (`QuestMarks.spots`), zoom, drag and an
+Also in 0.1.9: quest cats and the latest event on the map (`QuestMarks.spots`), zoom, drag and an
 unbound key for the big map (`rpg/MapView`), and a bug sweep of everything since 0.1.6 (14 fixes; see the "Fixed"
 lines in the changelog and the notes in clanlands.md). To play as well: those cats moving on the map, the map key,
 a border fight with Clanmates beside you, and greeting the friend and the wanderer with an empty paw.

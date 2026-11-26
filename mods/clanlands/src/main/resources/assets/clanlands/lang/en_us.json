@@ -10,6 +10,8 @@
   "menu.clanlands.free": "Free Mode",
   "menu.clanlands.free.tip": "Live in the Clans' world your own way",
   "menu.clanlands.free.world": "Free Mode",
+  "menu.clanlands.teller": "Who watches over your Clans?",
+  "menu.clanlands.teller.hint": "You can ask for another at the Moonpool.",
   "menu.clanlands.load": "Load World",
   "menu.clanlands.load.tip": "Carry on in a world you have already started",
   "death.attack.clanlands.monster": "%1$s was struck down by a monster on the Thunderpath",

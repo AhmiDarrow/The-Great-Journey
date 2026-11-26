@@ -130,6 +130,9 @@ public final class Tracking {
             Story.tick(p);
             Founding.tick(p);                                      // a loner gathering a Clan of their own (Founding)
             Errands.tick(p);                                       // a Campaign errand done (Errands)
+            CodeMoments.tick(p);                                   // the warrior code put to the test (CodeMoments)
+            Friendship.tick(p);                                    // a cat waiting across the border (Friendship)
+            Homestead.tick(p);                                     // something happening in a founded Clan (Homestead)
         }
     }
 

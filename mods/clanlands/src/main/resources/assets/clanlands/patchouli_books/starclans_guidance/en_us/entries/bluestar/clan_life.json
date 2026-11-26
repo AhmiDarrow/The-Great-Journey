@@ -16,6 +16,16 @@
     {
       "type": "patchouli:text",
       "text": "Your Whiskers tell you about any cat near you: their name, their Clan, their rank and how they feel. Use them often. A good warrior knows their Clanmates."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Giving Orders",
+      "text": "A deputy or a leader speaks for the Clan. Talk to a warrior and say $(l)I have orders for you$(): $(br2)$(li)send a patrol round the territory, or out to hunt;$(li)show one cat where to patrol on the map;$(li)or bring a patrol and lead it yourself. $(br2)A patrol you lead fights what you fight. Talk to any of its cats to have them all wait, follow, or go home."
+    },
+    {
+      "type": "patchouli:text",
+      "title": "Cats of No Clan",
+      "text": "Not every cat is a Clan cat. Kittypets, loners and rogues will talk if you greet them with an empty paw. A kittypet knows the Twolegplace; a loner hears news from every border. $(br2)A rogue has only threats. Do not turn your back on one. $(br2)If you have no Clan yourself, a loner may ask a favour of you. Keep your word, and even the Clans will hear of it."
     }
   ]
 }

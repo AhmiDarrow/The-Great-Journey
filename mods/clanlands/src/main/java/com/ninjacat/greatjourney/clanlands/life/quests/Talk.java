@@ -22,9 +22,9 @@ import net.snowteb.warriorcats_events.clan.ClanData;
 import net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity;
 
 /**
- * Talking to Clan cats: right-click one with an empty paw (not sneaking, so Warrior Cats Events' own shift-click
+ * Talking to cats: right-click one with an empty paw (not sneaking, so Warrior Cats Events' own shift-click
  * commands still work). Your own Clanmates greet you by who they are and can give you duties or take them back;
- * cats of other Clans send you on your way.
+ * cats of other Clans send you on your way; kittypets, loners and rogues answer as {@link Strangers}.
  */
 final class Talk {
     private Talk() {}
@@ -35,8 +35,15 @@ final class Talk {
 
     static void onInteract(PlayerInteractEvent.EntityInteract e) {
         if (e.getHand() != InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer p)) return;
-        if (!(e.getTarget() instanceof WCatEntity cat) || cat.getClanUUID() == null || cat.getCustomName() == null) return;
         if (!talksWith(p.getMainHandItem()) || p.isShiftKeyDown()) return;
+        Strangers.Kind stranger = Strangers.kind(e.getTarget(), p);
+        if (stranger != null) {                              // a kittypet, a loner, a rogue (Strangers)
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            if (!Dialog.busy(p)) Strangers.greet(p, e.getTarget(), stranger);
+            return;
+        }
+        if (!(e.getTarget() instanceof WCatEntity cat) || cat.getClanUUID() == null || cat.getCustomName() == null) return;
         e.setCanceled(true);
         e.setCancellationResult(InteractionResult.SUCCESS);
         if (Dialog.busy(p)) return;
@@ -87,6 +94,11 @@ final class Talk {
         String you = Joining.catName(p);
         List<Line> lines = new ArrayList<>();
         if (Pupils.greet(p, cat)) return;                    // their own apprentice (Pupils)
+        if (CodeMoments.again(p)) return;                    // a choice they walked away from still waits (CodeMoments)
+        if (Patrols.inPatrolOf(p, cat)) {                    // a cat of the patrol they lead: it wants its orders
+            orders(p, cat);
+            return;
+        }
 
         // reporting back on something this cat asked for
         for (Task t : QuestState.active(p)) {
@@ -109,9 +121,123 @@ final class Talk {
         boolean leading = Ranks.leads(p);
         if (role == Role.LEADER || leading && role == Role.DEPUTY) choices.add(Choice.of("About my place in the Clan", "greatjourney quest place " + cat.getId()));
         if (leading && role == Role.WARRIOR) choices.add(Choice.of("Be my deputy", "greatjourney quest deputy " + cat.getId()));
+        // StarClan's riddle is the medicine cat's business (and a medicine cat can think aloud to any Clanmate)
+        if (Riddles.puzzling(p) != null && (role == Role.MEDICINE || Kin.role(p) == Role.MEDICINE)) {
+            choices.add(Choice.of("About the prophecy...", "greatjourney quest prophecy " + cat.getId()));
+        }
+        if (commands(p) && takesOrders(role)) choices.add(Choice.of("I have orders for you", "greatjourney quest orders " + cat.getId()));
+        choices.add(Choice.of("Sit with me a while", "greatjourney quest sit " + cat.getId()));
         choices.add(Choice.of("Goodbye", "greatjourney quest bye"));
         lines.add(Line.say(name, colour, greeting(role, name, you, Kin.role(p))).speakerEntity(cat).withChoices(choices.toArray(Choice[]::new)));
         Dialog.play(p, lines);
+    }
+
+    // --- a deputy's or leader's orders
+
+    /** Whether the player gives the Clan's orders: its deputy, or its leader. */
+    static boolean commands(ServerPlayer p) {
+        Role mine = Kin.role(p);
+        return mine == Role.DEPUTY || mine == Role.LEADER;
+    }
+
+    private static boolean takesOrders(Role role) {
+        return role == Role.WARRIOR || role == Role.APPRENTICE || role == Role.DEPUTY;
+    }
+
+    /**
+     * What a deputy or leader can tell a warrior: take cats out on Warrior Cats Events' own patrols (several at once,
+     * or this one cat to a place picked on its patrol map), or bring a patrol and walk with them. Asked for after play
+     * (2026-11-26): a deputy could only order cats about one at a time.
+     */
+    static void orders(ServerPlayer p, WCatEntity cat) {
+        if (!commands(p)) return;
+        String name = Kin.name(cat), you = Joining.catName(p);
+        int id = cat.getId();
+        Choice never = Choice.of("Never mind", "greatjourney quest bye");
+        if (Patrols.leads(p)) {
+            Dialog.play(p, Line.say(name, Kin.colour(p), "We're with you, " + you + ". What now?").speakerEntity(cat).withChoices(
+                    Choice.of("Patrol, with me", "greatjourney quest patrolorder follow"),
+                    Choice.of("Patrol, wait here", "greatjourney quest patrolorder stay"),
+                    Choice.of("Back to camp, all of you", "greatjourney quest patrolorder home"), never));
+            return;
+        }
+        Dialog.play(p, Line.say(name, Kin.colour(p), "Yes, " + you + "?").speakerEntity(cat).withChoices(
+                Choice.of("Take a patrol round our territory", "greatjourney quest sendpatrol border " + id),
+                Choice.of("Take a hunting patrol out", "greatjourney quest sendpatrol hunt " + id),
+                Choice.of("Patrol where I show you", "greatjourney quest patrolmap " + id),
+                Choice.of("Bring a patrol and come with me", "greatjourney quest patrol " + id), never));
+    }
+
+    /** "Take a patrol out": this cat and up to two more free ones go on Warrior Cats Events' own patrol, by themselves. */
+    static void sendPatrol(ServerPlayer p, WCatEntity cat, boolean hunt) {
+        Clan clan = Kin.bookClan(p);
+        if (!commands(p) || clan == null) return;
+        ServerLevel ow = p.serverLevel().getServer().overworld();
+        String name = Kin.name(cat);
+        int colour = Kin.colour(p);
+        if (Tasks.keptIn(ow, Task.Kind.BORDER_PATROL)) {
+            Dialog.play(p, Line.say(name, colour, Tasks.night(ow) ? "In the dark? We'd mark nothing and catch less. At first light."
+                    : "In this rain every scent is washed out. When it clears.").speakerEntity(cat));
+            return;
+        }
+        LifeData life = LifeData.get(ow);
+        List<WCatEntity> party = new ArrayList<>(p.serverLevel().getEntitiesOfClass(WCatEntity.class, cat.getBoundingBox().inflate(32),
+                c -> Patrols.free(c, cat, life) && c.hasHomePosition()));
+        party.sort(java.util.Comparator.comparingDouble(c -> c == cat ? -1 : c.distanceToSqr(cat)));
+        java.util.Map<Integer, net.minecraft.core.BlockPos> points = new java.util.HashMap<>();
+        for (int i = 0; i < 4; i++) {
+            net.minecraft.core.BlockPos at = com.ninjacat.greatjourney.clanlands.life.events.Cats.inTerritory(ow, clan, p.getRandom(), 60, 120);
+            if (at != null) points.put(points.size(), at);
+        }
+        if (party.isEmpty() || points.isEmpty()) {
+            Dialog.play(p, Line.say(name, colour, "There's no cat free to go just now, " + Joining.catName(p) + ".").speakerEntity(cat));
+            return;
+        }
+        if (party.size() > 3) party = party.subList(0, 3);
+        for (WCatEntity c : party) {
+            if (hunt) c.setOnHuntingPatrol(new java.util.HashMap<>(points));
+            else c.setOnBorderPatrol(new java.util.HashMap<>(points));
+        }
+        // sending the patrols out is a deputy's duty: the Clan notices, once a day
+        long day = ow.getDayTime() / 24000L;
+        boolean first = QuestState.root(p).getLong("ordersDay") != day + 1;
+        if (first) {
+            QuestState.root(p).putLong("ordersDay", day + 1);
+            QuestState.addStanding(p, 2);
+            Ui.push(p);
+        }
+        String others = party.size() == 1 ? "" : " " + String.join(" and ", party.stream().filter(c -> c != cat).map(Kin::name).toList()) + ", with me!";
+        Dialog.play(p, Line.say(name, colour, (hunt ? "We'll bring back all we can carry." : "We'll see the markers are fresh.") + others).speakerEntity(cat),
+                Line.narrate(party.size() + (party.size() == 1 ? " cat sets" : " cats set") + " out, and will come home by themselves."
+                        + (first ? " The Clan sees its patrols well led today (+2 standing)." : "")));
+    }
+
+    /** "Patrol where I show you": Warrior Cats Events' own patrol map, for this one cat. */
+    static void patrolMap(ServerPlayer p, WCatEntity cat) {
+        ClanData.Clan wc = Joining.clanOf(p);
+        if (!commands(p) || wc == null || !wc.clanUUID.equals(cat.getClanUUID())) return;
+        Dialog.clear(p);
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p,
+                new net.snowteb.warriorcats_events.network.packet.s2c.cats.StCOpenPatrolScreenPacket(List.of(cat.getId()), wc.clanUUID, cat.getId(), true));
+    }
+
+    /** "Bring a patrol and come with me": this cat and the free warriors near it walk with the player ({@link Patrols}). */
+    static void gather(ServerPlayer p, WCatEntity cat) {
+        if (!commands(p)) return;
+        int n = Patrols.gather(p, cat);
+        Dialog.play(p, Line.say(Kin.name(cat), Kin.colour(p), n == 0 ? "There's no cat free to go just now, " + Joining.catName(p) + "."
+                : n == 1 ? "I'm right behind you." : "Patrol, on " + Joining.catName(p) + "! We're right behind you.").speakerEntity(cat),
+                Line.narrate(n == 0 ? "Ask again when the warriors are back in camp."
+                        : "Your patrol walks with you and fights what you fight. Talk to any of them to have the patrol wait, follow or go home."));
+    }
+
+    static void patrolOrder(ServerPlayer p, String what) {
+        if (!Patrols.order(p, what)) return;
+        Dialog.subtitle(p, Line.narrate(switch (what) {
+            case "stay" -> "Your patrol settles to wait where it stands.";
+            case "home" -> "Your patrol turns for camp.";
+            default -> "Your patrol falls in beside you.";
+        }));
     }
 
     static boolean hasDeliveries(ServerPlayer p, Task t) {

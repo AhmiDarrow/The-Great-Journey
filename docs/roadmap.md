@@ -41,9 +41,14 @@ The Great Journey: a light Warrior Cats RPG for Minecraft 1.21.1 (NeoForge). It 
   - Optional duties: the medicine cat's herbs, hunting and border patrols, elders' moss, queens and kits, Clan-flavoured hunting.
   - The apprentice story path, ending in a warrior ceremony where the player chooses their name.
 
+## Built since
+- **Gatherings at every full moon** and the medicine cats' half-moon meeting, in Free Mode and the Campaign.
+- **Rising through the Clan:** an apprentice of your own, deputy, leader and nine lives; a Clan of your own in Free Mode.
+- **Orders:** a deputy or leader sends patrols out, or leads one.
+- **Free Mode:** Moonpool dreams (StarClan's visits, with cats fallen in this world), kittypets, loners and rogues to talk to, and loners' favours for cats of no Clan.
+
 ## Next
-1. **Gatherings at the full moon** in Free Mode, on the island, with the leaders' news. (The Campaign has one first Gathering at the lake; recurring ones are planned.)
-2. **Moonpool dreams.** StarClan visits, including cats who have fallen in this world.
-3. **Border skirmishes** between the Clans.
-4. **Title screen and logo art**, and a playtest on a dedicated server with two clients (the `mp` playtest suite exists; see [branding-todo.md](branding-todo.md)).
-5. **The CurseForge release.**
+1. **Border skirmishes** between the Clans.
+2. **More for a Clan of your own:** duties and events in a Clan a player founded.
+3. **Title screen and logo art**, and a playtest on a dedicated server with two clients (the `mp` playtest suite exists; see [branding-todo.md](branding-todo.md)).
+4. **The CurseForge release.**

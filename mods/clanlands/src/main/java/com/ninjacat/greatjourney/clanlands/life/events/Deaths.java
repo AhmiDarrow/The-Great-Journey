@@ -54,7 +54,8 @@ public final class Deaths {
         }
         boolean leader = Cats.isLeader(life, c, cat);
 
-        if (!EventsConfig.DEATHS.get()) {
+        // (and under Spottedleaf, who lets no cat die of anything but old age)
+        if (!EventsConfig.DEATHS.get() || Director.spares(ow, cause)) {
             e.setCanceled(true);
             cat.setHealth(Math.max(2, cat.getMaxHealth() * 0.2F));
             Announce.tell(ow, c, cat.blockPosition(), Line.narrate(name + " is badly hurt, but will live."));
@@ -74,6 +75,7 @@ public final class Deaths {
             }
         }
 
+        if (!cause.equals("old age")) Director.mourn(ow);
         life.rememberInStarClan(name, c, cause, ow.getGameTime());
         UUID id = life.clanId(c);
         if (id != null) ClanData.get(ow).removeClanCatFromClan(id, cat);

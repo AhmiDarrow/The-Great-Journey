@@ -173,6 +173,7 @@ final class Photo {
         s.add(waitTicks(60));
         s.add(shot("title"));
         s.add(click("menu.clanlands.free"));
+        s.add(click("Bluestar"));
         s.add(createWorld("20261012"));
         s.add(inWorld());
         s.add(cmd("gamerule sendCommandFeedback false"));

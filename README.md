@@ -70,6 +70,8 @@ Every camp has one way in, a natural barrier all round, and dens where the books
 - **The apprentice path.** Your mentor teaches you the territory, hunting, herbs, a border patrol and the places every apprentice knows, then tests you. Pass, and the leader holds your warrior ceremony and you choose your warrior name. If your mentor dies or retires, the leader names another and you go on from where you were.
 - **Rise through the Clan.** A warrior or a full medicine cat is given an apprentice of their own to teach. Train one, earn the Clan's trust, and you can become deputy, then leader, with nine lives from StarClan and a "-star" name.
 - **Found a Clan of your own (Free Mode).** Win over wild cats as a loner, lead them to land no Clan has marked, and build your Clan there: a camp, warriors, a deputy, a medicine cat, and nine lives of your own.
+- **Orders.** A deputy or leader sends patrols round the territory or out to hunt, shows a warrior where to patrol on the map, or leads a patrol of their own that fights beside them.
+- **Cats of no Clan** talk too: kittypets, loners and rogues, and a loner may ask a Clanless cat a favour.
 - **The journal** keeps your tasks, your duties, your Clanmates, the places you have found and the cats who walk with StarClan.
 - **Clan events:** badgers, foxes and eagles, border raids, injuries and seasonal sickness, new kits, warrior ceremonies, hunting patrols and a lost kit. Cats die as they do in the books, without gore: a vigil, a place in StarClan's memory, and a leader's nine lives.
 - **Weather from the books:** the lake's edge freezing in leaf-bare, RiverClan's marsh flooding after rain, the shallows drying to mud in a drought, lightning setting a tree alight, morning mist that spoils the hunting. The seasons are newleaf, greenleaf, leaf-fall and leaf-bare.
@@ -79,6 +81,13 @@ Every camp has one way in, a natural barrier all round, and dens where the books
 ![Duties: the medicine cat needs herbs](https://raw.githubusercontent.com/AhmiDarrow/The-Great-Journey/main/docs/public/store/duties.jpg)
 
 ![The journal: Clanmates, duties and the places you have found](https://raw.githubusercontent.com/AhmiDarrow/The-Great-Journey/main/docs/public/store/journal.jpg)
+
+## Free Mode
+
+- **Who watches over your Clans?** Pick a storyteller for a new world: **Spottedleaf** (gentle), **Bluestar** (the books as written), **Yellowfang** (hard seasons), **Tigerstar** (war) or **Midnight** (long calms, then everything at once). Dangers are foretold in omens, and you can ask for another storyteller at the Moonpool.
+- **StarClan at the Moonpool:** dreams with the cats your world has lost, signs, and prophecies to puzzle out before they come true.
+- **From the books:** border skirmishes and stolen prey, hard choices under the warrior code, leaf-bare hunger fed from the real fresh-kill pile, the Dark Forest, a friend across the border, elders' tales, vigils and shared tongues.
+- **A Clan of your own** has a life of its own: wanderers asking to join, new kits, sickness, stray dogs and hungry days.
 
 ## Monsters on the Thunderpaths
 
@@ -97,12 +106,6 @@ New to the books, or just want to see it all? `/greatjourney tour` flies you ove
 ## Play together
 
 The Great Journey is multiplayer playable. Bring friends to the same Clan or to rival ones; each player walks their own apprentice path, and the Campaign's acts are shared by the whole world.
-
-## Coming
-
-- **Gatherings at every full moon** in Free Mode, on the island, with each leader's news (the Campaign already has its first Gathering at the lake).
-- **Moonpool dreams:** StarClan visits, including the cats who have fallen in your world.
-- **Border skirmishes** between the Clans.
 
 ## Project layout
 

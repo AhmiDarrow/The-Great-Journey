@@ -165,6 +165,26 @@ public final class LeadGameTests {
         h.succeed();
     }
 
+    /** An apprentice at its mentor's side is brought to them when it has fallen far behind, even in plain view. */
+    @GameTest(template = "empty")
+    public static void aCatAtItsPlayersSideIsBroughtWhenLeftFarBehind(GameTestHelper h) {
+        floor(h);
+        WCatEntity cat = cat(h, 2, 2);
+        ServerPlayer p = player(h, "lead_test_side");
+        put(h, p, 3, 3);
+        try {
+            h.assertTrue(Lead.accompany(p, cat, 4, 4000, null) != null, "the cat keeps at the player's side");
+            p.setPos(p.getX() + Lead.FAR + 4, p.getY(), p.getZ());
+            Lead.tick(h.getLevel().getServer());
+            h.assertTrue(Lead.leading(cat), "it is not given up for falling behind");
+            h.assertTrue(cat.distanceTo(p) < 12, "it is brought to its player, not left " + (int) cat.distanceTo(p) + " blocks back");
+        } finally {
+            Lead.stop(p);
+            cat.discard();
+        }
+        h.succeed();
+    }
+
     @GameTest(template = "empty")
     public static void aNestBedStaysOnLooseOrWetGround(GameTestHelper h) {
         h.setBlock(2, 1, 2, Blocks.SAND);                         // sand over a hollow (y 0 is air)

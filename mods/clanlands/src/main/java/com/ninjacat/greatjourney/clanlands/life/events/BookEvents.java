@@ -296,7 +296,7 @@ final class BookEvents {
         if (m.getNavigation().isDone()) m.getNavigation().moveTo(site.eat.getX() + 0.5, site.eat.getY(), site.eat.getZ() + 0.5, speed);
     }
 
-    private static boolean steal(ServerLevel ow, BlockPos at) {
+    static boolean steal(ServerLevel ow, BlockPos at) {
         if (!ow.hasChunk(at.getX() >> 4, at.getZ() >> 4) || !(ow.getBlockEntity(at) instanceof FreshkillPileBlockEntity pile)) return false;
         var h = pile.getItemHandler();
         for (int i = 0; i < h.getSlots(); i++) {

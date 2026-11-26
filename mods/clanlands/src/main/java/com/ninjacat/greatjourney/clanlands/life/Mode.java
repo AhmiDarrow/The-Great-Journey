@@ -1,5 +1,7 @@
 package com.ninjacat.greatjourney.clanlands.life;
 
+import com.ninjacat.greatjourney.clanlands.life.story.StoryData;
+import com.ninjacat.greatjourney.clanlands.life.story.Teller;
 import java.util.Locale;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -21,6 +23,7 @@ public enum Mode {
 
     private static final ModConfigSpec SPEC;
     private static final ModConfigSpec.ConfigValue<String> NEW_WORLD_MODE;
+    private static final ModConfigSpec.ConfigValue<String> NEW_WORLD_STORYTELLER;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -28,12 +31,17 @@ public enum Mode {
         NEW_WORLD_MODE = b.comment("How new worlds are played when no title-screen button chose: \"free\" or \"campaign\".",
                         "Dedicated servers use this. An existing world keeps the mode it was created with.")
                 .define("newWorldMode", "free", v -> v instanceof String s && parse(s) != null);
+        NEW_WORLD_STORYTELLER = b.comment("Who watches over a new Free Mode world when none was chosen on the title screen:",
+                        "\"spottedleaf\", \"bluestar\", \"yellowfang\", \"tigerstar\" or \"midnight\". Dedicated servers use this.")
+                .define("newWorldStoryteller", "bluestar", v -> v instanceof String s && Teller.byKey(s) != null);
         b.pop();
         SPEC = b.build();
     }
 
     /** Set by the title screen's Campaign / Free Mode buttons, for the world the player is about to create. */
     private static volatile Mode pending;
+    /** The storyteller picked with Free Mode, for that same world. */
+    private static volatile Teller pendingTeller;
 
     public static void init() {
         ModLoadingContext.get().getActiveContainer().registerConfig(ModConfig.Type.COMMON, SPEC, "clanlands-common.toml");
@@ -42,6 +50,11 @@ public enum Mode {
     /** The client's menu choice for the next world created in this game session (null clears it). */
     public static void setPending(Mode mode) {
         pending = mode;
+        if (mode != Mode.FREE) pendingTeller = null;
+    }
+
+    public static void setPendingTeller(Teller teller) {
+        pendingTeller = teller;
     }
 
     public static Mode pending() {
@@ -73,7 +86,18 @@ public enum Mode {
         Mode chosen = pending != null ? pending : configured();
         pending = null;
         life.setMode(chosen);
+        if (chosen == FREE) StoryData.get(overworld).setTeller(pendingTeller != null ? pendingTeller : configuredTeller());
+        pendingTeller = null;
         return chosen;
+    }
+
+    private static Teller configuredTeller() {
+        try {
+            Teller t = Teller.byKey(NEW_WORLD_STORYTELLER.get());
+            return t == null ? Teller.BLUESTAR : t;
+        } catch (IllegalStateException notLoaded) {
+            return Teller.BLUESTAR;
+        }
     }
 
     private static Mode configured() {

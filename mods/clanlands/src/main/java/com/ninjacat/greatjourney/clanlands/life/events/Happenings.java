@@ -80,6 +80,12 @@ final class Happenings {
             case LOST_KIT -> lostKit(ow, c, cats, r);
             case DOGS, ROGUES, RATS, ADDER, KITTYPET, SHORTAGE, STORY -> BookEvents.run(ow, c, kind, cats, r);
             case OLD_AGE -> false;
+            case SKIRMISH -> {
+                // asked for by command: it comes to a player standing in that Clan's land
+                var w = com.ninjacat.greatjourney.clanlands.world.ClanWorld.current();
+                yield w != null && ow.players().stream().anyMatch(p -> com.ninjacat.greatjourney.clanlands.life.Homeland.territoryAt(w, p.getX(), p.getZ()) == c
+                        && Skirmish.start(ow, c, p));
+            }
             case FREEZE, FLOOD, DROUGHT, FIRE, FOG -> Weather.start(ow, c, kind, r, false);
         };
     }

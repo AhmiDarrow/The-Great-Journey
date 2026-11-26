@@ -176,9 +176,17 @@ public final class DialogueScreen extends Screen {
         return Math.min(w, boxW());
     }
 
+    /** From one choice to the next: 24, less when there are so many that the first would be off the top of the screen. */
+    private int choiceStep() {
+        return Math.max(11, Math.min(24, (boxY() - 14) / Math.max(1, choices.size())));
+    }
+
+    private int choiceH() {
+        return Math.min(20, choiceStep() - 1);
+    }
+
     private int choiceY(int i) {
-        int h = 20, gap = 4;
-        return boxY() - 10 - (choices.size() - i) * (h + gap);
+        return boxY() - 10 - (choices.size() - i) * choiceStep();
     }
 
     // drawing -----------------------------------------------------------------------------------------------------
@@ -270,13 +278,14 @@ public final class DialogueScreen extends Screen {
             int cw = choiceW(), cx = bx + bw - cw - 6;
             for (int i = 0; i < choices.size(); i++) {
                 int cy = choiceY(i);
-                boolean hover = UiStyle.over(mouseX, mouseY, cx, cy, cw, 20);
+                int ch = choiceH();
+                boolean hover = UiStyle.over(mouseX, mouseY, cx, cy, cw, ch);
                 if (hover) hoveredChoice = i;
                 int body = hover ? 0xFFF3D0 : UiStyle.PARCHMENT;
-                UiStyle.panel(g, cx, cy, cw, 20, body, UiStyle.PARCHMENT_DARK, hover ? UiStyle.GOLD : UiStyle.BARK, a);
+                UiStyle.panel(g, cx, cy, cw, ch, body, UiStyle.PARCHMENT_DARK, hover ? UiStyle.GOLD : UiStyle.BARK, a);
                 int c = choices.get(i).colour();
-                g.fill(cx + 4, cy + 4, cx + 7, cy + 16, UiStyle.argb(UiStyle.darker(c, 0.8f), a));
-                g.drawString(font, (i + 1) + ".  " + choices.get(i).label(), cx + 12, cy + 6,
+                g.fill(cx + 4, cy + 2, cx + 7, cy + ch - 2, UiStyle.argb(UiStyle.darker(c, 0.8f), a));
+                g.drawString(font, (i + 1) + ".  " + choices.get(i).label(), cx + 12, cy + (ch - 7) / 2,
                         UiStyle.argb(hover ? UiStyle.BARK_DARK : UiStyle.INK, a), false);
             }
         }

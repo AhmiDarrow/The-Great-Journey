@@ -36,6 +36,9 @@ final class Scenarios {
                 s.add(titleReady());
                 s.add(shot("title"));
                 s.add(titleButtons());
+                newWorld(s, "S0-free-world", "menu.clanlands.free", "20261012", false);
+                s.add(waitTicks(200));
+                s.add(shot("free-world"));
             }
             case "free-main" -> freeMain(s);
             case "map" -> {                                  // focused: the journal's Clan map at the lake and in the old forest
@@ -134,6 +137,10 @@ final class Scenarios {
             s.add(titleButtons());
         }
         s.add(click(modeKey));
+        if (modeKey.equals("menu.clanlands.free")) {      // "Who watches over your Clans?" comes first
+            s.add(shot("storyteller-screen"));
+            s.add(click("Bluestar"));
+        }
         s.add(createWorld(seed));
         s.add(inWorld());
         s.add(cmd("gamerule sendCommandFeedback false"));

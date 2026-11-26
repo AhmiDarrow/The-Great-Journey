@@ -74,6 +74,15 @@ public final class Lead {
     static final double WAIT = 9;
     /** Further than this from the player, the cat is brought to them (only ever where the player cannot see it). */
     static final double CATCH_UP = 72;
+    /** A cat keeping at its player's side ({@link #accompany}) is brought to them sooner: it has nowhere else to be. */
+    static final double SIDE_CATCH_UP = 28;
+    /** So far behind that it is brought even in plain view: better seen arriving than lost (a cat at full run outpaces it). */
+    static final double FAR = 48;
+    /** Decisions an accompanying cat's own land may take to load again before it is given up (about fifty seconds). */
+    static final int MISSING_STEPS = 200;
+    /** Holds the land an accompanying cat was last seen on for five seconds, so it loads and can be brought. */
+    private static final net.minecraft.server.level.TicketType<net.minecraft.world.level.ChunkPos> FETCH = net.minecraft.server.level.TicketType.create(
+            "greatjourney_lead", java.util.Comparator.comparingLong(net.minecraft.world.level.ChunkPos::toLong), 100);
     /** A waiting cat further than this from its player walks back to them instead of standing. */
     static final double WALK_BACK = 22;
     /** A stop further than this gets a planned way ({@link Route}) instead of a straight one. */
@@ -120,7 +129,9 @@ public final class Lead {
     private boolean waiting, ended;
     /** The cat is as near this stop as it can walk (the place itself is down a gorge, or out in water). */
     private boolean asNear;
-    private int stuck, sinceOrder, catchUps, fails, fightSteps, lastNode, lastStopPuts;
+    private int stuck, sinceOrder, catchUps, fails, fightSteps, lastNode, lastStopPuts, missing;
+    /** Where the cat last stood. */
+    private BlockPos seen;
     /** The planned way to the current stop ({@link Route}): its waypoints, the next one, and the stop it is for. */
     private List<double[]> way;
     private int wayAt, wayStop = -1;
@@ -247,11 +258,21 @@ public final class Lead {
             end(End.ABANDONED);
             return;
         }
-        if (!(level.getEntity(catId) instanceof WCatEntity c) || !c.isAlive()) {
+        Entity found = level.getEntity(catId);
+        if (found == null && stops.isEmpty() && seen != null && ++missing <= MISSING_STEPS) {
+            // outrun, and its land unloaded behind the player: that land is held a moment, and the cat brought from it.
+            // It used to be dropped here without a word, and stood where it was left (asked for 2026-11-26)
+            net.minecraft.world.level.ChunkPos at = new net.minecraft.world.level.ChunkPos(seen);
+            level.getChunkSource().addRegionTicket(FETCH, at, 2, at);
+            return;
+        }
+        if (!(found instanceof WCatEntity c) || !c.isAlive()) {
             end(End.ABANDONED);                                   // killed, or its chunk unloaded
             return;
         }
         cat = c;
+        missing = 0;
+        seen = cat.blockPosition();
         if (until > 0 && level.getGameTime() >= until) {
             end(End.DONE);
             return;
@@ -280,8 +301,8 @@ public final class Lead {
         }
         fightSteps = 0;
         double toPlayer = cat.distanceTo(player);
-        if (toPlayer > CATCH_UP) {
-            catchUp();
+        if (toPlayer > (stops.isEmpty() ? SIDE_CATCH_UP : CATCH_UP)) {
+            catchUp(toPlayer);
             return;
         }
         if (stops.isEmpty()) {
@@ -524,7 +545,7 @@ public final class Lead {
     }
 
     /** The player is far away: the cat is brought to them, unless they keep going away from where it leads. */
-    private void catchUp() {
+    private void catchUp(double toPlayer) {
         double away = stops.isEmpty() ? 0 : flat(player.getX(), player.getZ(), stops.get(next));
         catchUps = lastCatchUp >= 0 && away > lastCatchUp + 16 ? catchUps + 1 : 0;
         if (catchUps >= GIVE_UP) {
@@ -535,7 +556,8 @@ public final class Lead {
         double tx = stops.isEmpty() ? cat.getX() : stops.get(next).x(), tz = stops.isEmpty() ? cat.getZ() : stops.get(next).z();
         BlockPos at = besidePlayer(tx, tz, stops.isEmpty() ? Math.min(keep, 6) : 4);
         route = null;
-        if (!put(at)) cat.getNavigation().moveTo(player, 1.35);  // in sight: it runs to them instead
+        // in sight: it runs to them instead, unless it keeps at their side and has fallen too far back to make it
+        if (!put(at, stops.isEmpty() && toPlayer > FAR)) cat.getNavigation().moveTo(player, 1.35);
         best = stops.isEmpty() ? best : flat(at.getX() + 0.5, at.getZ() + 0.5, stops.get(next));
         stuck = 0;
     }
@@ -581,8 +603,13 @@ public final class Lead {
      * reappears in plain view is no Clan cat (Kiki watched her guide do it, 2026-10-18). Returns whether it moved.
      */
     private boolean put(BlockPos at) {
+        return put(at, false);
+    }
+
+    /** As {@link #put(BlockPos)}; {@code anyway} moves it even in view (an apprentice left far behind its mentor). */
+    private boolean put(BlockPos at, boolean anyway) {
         net.minecraft.world.phys.Vec3 to = new net.minecraft.world.phys.Vec3(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
-        if (inSight(cat.position()) || inSight(to)) return false;
+        if (!anyway && (inSight(cat.position()) || inSight(to))) return false;
         asNear = false;
         cat.getNavigation().stop();
         cat.teleportTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);

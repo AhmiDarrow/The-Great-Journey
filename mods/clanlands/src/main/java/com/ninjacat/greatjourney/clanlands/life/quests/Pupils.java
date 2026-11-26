@@ -181,6 +181,11 @@ public final class Pupils {
         if (!Kin.name(cat).equals(paw)) root.putString("pupilName", Kin.name(cat));
         root.putLong("pupilAt", cat.blockPosition().asLong());
         root.remove("pupilStray");
+        // asked along, and parted since (the mentor died, slept, logged out, crossed to another world): it falls in
+        // again by itself once they are near each other, and need not be asked twice
+        if (root.getBoolean("pupilAlong") && Lead.of(p) == null && !Lead.leading(cat) && cat.level() == p.level() && cat.distanceTo(p) < 64) {
+            Lead.accompany(p, cat, 4, Integer.MAX_VALUE, (l, how) -> { });
+        }
         boolean home = comeHome(p, cat, camp);
 
         if (step > LESSONS) {
@@ -244,6 +249,7 @@ public final class Pupils {
         root.remove("pupilStep");
         root.remove("pupilAt");
         root.remove("pupilStray");
+        root.remove("pupilAlong");
         root.putLong("pupilNext", p.getServer().overworld().getGameTime() + rest);
         QuestState.setLesson(p, null);
         Ui.subtitle(p, List.of(Line.narrate(words)));
@@ -397,12 +403,14 @@ public final class Pupils {
     static void come(ServerPlayer p, WCatEntity cat) {
         if (!cat.getUUID().equals(pupilId(p))) return;
         Lead lead = Lead.accompany(p, cat, 4, Integer.MAX_VALUE, (l, how) -> { });
+        if (lead != null) QuestState.root(p).putBoolean("pupilAlong", true);
         Ui.subtitle(p, List.of(Line.say(Kin.name(cat), Kin.colour(p), lead != null ? "Right behind you!" : "I can't just now. Ask me again in a moment.").speakerEntity(cat)));
     }
 
     static void stay(ServerPlayer p) {
         WCatEntity cat = loaded(p);
         Lead lead = Lead.of(p);
+        QuestState.root(p).remove("pupilAlong");
         if (cat == null || lead == null || lead.cat() != cat) return;
         Lead.stop(p);
         Ui.subtitle(p, List.of(Line.say(Kin.name(cat), Kin.colour(p), "I'll be in camp.").speakerEntity(cat)));
@@ -494,7 +502,8 @@ public final class Pupils {
         String lost = QuestState.root(p).getBoolean("pupilStray")
                 ? " " + pupilName(p) + " is not in camp: go back to where you last hunted together, and they will come home." : "";
         Lead lead = Lead.of(p);
-        boolean along = lead != null && lead.cat().getUUID().equals(pupilId(p));
+        // asked along once is enough: parted for a while, they fall in again by themselves (tick)
+        boolean along = lead != null && lead.cat().getUUID().equals(pupilId(p)) || QuestState.root(p).getBoolean("pupilAlong");
         return (lesson != null ? "Train your apprentice, " + pupilName(p) + ": " + lesson.title + "." + (along ? "" : " Ask them to come with you first.")
                 : "Go back to camp with " + pupilName(p) + " for their naming ceremony.") + lost;
     }

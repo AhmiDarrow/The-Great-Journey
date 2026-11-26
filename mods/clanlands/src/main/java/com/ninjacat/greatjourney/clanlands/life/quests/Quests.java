@@ -35,10 +35,18 @@ public final class Quests {
         NeoForge.EVENT_BUS.addListener(Ranks::onDeath);
         NeoForge.EVENT_BUS.addListener(Tracking::onFished);
         Patrols.init();
+        NeoForge.EVENT_BUS.addListener(DarkForest::onWake);
+        NeoForge.EVENT_BUS.addListener(Friendship::onInteract);
+        NeoForge.EVENT_BUS.addListener(Friendship::onJoin);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppedEvent e) -> Friendship.reset());
+        NeoForge.EVENT_BUS.addListener(Homestead::onInteract);
+        NeoForge.EVENT_BUS.addListener(Homestead::onJoin);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppedEvent e) -> Homestead.reset());
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> {
             if (e.getServer().getTickCount() % 20 == 7 && ClanWorld.current() != null
                     && ClanWorld.isClanWorld(e.getServer().overworld())) {
                 Tracking.tick(e.getServer());
+                MoonDreams.tick(e.getServer());
             }
         });
     }
@@ -66,6 +74,54 @@ public final class Quests {
             return 1;
         }));
         q.then(withCat("deputy", Ranks::nameDeputy));
+        // a deputy's or leader's orders: patrols sent out, and a patrol of their own (Talk, Patrols)
+        q.then(withCat("orders", Talk::orders));
+        q.then(withCat("patrolmap", Talk::patrolMap));
+        q.then(withCat("patrol", Talk::gather));
+        q.then(Commands.literal("sendpatrol")
+                .then(withCat("border", (p, cat) -> Talk.sendPatrol(p, cat, false)))
+                .then(withCat("hunt", (p, cat) -> Talk.sendPatrol(p, cat, true))));
+        // a moment of the warrior code (CodeMoments)
+        q.then(Commands.literal("code").then(Commands.argument("which", StringArgumentType.word()).executes(c ->
+                CodeMoments.answer(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "which")) ? 1 : 0)));
+        // a prophecy puzzled out with the medicine cat (Riddles)
+        q.then(withCat("prophecy", (p, cat) -> Riddles.ask(p, Kin.name(cat))));
+        q.then(Commands.literal("riddle").then(Commands.argument("guess", StringArgumentType.word()).executes(c ->
+                Riddles.guess(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "guess")) ? 1 : 0)));
+        // the Dark Forest's offer and StarClan's question (DarkForest), and a friend across the border (Friendship)
+        q.then(Commands.literal("dark").then(Commands.argument("answer", StringArgumentType.word()).executes(c ->
+                DarkForest.answer(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "answer")) ? 1 : 0)));
+        q.then(Commands.literal("friend").then(Commands.argument("answer", StringArgumentType.word()).executes(c ->
+                Friendship.answer(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "answer")) ? 1 : 0)));
+        // quiet things done together in camp (CampMoments), and a wanderer at a founded Clan's edge (Homestead)
+        q.then(withCat("sit", CampMoments::sit));
+        q.then(withCat("tongues", CampMoments::tongues));
+        q.then(withCat("tale", (p, cat) -> Ui.play(p, CampMoments.tale(p, Kin.name(cat)))));
+        q.then(withCat("vigil", CampMoments::sitVigil));
+        var wanderer = Commands.literal("wanderer");
+        for (String what : new String[] {"welcome", "turn"}) {
+            wanderer.then(Commands.literal(what).then(Commands.argument("cat", IntegerArgumentType.integer()).executes(c ->
+                    Homestead.answer(c.getSource().getPlayerOrException(), what, IntegerArgumentType.getInteger(c, "cat")) ? 1 : 0)));
+        }
+        q.then(wanderer);
+        q.then(Commands.literal("teller").then(Commands.argument("name", StringArgumentType.word()).executes(c ->
+                MoonDreams.choose(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "name")) ? 1 : 0)));
+        // operators: who watches over this world, from anywhere
+        q.then(Commands.literal("storyteller").requires(s -> s.hasPermission(2))
+                .then(Commands.argument("name", StringArgumentType.word()).executes(c -> {
+                    var t = com.ninjacat.greatjourney.clanlands.life.story.Teller.byKey(StringArgumentType.getString(c, "name"));
+                    if (t == null) return 0;
+                    MoonDreams.watchedBy(c.getSource().getServer().overworld(), t, "StarClan");
+                    c.getSource().sendSuccess(() -> Component.literal(t.title + " watches over this world"), true);
+                    return 1;
+                })));
+        q.then(Commands.literal("stranger").then(Commands.argument("topic", StringArgumentType.word())
+                .then(Commands.argument("cat", IntegerArgumentType.integer()).executes(c -> Strangers.answer(c.getSource().getPlayerOrException(),
+                        IntegerArgumentType.getInteger(c, "cat"), StringArgumentType.getString(c, "topic")) ? 1 : 0))));
+        q.then(Commands.literal("patrolorder").then(Commands.argument("order", StringArgumentType.word()).executes(c -> {
+            Talk.patrolOrder(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "order"));
+            return 1;
+        })));
         q.then(Commands.literal("path").then(Commands.argument("path", StringArgumentType.word()).executes(c -> {
             String path = StringArgumentType.getString(c, "path");
             if (!path.equals("warrior") && !path.equals("medicine")) return 0;

@@ -432,13 +432,13 @@ public final class Ranks {
         if (leads(p)) {
             if (QuestState.root(p).getBoolean("nineLives")) return "Travel to " + starPlaceName() + " to receive your nine lives and your leader's name.";
             int left = life.lives(clan);
-            return "Lead your Clan (" + left + (left == 1 ? " life" : " lives") + " left). Talk to a warrior to name them your deputy.";
+            return "Lead your Clan (" + left + (left == 1 ? " life" : " lives") + " left). Talk to a warrior to name them your deputy, or to give them orders.";
         }
         ClanPlayerRank rank = rank(p);
         if (rank == ClanPlayerRank.DEPUTY) {
             List<String> needs = leaderNeeds(p);
-            return needs.isEmpty() ? "You are ready to lead: speak with " + leader + " about the Clan's future."
-                    : "To lead " + BookClans.Info.of(clan).title + " one day: " + String.join(", and ", needs) + ".";
+            return "The patrols are yours to send: talk to a warrior to give them orders. " + (needs.isEmpty() ? "You are ready to lead: speak with " + leader + " about the Clan's future."
+                    : "To lead " + BookClans.Info.of(clan).title + " one day: " + String.join(", and ", needs) + ".");
         }
         if (rank == ClanPlayerRank.WARRIOR) {
             List<String> needs = deputyNeeds(p);

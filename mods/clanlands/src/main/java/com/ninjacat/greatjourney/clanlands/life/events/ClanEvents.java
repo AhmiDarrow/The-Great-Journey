@@ -49,7 +49,9 @@ public final class ClanEvents {
         FREEZE(false), FLOOD(false), DROUGHT(false), FIRE(false), FOG(false),
         // the book events in BookEvents: a loose Twoleg dog, rogues at the fresh-kill pile, rats, an adder bite, a
         // kittypet at the border, a leaf-bare prey shortage and an elder's story
-        DOGS(true), ROGUES(true), RATS(true), ADDER(false), KITTYPET(false), SHORTAGE(false), STORY(false);
+        DOGS(true), ROGUES(true), RATS(true), ADDER(false), KITTYPET(false), SHORTAGE(false), STORY(false),
+        // a neighbour's patrol hunting over the border: it comes to a player out in their territory (Skirmish)
+        SKIRMISH(false);
 
         final boolean major;
 
@@ -76,6 +78,8 @@ public final class ClanEvents {
         ModLoadingContext.get().getActiveContainer().registerConfig(ModConfig.Type.SERVER, EventsConfig.SPEC, "clanlands-events-server.toml");
         NeoForge.EVENT_BUS.addListener(ClanEvents::tick);
         Weather.init();
+        NeoForge.EVENT_BUS.addListener(Skirmish::onInteract);
+        NeoForge.EVENT_BUS.addListener(Skirmish::beforeDamage);
         NeoForge.EVENT_BUS.addListener((LivingDeathEvent e) -> {
             Deaths.onDeath(e);
             if (!e.isCanceled()) {
@@ -91,7 +95,7 @@ public final class ClanEvents {
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent e) -> reset());
         NeoForge.EVENT_BUS.addListener((EntityJoinLevelEvent e) -> {
             if (e.getLevel().isClientSide()) return;
-            if (Happenings.overdueFoe(e.getEntity())) {
+            if (Happenings.overdueFoe(e.getEntity()) || Skirmish.stale(e.getEntity())) {
                 e.setCanceled(true);                          // an event's fox or eagle whose time ran out while it was unloaded
                 return;
             }
@@ -111,6 +115,7 @@ public final class ClanEvents {
         Deaths.reset();
         Happenings.reset();
         BookEvents.reset();
+        Skirmish.reset();
     }
 
     private static void tick(ServerTickEvent.Post e) {
@@ -122,13 +127,18 @@ public final class ClanEvents {
         BookEvents.everySecond(ow);
         Weather.everySecond(ow);
         CampRoutine.everySecond(ow);
+        Director.everySecond(ow);
+        Skirmish.everySecond(ow);
+        Hunger.everySecond(ow);
         if (server.getTickCount() % 1200 == 0) for (Clan c : Clan.values()) keepMedicineCat(ow, c);
         if (!EventsConfig.ENABLED.get()) return;
         long now = server.getTickCount();
         RandomSource r = ow.getRandom();
-        if (nextRoll < 0) nextRoll = now + interval(r);
+        if (nextRoll < 0) nextRoll = now + Director.interval(ow, interval(r));
         if (now < nextRoll) return;
-        nextRoll = now + interval(r);
+        Director.beforeRoll(ow);
+        nextRoll = now + Director.interval(ow, interval(r));
+        Skirmish.roll(ow);                                       // out on the borders, wherever the camps are
         Clan c = pickClan(ow, r);
         if (c == null) return;
         if (Deaths.oldAge(ow, c, r)) {
@@ -136,7 +146,13 @@ public final class ClanEvents {
             return;
         }
         Kind k = pickKind(ow, c, r);
-        if (k != null && Happenings.run(ow, c, k, r)) lastEvent.put(c, now);
+        if (k == null) return;
+        if (Director.forewarn(ow, c, k)) {                       // a warning first: it happens a little later
+            lastEvent.put(c, now);
+        } else if (Happenings.run(ow, c, k, r)) {
+            lastEvent.put(c, now);
+            Director.happened(ow, k);
+        }
     }
 
     private static long interval(RandomSource r) {
@@ -200,6 +216,7 @@ public final class ClanEvents {
                 if (Weather.canStart(ow, k)) w.put(k, k == Kind.FIRE ? Math.max(1, weather / 2) : weather);
             }
         }
+        w.replaceAll((k, base) -> Director.weight(ow, k, base));      // the storyteller's say
         int total = w.values().stream().mapToInt(Integer::intValue).sum();
         int roll = r.nextInt(total);
         for (Map.Entry<Kind, Integer> e : w.entrySet()) {
@@ -296,8 +313,18 @@ public final class ClanEvents {
                 + (now.equals(was) ? "" : " From this moment you will be known as " + now + "."));
     }
 
+    /** /greatjourney skirmish warn|fight|mercy: what the dialogue's choices run, as the player. */
+    private static void skirmishCommands(LiteralArgumentBuilder<CommandSourceStack> root) {
+        var s = Commands.literal("skirmish");
+        for (String what : new String[] {"warn", "fight", "mercy"}) {
+            s.then(Commands.literal(what).executes(c -> Skirmish.answer(c.getSource().getPlayerOrException(), what) ? 1 : 0));
+        }
+        root.then(s);
+    }
+
     /** /greatjourney event &lt;clan&gt; &lt;kind&gt; (operators): makes an event happen now, for testing. */
     public static void commands(LiteralArgumentBuilder<CommandSourceStack> root) {
+        skirmishCommands(root);
         root.then(Commands.literal("event").requires(s -> s.hasPermission(2))
                 .then(Commands.argument("clan", StringArgumentType.word())
                         .then(Commands.argument("kind", StringArgumentType.word()).executes(ctx -> {

@@ -71,7 +71,10 @@ public final class TitleMenu {
         event.addListener(button(x, y, half, h, "menu.clanlands.campaign", "menu.clanlands.campaign.tip",
                 b -> create(mc, title, Mode.CAMPAIGN, "menu.clanlands.campaign.world")));
         event.addListener(button(x + w - half, y, half, h, "menu.clanlands.free", "menu.clanlands.free.tip",
-                b -> create(mc, title, Mode.FREE, "menu.clanlands.free.world")));
+                b -> mc.setScreen(new TellerScreen(title, teller -> {      // who will watch over the Clans, then the world
+                    create(mc, title, Mode.FREE, "menu.clanlands.free.world");
+                    Mode.setPendingTeller(teller);
+                }))));
         event.addListener(button(x, y + 24, w, h, "menu.clanlands.load", "menu.clanlands.load.tip", b -> {
             Mode.setPending(null);
             mc.setScreen(new SelectWorldScreen(title));

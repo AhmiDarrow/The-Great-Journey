@@ -39,6 +39,8 @@ public final class QuestLog {
         if (lives != null) quests.add(0, lives);
         JournalView.Quest own = Founding.quest(p);
         if (own != null) quests.add(own);
+        JournalView.Quest riddle = Riddles.quest(p);
+        if (riddle != null) quests.add(0, riddle);
         List<JournalView.Place> places = new ArrayList<>();
         Set<String> found = QuestState.places(p);
         for (Places.Place pl : Places.all()) places.add(new JournalView.Place(pl.name(), found.contains(pl.id()), pl.hint()));
@@ -98,9 +100,11 @@ public final class QuestLog {
             var seeking = com.ninjacat.greatjourney.clanlands.life.Starts.seeking(p);
             if (seeking != null) return "Find the " + seeking.title + " camp.";
             String own = Founding.goal(p, null);
-            return Journey.start(p) == Journey.Start.KITTYPET
+            // what a cat of no Clan can do meanwhile (Strangers, MoonDreams)
+            String alone = " Loners you meet may ask a favour of you, and StarClan speaks at the Moonpool by night.";
+            return (Journey.start(p) == Journey.Start.KITTYPET
                     ? "Explore the woods beyond your garden. Wild cats live there..."
-                    : "Visit a Clan camp if you wish to join a Clan." + (own == null ? "" : " " + own);
+                    : "Visit a Clan camp if you wish to join a Clan." + (own == null ? "" : " " + own)) + alone;
         }
         Clan book = Kin.bookClan(p);
         if (book == null) {
@@ -120,7 +124,8 @@ public final class QuestLog {
         if (r == ClanData.ClanPlayerRank.QUEEN) return "Help raise the Clan's kits in the nursery. Ask your leader if you want to go back to your duties.";
         // a named cat: their own apprentice (or why none yet), and how far they are from deputy and leader
         String pupil = Pupils.goal(p), rise = Ranks.goal(p);
-        String more = (pupil == null ? "" : " " + pupil) + (rise == null ? "" : " " + rise);
+        String pile = com.ninjacat.greatjourney.clanlands.life.events.Hunger.status(p.getServer().overworld(), book);
+        String more = (pupil == null ? "" : " " + pupil) + (rise == null ? "" : " " + rise) + (pile == null ? "" : " " + pile);
         if (healer) return "Heal your Clan: gather herbs, tend the sick, and share tongues with StarClan at the half moon." + more;
         // a deputy has no deputy to ask: the leader gives them the patrols (Tasks.dutyFor)
         if (r == ClanData.ClanPlayerRank.DEPUTY && !Ranks.leads(p)) return "Lead the patrols: ask " + life.leader(book) + " where the Clan needs them, and see to your Clanmates." + more;

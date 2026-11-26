@@ -13,6 +13,11 @@
       "type": "patchouli:text",
       "text": "Follow the stream between ThunderClan and WindClan up into the rocky hills. At its head lies the $(l)Moonpool$(): a stone hollow where a waterfall spills into a shining pool. $(br2)Medicine cats go there to share dreams with us. Walk softly, and follow the paw-worn path down.",
       "title": "The Moonpool"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Any cat may come to the Moonpool by night, Clan cat or loner. Lie down at the water, and one of us will come to you: a cat you knew, if any of your Clan walks with us now. $(br2)We will give you a sign, the way to a place your paws have not found. We speak to each cat once a moon.",
+      "title": "Dreams"
     }
   ]
 }

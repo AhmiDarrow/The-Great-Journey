@@ -30,6 +30,17 @@ bullets, which hold the developer notes for everything below) and [wce-integrati
 
 Tests: `OrdersGameTests`, `events/StoryGameTests`, `quests/BookGameTests`, `LeadGameTests`.
 
+## 0.1.8 (same day)
+
+Quest marks on the Clan map with "Show on map" (`quests/QuestMarks`, `client/MapPainter`), storytellers pacing a Clan's
+rest (`Director.rest`), prey handed in going to the fresh-kill pile (`Bag.handOver`, `Hunger.stock`), and rewards,
+readiness and the marks of standing in the journal. `playtest.py --suite map` photographed the journal and big map with
+one followed and one other mark. `playtest.py` rebuilds the Core into `dist/` under the current version: back up a
+release's files before running it.
+
+Also to play: click a mark on the big map to follow it; "Show on map" on a second task; a border patrol's numbered
+points; hand prey in and see it on the camp's pile; the pace of Midnight's storm over an hour.
+
 ## Needs playing
 
 Tests cover what these do, not how they happen in the world.

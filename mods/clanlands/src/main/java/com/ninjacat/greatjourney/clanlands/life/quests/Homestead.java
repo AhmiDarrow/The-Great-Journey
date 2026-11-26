@@ -148,8 +148,9 @@ final class Homestead {
                 List<Task> d = QuestState.duties(p);
                 if (d.size() >= QuestState.MAX_DUTIES || d.stream().anyMatch(t -> one.getUUID().equals(t.giverId))) return false;
                 d.add(new Task(Task.Kind.HUNT, "Feed " + title, title + "'s fresh-kill pile is bare, and " + Kin.name(one)
-                        + " says the Clan goes hungry. Catch four pieces of prey, then tell " + Kin.name(one) + ".", Kin.name(one), one.getUUID(), false,
-                        new ArrayList<>(List.of(Task.Objective.catchPrey("Catch 4 prey for " + title, "any", 4))), 5, 40, "", 0));
+                        + " says the Clan goes hungry. Catch four pieces of prey, and bring two home to " + Kin.name(one) + " for the pile.",
+                        Kin.name(one), one.getUUID(), false, new ArrayList<>(List.of(Task.Objective.catchPrey("Catch 4 prey for " + title, "any", 4),
+                        Task.Objective.bring("Bring 2 prey to " + Kin.name(one), Tasks.ANY_PREY, 2))), 5, 40, "", 0));
                 QuestState.setDuties(p, d);
                 Ui.subtitle(p, List.of(Line.narrate(Kin.name(one) + " says the Clan is hungry. It is in your journal.")));
                 Ui.push(p);

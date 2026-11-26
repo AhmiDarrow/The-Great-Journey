@@ -166,7 +166,7 @@ public final class ClanEvents {
      * a badger sent there never came, though the Clan was told it had.
      */
     private static Clan pickClan(ServerLevel ow, RandomSource r) {
-        long now = ow.getServer().getTickCount(), rest = 20L * EventsConfig.CLAN_COOLDOWN.get();
+        long now = ow.getServer().getTickCount(), rest = Director.rest(ow, 20L * EventsConfig.CLAN_COOLDOWN.get());
         Map<Clan, Integer> weights = new EnumMap<>(Clan.class);
         LifeData life = LifeData.get(ow);
         for (Clan c : Clan.values()) {

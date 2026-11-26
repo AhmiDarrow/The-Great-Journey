@@ -216,13 +216,14 @@ public final class JournalScreen extends Screen {
                 g.drawString(font, fit(q.title(), w - 14), x + 10, y + 1, UiStyle.argb(ink, 1f), false);
                 int done = 0;
                 for (JournalView.Objective o : q.objectives()) if (o.complete()) done++;
-                String prog = q.done() ? "done" : done + "/" + q.objectives().size() + "  ·  " + q.giver();
-                g.drawString(font, fit(prog, w - 14), x + 10, y + 11, UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
+                String prog = q.done() ? "done" : !q.ready().isEmpty() ? "✔ " + q.ready() : done + "/" + q.objectives().size() + "  ·  " + q.giver();
+                g.drawString(font, fit(prog, w - 14), x + 10, y + 11,
+                        UiStyle.argb(!q.done() && !q.ready().isEmpty() ? UiStyle.LEAF : UiStyle.INK_SOFT, 1f), false);
                 y += 24;
             }
             g.disableScissor();
             JournalView.Quest q = list.get(selected);
-            drawQuestDetail(g, q);
+            drawQuestDetail(g, q, mouseX, mouseY);
         }
     }
 
@@ -232,8 +233,17 @@ public final class JournalScreen extends Screen {
         return font.plainSubstrByWidth(text, w - font.width("…")).stripTrailing() + "…";
     }
 
-    private void drawQuestDetail(GuiGraphics g, JournalView.Quest q) {
-        int x = rightX() + 10, w = pageW() - 16, top = pageY() + 7, bottom = pageY() + pageH() - 6;
+    /** "Show on map" sits at the foot of a task's page, when the task has a place there. */
+    private int showY() {
+        return pageY() + pageH() - 18;
+    }
+
+    private boolean overShow(JournalView.Quest q, double mx, double my) {
+        return q.onMap() && UiStyle.over(mx, my, rightX() + 10, showY(), pageW() - 18, 13);
+    }
+
+    private void drawQuestDetail(GuiGraphics g, JournalView.Quest q, int mouseX, int mouseY) {
+        int x = rightX() + 10, w = pageW() - 16, top = pageY() + 7, bottom = pageY() + pageH() - 6 - (q.onMap() ? 16 : 0);
         g.enableScissor(rightX(), pageY() + 2, rightX() + pageW(), bottom);
         int y = top - rightScroll;
         y = drawWrapped(g, q.title(), x, y, w, UiStyle.BARK_DARK, false) + 1;
@@ -249,7 +259,16 @@ public final class JournalScreen extends Screen {
             String text = o.text() + (o.goal() > 1 ? "  (" + Math.min(o.progress(), o.goal()) + "/" + o.goal() + ")" : "");
             y = drawWrapped(g, text, x + 14, y + 1, w - 14, ok ? UiStyle.INK_SOFT : UiStyle.INK, false) + 4;
         }
+        if (!q.ready().isEmpty()) y = drawWrapped(g, "✔ " + q.ready(), x, y + 2, w, UiStyle.LEAF, false) + 2;
+        if (!q.reward().isEmpty()) drawWrapped(g, "Reward: " + q.reward(), x, y + 2, w, UiStyle.BARK_DARK, true);
         g.disableScissor();
+        if (q.onMap()) {
+            boolean hover = overShow(q, mouseX, mouseY);
+            UiStyle.rounded(g, x, showY(), pageW() - 18, 13, 3, UiStyle.argb(q.followed() ? 0x8C2F2F : hover ? 0xD9C190 : 0xE8D6AE, 1f));
+            String label = q.followed() ? "★ Followed: see the map" : "Show on map";
+            g.drawString(font, label, x + (pageW() - 18 - font.width(label)) / 2, showY() + 3,
+                    UiStyle.argb(q.followed() ? 0xF6E8C8 : UiStyle.INK, 1f), false);
+        }
     }
 
     private void drawClan(GuiGraphics g) {
@@ -260,11 +279,23 @@ public final class JournalScreen extends Screen {
             y = drawWrapped(g, "You belong to no Clan. Visit a camp, and its cats may ask you to join them.", x, y, w, UiStyle.INK, true) + 6;
         } else {
             g.drawString(font, "Standing in the Clan: " + view.standing(), x, y, UiStyle.argb(UiStyle.INK, 1f), false);
-            y += font.lineHeight + 6;
+            y += font.lineHeight + 3;
+            for (JournalView.Rung r : view.ladder()) {
+                boolean got = view.standing() >= r.standing();
+                String line = (got ? "✔ " : "• ") + r.standing() + "  " + r.what();
+                g.drawString(font, fit(line, w), x, y, UiStyle.argb(got ? UiStyle.LEAF : UiStyle.INK_SOFT, 1f), false);
+                y += font.lineHeight + 1;
+            }
+            y += 4;
         }
         g.drawString(font, "What lies ahead", x, y, UiStyle.argb(UiStyle.BARK_DARK, 1f), false);
         y += font.lineHeight + 2;
-        drawWrapped(g, view.nextGoal(), x, y, w, UiStyle.INK, true);
+        int bottom = pageY() + pageH() - 6;
+        int tall = UiStyle.wrap(font, view.nextGoal(), w, Style.EMPTY.withItalic(true)).size() * (font.lineHeight + 1);
+        leftScroll = Math.min(leftScroll, Math.max(0, tall - (bottom - y)));
+        g.enableScissor(leftX(), y, leftX() + pageW(), bottom);
+        drawWrapped(g, view.nextGoal(), x, y - leftScroll, w, UiStyle.INK, true);
+        g.disableScissor();
         drawRightList(g, view.clan().isEmpty() ? "" : "Clanmates", view.clanmates(), "No Clanmates to list.");
     }
 
@@ -370,6 +401,14 @@ public final class JournalScreen extends Screen {
             }
             if (UiStyle.over(mx, my, mapX(), mapY(), mapSide(), mapSide())) {
                 minecraft.setScreen(new ClanMapScreen(this));
+                return true;
+            }
+        }
+        if (tab == Tab.TASKS || tab == Tab.DUTIES) {
+            List<JournalView.Quest> list = listForTab();
+            if (selected < list.size() && overShow(list.get(selected), mx, my)) {
+                ClanMapScreen.follow(list.get(selected).id());
+                setTab(Tab.MAP);
                 return true;
             }
         }

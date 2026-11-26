@@ -70,7 +70,7 @@ public final class Errands {
             CompoundTag a = root.getCompound("errandAt");
             if (Math.hypot(p.getX() - a.getDouble("x"), p.getZ() - a.getDouble("z")) > a.getDouble("r")) return;
         }
-        for (Task.Objective o : t.objectives) if (o.type == Task.Objective.Type.BRING) Bag.take(p, o.key, o.goal);
+        for (Task.Objective o : t.objectives) if (o.type == Task.Objective.Type.BRING) Bag.handOver(p, o);
         QuestState.addStanding(p, t.standing);
         QuestState.countCompleted(p, Task.Kind.ERRAND);
         if (t.xp > 0) p.giveExperiencePoints(t.xp);

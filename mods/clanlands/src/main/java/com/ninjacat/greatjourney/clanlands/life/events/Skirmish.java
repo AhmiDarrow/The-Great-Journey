@@ -54,7 +54,7 @@ public final class Skirmish {
     /** How far out of camp a cat must be to come upon trespassers. */
     static final double FROM_CAMP = 60;
     /** The standing at which a warrior's word alone turns a patrol back. */
-    static final int LISTENED_TO = 40;
+    public static final int LISTENED_TO = 40;
 
     /** The one running. */
     static final class Running {

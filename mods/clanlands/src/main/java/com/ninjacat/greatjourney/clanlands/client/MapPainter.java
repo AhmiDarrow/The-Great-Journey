@@ -3,6 +3,7 @@ package com.ninjacat.greatjourney.clanlands.client;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapData;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapLegend;
+import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapPoi;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +17,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 /**
  * Draws the Clan map the server sends ({@link MapData}): the coloured ground as one texture, then the area labels,
- * camps, places, the player and their goal on top, and the legend. Shared by the journal's Map page and the
+ * camps, places, the quests' marks (the followed quest's as gold stars) and the player on top, and the legend. Shared by the journal's Map page and the
  * full-screen map. Keeps the latest map and asks the server for a fresh one (the player moves) about once a second
  * while a map is on screen.
  */
@@ -104,11 +105,13 @@ final class MapPainter {
                 name = p.name();
             }
         }
-        if (d.hasGoal()) {
-            double[] q = clampTo(toScreen(d, d.gx(), d.gz(), x, y, s), x, y, s);
-            if (Math.hypot(q[0] - mx, q[1] - my) < best) {
+        MapMark m = markAt(d, x, y, s, mx, my);
+        if (m != null) {
+            double[] q = markScreen(d, m, x, y, s);
+            if (Math.hypot(q[0] - mx, q[1] - my) <= best) {
                 best = Math.hypot(q[0] - mx, q[1] - my);
-                name = "★ Your goal: " + d.goal() + (inside(d, d.gx(), d.gz()) ? "" : " (off this map, that way)");
+                name = (m.followed() ? "★ " : "") + (m.number() > 0 ? m.number() + ". " : "") + m.label()
+                        + (inside(d, m.x(), m.z()) ? "" : " (off this map, that way)");
             }
         }
         if (d.here()) {
@@ -116,6 +119,38 @@ final class MapPainter {
             if (Math.hypot(q[0] - mx, q[1] - my) < best) name = "You are here";
         }
         return name == null ? null : List.of(Component.literal(name));
+    }
+
+    /** Whether a mark is drawn: the followed quest's always (at the edge when off this map), the others where they fall. */
+    private static boolean shown(MapData d, MapMark m) {
+        return m.followed() || inside(d, m.x(), m.z());
+    }
+
+    private static double[] markScreen(MapData d, MapMark m, int x, int y, int s) {
+        return clampTo(toScreen(d, m.x(), m.z(), x, y, s), x, y, s);
+    }
+
+    /** The mark nearest the mouse (the followed quest's winning a tie), or null with none near. */
+    static MapMark markAt(MapData d, int x, int y, int s, double mx, double my) {
+        if (mx < x || my < y || mx >= x + s || my >= y + s) return null;
+        MapMark best = null;
+        double near = 7;
+        for (MapMark m : d.marks()) {
+            if (!shown(d, m)) continue;
+            double[] q = markScreen(d, m, x, y, s);
+            double dist = Math.hypot(q[0] - mx, q[1] - my);
+            if (dist < near || dist == near && m.followed()) {
+                near = dist;
+                best = m;
+            }
+        }
+        return best;
+    }
+
+    /** The followed quest's first place, or null. */
+    static MapMark followed(MapData d) {
+        for (MapMark m : d.marks()) if (m.followed()) return m;
+        return null;
     }
 
     static boolean inside(MapData d, double wx, double wz) {
@@ -163,12 +198,21 @@ final class MapPainter {
                 label(g, font, p.name(), (int) q[0], (int) q[1] + 5, 0x2A2014, 0xF6EBD0, false, taken, x, y, s);
             }
         }
-        // the goal: a gold star (at the map's edge, pointing the way, when it lies off this map)
-        if (d.hasGoal()) {
-            double[] q = clampTo(toScreen(d, d.gx(), d.gz(), x, y, s), x, y, s);
-            int gx = (int) q[0], gy = (int) q[1];
-            g.fill(gx - 4, gy - 4, gx + 5, gy + 5, UiStyle.argb(0x2A190C, 0.85f));
-            g.drawString(font, "★", gx - font.width("★") / 2 + 1, gy - 3, UiStyle.argb(0xFFD447, 1f), false);
+        // the other quests' places: pale pins, under the followed quest's gold stars (at the map's edge, pointing the
+        // way, when one of those lies off this map). A patrol's points carry their numbers.
+        for (boolean followed : new boolean[] {false, true}) {
+            for (MapMark m : d.marks()) {
+                if (m.followed() != followed || !shown(d, m)) continue;
+                double[] q = markScreen(d, m, x, y, s);
+                int gx = (int) q[0], gy = (int) q[1];
+                if (followed) {
+                    g.fill(gx - 4, gy - 4, gx + 5, gy + 5, UiStyle.argb(0x2A190C, 0.85f));
+                    g.drawString(font, "★", gx - font.width("★") / 2 + 1, gy - 3, UiStyle.argb(0xFFD447, 1f), false);
+                } else {
+                    pin(g, gx, gy);
+                }
+                if (m.number() > 0) number(g, font, m.number(), gx + 4, gy - 8, followed ? 0xFFD447 : 0xBFE0FF);
+            }
         }
         // the player: a red dot with a line showing which way they face
         if (d.here()) {
@@ -183,6 +227,18 @@ final class MapPainter {
             g.fill(px - 2, py - 2, px + 3, py + 3, UiStyle.argb(0xD0302A, 1f));
         }
         g.disableScissor();
+    }
+
+    /** Another quest's place: a pale blue square on its corner. */
+    private static void pin(GuiGraphics g, int x, int y) {
+        diamond(g, x, y, 4, 0x14283C);
+        diamond(g, x, y, 3, 0xBFE0FF);
+    }
+
+    private static void number(GuiGraphics g, Font font, int n, int x, int y, int rgb) {
+        String s = Integer.toString(n);
+        g.fill(x - 1, y - 1, x + font.width(s) + 1, y + 8, UiStyle.argb(0x14100A, 0.9f));
+        g.drawString(font, s, x, y, UiStyle.argb(rgb, 1f), false);
     }
 
     private static void diamond(GuiGraphics g, int x, int y, int r, int rgb) {
@@ -242,19 +298,23 @@ final class MapPainter {
         g.drawString(font, "You", lx + 10, y, UiStyle.argb(UiStyle.INK, 1f), false);
         lx = x + col;
         g.drawString(font, "★", lx, y, UiStyle.argb(0xC9A020, 1f), false);
-        g.drawString(font, "Your goal", lx + 10, y, UiStyle.argb(UiStyle.INK, 1f), false);
+        g.drawString(font, "Followed", lx + 10, y, UiStyle.argb(UiStyle.INK, 1f), false);
+        y += row + 1;
+        pin(g, x + 3, y + 3);
+        g.drawString(font, "Other quests", x + 10, y, UiStyle.argb(UiStyle.INK, 1f), false);
         return y + row + 2;
     }
 
-    /** Where the goal is from the player, in words, or "" when there is none. */
+    /** Where the followed quest goes next from the player, in words, or "" when there is none. */
     static String goalLine(MapData d) {
-        if (!d.hasGoal()) return "";
-        if (!d.here()) return "Goal: " + d.goal();
-        double dx = d.gx() - d.px(), dz = d.gz() - d.pz();
+        MapMark m = followed(d);
+        if (m == null) return "";
+        if (!d.here()) return "Goal: " + m.label();
+        double dx = m.x() - d.px(), dz = m.z() - d.pz();
         long dist = Math.max(10, Math.round(Math.hypot(dx, dz) / 10.0) * 10);
         String[] names = {"east", "south-east", "south", "south-west", "west", "north-west", "north", "north-east"};
         String dir = names[Math.floorMod((int) Math.round(Math.atan2(dz, dx) / (Math.PI / 4)), 8)];
-        return "Goal: " + d.goal() + ", about " + dist + " blocks " + dir + ".";
+        return "Goal: " + m.label() + ", about " + dist + " blocks " + dir + ".";
     }
 
     static String fitTo(Font font, String text, int w) {

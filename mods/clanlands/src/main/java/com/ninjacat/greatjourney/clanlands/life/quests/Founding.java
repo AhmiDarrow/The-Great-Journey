@@ -66,16 +66,51 @@ public final class Founding {
         ClanWorld w = ClanWorld.current();
         ServerLevel ow = p.getServer().overworld();
         if (w == null || p.level() != ow) return "This is no place for a camp.";
-        Clan here = Homeland.territoryAt(w, p.getX(), p.getZ());
+        return siteProblem(w, p.getX(), p.getZ());
+    }
+
+    /** What stands in the way of a camp at x, z, or null where one could be founded. */
+    static String siteProblem(ClanWorld w, double x, double z) {
+        Clan here = Homeland.territoryAt(w, x, z);
         if (here != null) return "This is " + BookClans.Info.of(here).title + " territory. A new Clan needs land no Clan has marked.";
-        if (Homeland.heart(w, p.getX(), p.getZ())) return "This is no place for a camp.";
+        if (Homeland.heart(w, x, z)) return "This is no place for a camp.";
         for (Clan c : Clan.values()) {
             Landmark camp = Homeland.camp(w, c);
-            if (Math.hypot(p.getX() - camp.x(), p.getZ() - camp.z()) < CAMP_APART) {
+            if (Math.hypot(x - camp.x(), z - camp.z()) < CAMP_APART) {
                 return "The " + BookClans.Info.of(c).title + " camp is too near. Their patrols would never let a new Clan settle here.";
             }
         }
         return null;
+    }
+
+    /** How far out, and how finely, the map looks for land a Clan could be founded on. */
+    private static final int SITE_STEP = 64, SITE_RINGS = 48, SITE_WAYS = 16;
+
+    /** The nearest land to x, z that is no Clan's and far enough from every camp, or null. */
+    static double[] siteNear(ClanWorld w, double x, double z) {
+        for (int ring = 0; ring <= SITE_RINGS; ring++) {
+            for (int i = 0; i < (ring == 0 ? 1 : SITE_WAYS); i++) {
+                double a = i * Math.PI * 2 / SITE_WAYS, sx = x + Math.cos(a) * ring * SITE_STEP, sz = z + Math.sin(a) * ring * SITE_STEP;
+                if (siteProblem(w, sx, sz) == null) return new double[] {sx, sz};
+            }
+        }
+        return null;
+    }
+
+    /** The map's mark for a Clan of the player's own: where it could be founded, then its camp or the Moonpool. */
+    static com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark mark(ServerPlayer p, ClanWorld w) {
+        if (quest(p) == null || p.level() != p.getServer().overworld()) return null;
+        ClanData.Clan wc = Joining.clanOf(p);
+        if (wc == null) {
+            double[] at = siteNear(w, p.getX(), p.getZ());
+            return at == null ? null : com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("founding", "Land where a Clan could be founded", at[0], at[1]);
+        }
+        if (stands(wc)) {
+            Landmark pool = Ranks.starPlace();
+            return pool == null ? null : com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("founding", "Receive your nine lives at " + Ranks.starPlaceName(), pool.x(), pool.z());
+        }
+        return wc.coreTerritory == null ? null : com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("founding", wc.name + "'s camp",
+                wc.coreTerritory.getMiddleBlockX(), wc.coreTerritory.getMiddleBlockZ());
     }
 
     private static boolean freeLoner(ServerPlayer p) {

@@ -383,7 +383,7 @@ final class Talk {
                 return;
             }
             for (Task.Objective o : t.objectives) {
-                if (o.type == Task.Objective.Type.BRING) Bag.take(p, o.key, o.goal);
+                if (o.type == Task.Objective.Type.BRING) Bag.handOver(p, o);
             }
             // a step taken by another cat (the mentor was gone): that cat teaches the player from now on
             if (t.story && !cat.getUUID().equals(t.giverId)) QuestState.setMentor(p, Kin.name(cat), cat.getUUID());

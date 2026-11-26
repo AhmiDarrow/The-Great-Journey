@@ -97,6 +97,17 @@ public final class Director {
         return Math.max(200, Math.round(ticks * f));
     }
 
+    /**
+     * How long a Clan rests between its own events, from the rest as configured. It keeps the storyteller's pace like
+     * the wait between rolls (a rest left the same for all of them held every one to about an event per rest), and
+     * Midnight's storm gives none at all.
+     */
+    static long rest(ServerLevel ow, long ticks) {
+        Teller t = StoryData.active(ow);
+        if (t == null) return ticks;
+        return t == Teller.MIDNIGHT && StoryData.get(ow).number("burst") > 0 ? 0 : interval(ow, ticks);
+    }
+
     /** Before each roll: Midnight's calm breaks into her storm; a new world starts its calm now. */
     static void beforeRoll(ServerLevel ow) {
         Teller t = StoryData.active(ow);
@@ -132,14 +143,15 @@ public final class Director {
     /**
      * Gives a dangerous event as a warning to come true later; false when this event comes without one (or there is no
      * storyteller), for the caller to make it happen now. While a warning waits, another danger is let go rather than
-     * left to strike unforetold.
+     * left to strike unforetold; but Midnight's one warning stands for her whole storm, and what else comes in it
+     * comes at once.
      */
     static boolean forewarn(ServerLevel ow, Clan c, ClanEvents.Kind k) {
         Teller t = StoryData.active(ow);
         Teller.Danger d = danger(k);
         StoryData data = StoryData.get(ow);
         if (t == null || d == null) return false;
-        if (!data.part("omen").isEmpty()) return true;
+        if (!data.part("omen").isEmpty()) return !(t == Teller.MIDNIGHT && data.number("burst") > 0);
         CompoundTag o = new CompoundTag();
         o.putString("clan", c.name());
         o.putString("kind", k.name());

@@ -20,13 +20,40 @@ import net.minecraft.network.codec.StreamCodec;
  * @param places    places of the books, with whether this player has found them
  * @param clanmates "Name — Rank" lines for the player's Clan
  * @param starclan  cats who have gone to StarClan in this world ("Name of ThunderClan")
+ * @param ladder    the standing that opens something in a book Clan, lowest first; empty outside one
  */
 public record JournalView(String catName, String clan, String rank, int clanColour, int standing, String nextGoal,
-                          List<Quest> quests, List<Place> places, List<String> clanmates, List<String> starclan) {
+                          List<Quest> quests, List<Place> places, List<String> clanmates, List<String> starclan, List<Rung> ladder) {
 
-    /** A story quest or a duty. {@code story} quests drive the apprentice path; duties are optional and repeatable. */
+    /**
+     * A story quest or a duty. {@code story} quests drive the apprentice path; duties are optional and repeatable.
+     * {@code reward} is in words ("" for none); {@code ready} says where to take it once it only needs finishing ("" until
+     * then); {@code onMap} whether it has a place on the Clan map, and {@code followed} whether it is the gold star there.
+     */
     public record Quest(String id, String title, String giver, String description, List<Objective> objectives,
-                        boolean story, boolean done) {}
+                        boolean story, boolean done, String reward, String ready, boolean onMap, boolean followed) {
+        public Quest(String id, String title, String giver, String description, List<Objective> objectives, boolean story, boolean done) {
+            this(id, title, giver, description, objectives, story, done, "", "", false, false);
+        }
+
+        public Quest withDetail(String reward, String ready) {
+            return new Quest(id, title, giver, description, objectives, story, done, reward, ready, onMap, followed);
+        }
+
+        public Quest withMap(boolean onMap, boolean followed) {
+            return new Quest(id, title, giver, description, objectives, story, done, reward, ready, onMap, followed);
+        }
+    }
+
+    /** One mark of standing: what a cat with at least this much may do or be. */
+    public record Rung(int standing, String what) {}
+
+    /** The marks that matter in a book Clan, from the numbers the game itself goes by. */
+    public static final List<Rung> LADDER = List.of(
+            new Rung(com.ninjacat.greatjourney.clanlands.life.events.Skirmish.LISTENED_TO, "Trespassers heed you"),
+            new Rung(com.ninjacat.greatjourney.clanlands.life.story.Teller.TRUSTED, "StarClan calls you trusted"),
+            new Rung(com.ninjacat.greatjourney.clanlands.life.quests.Ranks.DEPUTY_STANDING, "You may be named deputy"),
+            new Rung(com.ninjacat.greatjourney.clanlands.life.quests.Ranks.LEADER_STANDING, "You may lead the Clan"));
 
     /** One step of a quest: "Bring yarrow to Mossheart (1/3)". */
     public record Objective(String text, int progress, int goal) {
@@ -61,6 +88,10 @@ public record JournalView(String catName, String clan, String rank, int clanColo
             }
             b.writeBoolean(q.story);
             b.writeBoolean(q.done);
+            b.writeUtf(q.reward);
+            b.writeUtf(q.ready);
+            b.writeBoolean(q.onMap);
+            b.writeBoolean(q.followed);
         }
         b.writeVarInt(v.places.size());
         for (Place p : v.places) {
@@ -70,6 +101,11 @@ public record JournalView(String catName, String clan, String rank, int clanColo
         }
         writeStrings(b, v.clanmates);
         writeStrings(b, v.starclan);
+        b.writeVarInt(v.ladder.size());
+        for (Rung r : v.ladder) {
+            b.writeVarInt(r.standing);
+            b.writeUtf(r.what);
+        }
     }
 
     private static JournalView read(RegistryFriendlyByteBuf b) {
@@ -83,12 +119,17 @@ public record JournalView(String catName, String clan, String rank, int clanColo
             int no = b.readVarInt();
             List<Objective> obj = new ArrayList<>(no);
             for (int j = 0; j < no; j++) obj.add(new Objective(b.readUtf(), b.readVarInt(), b.readVarInt()));
-            quests.add(new Quest(id, title, giver, desc, obj, b.readBoolean(), b.readBoolean()));
+            quests.add(new Quest(id, title, giver, desc, obj, b.readBoolean(), b.readBoolean(), b.readUtf(), b.readUtf(),
+                    b.readBoolean(), b.readBoolean()));
         }
         int np = b.readVarInt();
         List<Place> places = new ArrayList<>(np);
         for (int i = 0; i < np; i++) places.add(new Place(b.readUtf(), b.readBoolean(), b.readUtf()));
-        return new JournalView(cat, clan, rank, colour, standing, goal, quests, places, readStrings(b), readStrings(b));
+        List<String> mates = readStrings(b), stars = readStrings(b);
+        int nr = b.readVarInt();
+        List<Rung> ladder = new ArrayList<>(nr);
+        for (int i = 0; i < nr; i++) ladder.add(new Rung(b.readVarInt(), b.readUtf()));
+        return new JournalView(cat, clan, rank, colour, standing, goal, quests, places, mates, stars, ladder);
     }
 
     private static void writeStrings(FriendlyByteBuf b, List<String> s) {
@@ -104,6 +145,6 @@ public record JournalView(String catName, String clan, String rank, int clanColo
     }
 
     public static JournalView empty(String catName) {
-        return new JournalView(catName, "", "Loner", 0xBBAA88, 0, "Find a Clan, or walk your own path.", List.of(), List.of(), List.of(), List.of());
+        return new JournalView(catName, "", "Loner", 0xBBAA88, 0, "Find a Clan, or walk your own path.", List.of(), List.of(), List.of(), List.of(), List.of());
     }
 }

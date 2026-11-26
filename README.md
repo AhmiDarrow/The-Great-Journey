@@ -72,7 +72,8 @@ Every camp has one way in, a natural barrier all round, and dens where the books
 - **Found a Clan of your own (Free Mode).** Win over wild cats as a loner, lead them to land no Clan has marked, and build your Clan there: a camp, warriors, a deputy, a medicine cat, and nine lives of your own.
 - **Orders.** A deputy or leader sends patrols round the territory or out to hunt, shows a warrior where to patrol on the map, or leads a patrol of their own that fights beside them.
 - **Cats of no Clan** talk too: kittypets, loners and rogues, and a loner may ask a Clanless cat a favour.
-- **The journal** keeps your tasks, your duties, your Clanmates, the places you have found and the cats who walk with StarClan.
+- **The journal** keeps your tasks and their rewards, your duties, your Clanmates and what your standing opens, the places you have found and the cats who walk with StarClan.
+- **Your quests on the map.** Every quest has its mark on the Clan map, patrol points numbered. Follow whichever you like: it becomes the gold star.
 - **Clan events:** badgers, foxes and eagles, border raids, injuries and seasonal sickness, new kits, warrior ceremonies, hunting patrols and a lost kit. Cats die as they do in the books, without gore: a vigil, a place in StarClan's memory, and a leader's nine lives.
 - **Weather from the books:** the lake's edge freezing in leaf-bare, RiverClan's marsh flooding after rain, the shallows drying to mud in a drought, lightning setting a tree alight, morning mist that spoils the hunting. The seasons are newleaf, greenleaf, leaf-fall and leaf-bare.
 

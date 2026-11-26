@@ -82,6 +82,26 @@ public final class Gatherings {
         return Mode.of(server) == Mode.FREE ? !Homeland.forest() : !journeying(ow);
     }
 
+    /** Tonight's meeting under the moon, for the map: the Gathering on a full moon, the medicine cats' on a half. */
+    public static java.util.List<com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark> marks(net.minecraft.server.level.ServerPlayer p) {
+        java.util.List<com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark> out = new java.util.ArrayList<>();
+        MinecraftServer server = p.getServer();
+        if (!running(server) || Crowd.clanOf(p) == null
+                || com.ninjacat.greatjourney.clanlands.life.Journey.stage(p) != com.ninjacat.greatjourney.clanlands.life.Journey.Stage.PLAYING) return out;
+        ServerLevel ow = server.overworld();
+        ClanWorld w = ClanWorld.current();
+        Grounds g = Grounds.current(w);
+        var moon = com.ninjacat.greatjourney.clanlore.moon.Moon.phase(ow);
+        if (g != null && moon.full() && !com.ninjacat.greatjourney.clanlore.moon.Moon.cloudedOver(ow)) {
+            out.add(com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("gathering", "The Gathering at " + g.place() + ", tonight", g.x(), g.z()));
+        }
+        Grounds.Shrine sh = Grounds.shrine(w);
+        if (sh != null && com.ninjacat.greatjourney.clanlore.moon.Moon.isHalfMoon(ow) && HalfMoon.medicine(p)) {
+            out.add(com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("halfmoon", "The medicine cats meet at " + sh.name() + ", tonight", sh.x(), sh.z()));
+        }
+        return out;
+    }
+
     /** The Campaign's Clans are on the Great Journey. */
     static boolean journeying(ServerLevel ow) {
         CampaignData cd = CampaignData.get(ow.getServer().overworld());

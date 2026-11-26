@@ -29,8 +29,8 @@ public final class QuestLog {
         for (Task t : QuestState.active(p)) {
             List<JournalView.Objective> obj = new ArrayList<>();
             for (Task.Objective o : t.objectives) obj.add(new JournalView.Objective(o.text, Math.min(o.progress, o.goal), o.goal));
-            quests.add(new JournalView.Quest(t.kind.name().toLowerCase(java.util.Locale.ROOT) + (t.giverId == null ? "" : ":" + t.giverId),
-                    t.title, t.giverName, t.description, obj, t.story, false));
+            quests.add(new JournalView.Quest(QuestMarks.id(t), t.title, t.giverName, t.description, obj, t.story, false)
+                    .withDetail(QuestMarks.reward(t), QuestMarks.ready(p, t)));
         }
         JournalView.Quest seek = com.ninjacat.greatjourney.clanlands.life.Starts.seekQuest(p);   // a clanless cat looking for a camp
         if (seek != null) quests.add(0, seek);
@@ -70,8 +70,19 @@ public final class QuestLog {
             starclan.add(f.name() + " of " + BookClans.Info.of(f.clan()).title);
         }
         int colour = book != null ? BookClans.Info.of(book).colour : wc != null ? wc.color : 0xC8B88A;
+        // which quests have a place on the Clan map, and which of them is followed
+        Set<String> marked = new java.util.HashSet<>();
+        String followed = "";
+        for (var m : com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.marksFor(p)) {
+            marked.add(m.quest());
+            if (m.followed()) followed = m.quest();
+        }
+        for (int i = 0; i < quests.size(); i++) {
+            JournalView.Quest q = quests.get(i);
+            quests.set(i, q.withMap(marked.contains(q.id()), q.id().equals(followed)));
+        }
         return new JournalView(Joining.catName(p), wc == null ? "" : wc.name, rank, colour, QuestState.standing(p),
-                nextGoal(p, wc), quests, places, mates, starclan);
+                nextGoal(p, wc), quests, places, mates, starclan, book == null ? List.of() : JournalView.LADDER);
     }
 
     private static String rank(ServerPlayer p, ClanData.Clan wc) {

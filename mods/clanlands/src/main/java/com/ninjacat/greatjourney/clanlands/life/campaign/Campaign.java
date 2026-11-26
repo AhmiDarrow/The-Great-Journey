@@ -96,12 +96,17 @@ public final class Campaign {
         NeoForge.EVENT_BUS.addListener(Campaign::entityJoined);
         // the journal shows the story's chapter first in a Campaign world
         Journals.provider(p -> decorate(p, QuestLog.view(p)));
-        // the Clan map marks where the story (or a task) is sending the player
-        com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.goals(Campaign::mapGoal);
+        // the Clan map marks every quest's place, the Campaign's chapter among them
+        com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.marks(Campaign::mapMarks);
     }
 
-    /** Where the player is going, for the Clan map: the Campaign chapter's place, else a place a task asks for. */
-    static com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.Goal mapGoal(ServerPlayer p) {
+    /** Every quest's place for the Clan map, the Campaign chapter's first. */
+    static java.util.List<com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark> mapMarks(ServerPlayer p) {
+        return com.ninjacat.greatjourney.clanlands.life.quests.QuestMarks.of(p, chapterMark(p));
+    }
+
+    /** Where the Campaign's chapter sends the player, or null. */
+    private static com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark chapterMark(ServerPlayer p) {
         ClanWorld w = ClanWorld.current();
         MinecraftServer server = p.getServer();
         if (w != null && server != null && active(server)) {
@@ -139,15 +144,7 @@ public final class Campaign {
                 }
                 default -> { }
             }
-            if (at != null) return new com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.Goal(name, at[0], at[1]);
-        }
-        for (var t : QuestState.active(p)) {
-            for (var o : t.objectives) {
-                if (!o.done() && (o.type == com.ninjacat.greatjourney.clanlands.life.quests.Task.Objective.Type.VISIT
-                        || o.type == com.ninjacat.greatjourney.clanlands.life.quests.Task.Objective.Type.CLIMB)) {
-                    return new com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.Goal(o.text, o.x, o.z);
-                }
-            }
+            if (at != null) return com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("campaign", name, at[0], at[1]);
         }
         return null;
     }
@@ -941,7 +938,14 @@ public final class Campaign {
         quests.add(new JournalView.Quest("campaign", "Act " + ch.act + ": " + ch.title(healer), "The story", goal,
                 List.of(new JournalView.Objective(goal, ch == Chapter.COMPLETE ? 1 : 0, 1)), true, ch == Chapter.COMPLETE));
         quests.addAll(v.quests());
-        return new JournalView(v.catName(), v.clan(), v.rank(), v.clanColour(), v.standing(), goal, quests, v.places(), v.clanmates(), v.starclan());
+        boolean marked = false, followed = false;
+        for (var m : com.ninjacat.greatjourney.clanlands.life.rpg.ClanMaps.marksFor(p)) {
+            if (!m.quest().equals("campaign")) continue;
+            marked = true;
+            followed = m.followed();
+        }
+        quests.set(0, quests.get(0).withMap(marked, followed));
+        return new JournalView(v.catName(), v.clan(), v.rank(), v.clanColour(), v.standing(), goal, quests, v.places(), v.clanmates(), v.starclan(), v.ladder());
     }
 
     // --- commands

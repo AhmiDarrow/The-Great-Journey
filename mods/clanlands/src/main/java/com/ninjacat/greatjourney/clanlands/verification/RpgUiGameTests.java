@@ -50,13 +50,14 @@ public final class RpgUiGameTests {
                 List.of(new JournalView.Quest("story.borders", "Learn the borders", "Mossheart",
                                 "Walk every border of ThunderClan's territory with your mentor.",
                                 List.of(new JournalView.Objective("Mark the WindClan border", 1, 1),
-                                        new JournalView.Objective("Mark the ShadowClan border", 0, 1)), true, false),
+                                        new JournalView.Objective("Mark the ShadowClan border", 0, 1)), true, false)
+                                .withDetail("+4 standing", "Ready: take it back to Mossheart").withMap(true, true),
                         new JournalView.Quest("duty.herbs", "Help the medicine cat", "Sorrelleaf", "Bring yarrow.",
                                 List.of(new JournalView.Objective("Bring yarrow", 2, 3)), false, false)),
                 List.of(new JournalView.Place("The Moonpool", false, "Far up the border stream"),
                         new JournalView.Place("The stone hollow", true, "")),
                 List.of("Mossheart — Warrior", "Sorrelleaf — Medicine cat"),
-                List.of("Oakstripe of WindClan"));
+                List.of("Oakstripe of WindClan"), JournalView.LADDER);
         h.assertTrue(roundTrip(h, JournalView.STREAM_CODEC, view).equals(view), "a full journal");
         var open = new ClanPayloads.OpenJournal(view);
         h.assertTrue(roundTrip(h, ClanPayloads.OpenJournal.STREAM_CODEC, open).equals(open), "the open-journal message");

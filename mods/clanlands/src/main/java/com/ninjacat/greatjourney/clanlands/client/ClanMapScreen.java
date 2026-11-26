@@ -9,7 +9,8 @@ import org.lwjgl.glfw.GLFW;
 
 /**
  * The Clan map, big: the map as large as the window allows, every place named on it, and beside it the region
- * buttons, where the goal lies, and the key. Opened by clicking the map in the journal; Esc goes back there.
+ * buttons, where the followed quest lies, and the key. Clicking a quest's mark follows that quest. Opened by clicking
+ * the map in the journal; Esc goes back there.
  */
 public final class ClanMapScreen extends Screen {
     private static final int PANEL = 196;
@@ -64,9 +65,16 @@ public final class ClanMapScreen extends Screen {
             y += 4;
         }
         MapPainter.legend(g, font, d, px, y, pw);
+        g.drawString(font, "Click a mark to follow it", px, py + side() - 2 * (font.lineHeight + 1) - 2, UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
         g.drawString(font, "Esc: back to the journal", px, py + side() - font.lineHeight - 2, UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
         List<Component> tip = MapPainter.hover(d, mapX(), mapY(), side(), mouseX, mouseY);
         if (tip != null) g.renderComponentTooltip(font, tip, mouseX, mouseY);
+    }
+
+    /** Asks the server to follow a quest; it answers with a fresh journal and, on the next ask, a fresh map. */
+    static void follow(String quest) {
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player != null) player.connection.sendCommand("greatjourney quest follow " + quest);
     }
 
     /** The three regions as buttons; returns the y below them. */
@@ -96,6 +104,12 @@ public final class ClanMapScreen extends Screen {
             int r = regionAt(d, panelX(), mapY() + 3, PANEL, mx, my);
             if (r >= 0) {
                 MapPainter.show(r);
+                return true;
+            }
+            var mark = MapPainter.markAt(d, mapX(), mapY(), side(), mx, my);
+            if (mark != null) {
+                follow(mark.quest());
+                MapPainter.show(d.region());
                 return true;
             }
         }

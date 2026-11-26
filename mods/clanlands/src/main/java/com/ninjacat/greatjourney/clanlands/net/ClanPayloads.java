@@ -174,12 +174,26 @@ public final class ClanPayloads {
     }
 
     /**
+     * A quest's place on the map: which quest (the journal's id for it), what to do there, its number among that
+     * quest's places (0: only one), and whether it belongs to the quest the player follows (the gold star).
+     */
+    public record MapMark(String quest, String label, double x, double z, int number, boolean followed) {
+        public static MapMark at(String quest, String label, double x, double z) {
+            return new MapMark(quest, label, x, z, 0, false);
+        }
+
+        public MapMark follow(boolean on) {
+            return new MapMark(quest, label, x, z, number, on);
+        }
+    }
+
+    /**
      * S2C: one region's map. {@code cells} holds a legend index per cell (row by row, {@code size} x {@code size},
      * each {@code cell} blocks wide from {@code minX}, {@code minZ}); {@code shade} the relief, 0-255.
      */
     public record MapData(int region, List<String> regions, int minX, int minZ, int cell, int size, byte[] cells,
                           byte[] shade, List<MapLegend> legend, List<MapPoi> pois, boolean here, double px, double pz,
-                          float yaw, boolean hasGoal, String goal, double gx, double gz) implements CustomPacketPayload {
+                          float yaw, List<MapMark> marks) implements CustomPacketPayload {
         public static final Type<MapData> TYPE = id("map_data");
         /** Largest map the client accepts (cells per side). */
         public static final int MAX_SIZE = 256;
@@ -210,10 +224,15 @@ public final class ClanPayloads {
             b.writeDouble(p.px);
             b.writeDouble(p.pz);
             b.writeFloat(p.yaw);
-            b.writeBoolean(p.hasGoal);
-            b.writeUtf(p.goal, 256);
-            b.writeDouble(p.gx);
-            b.writeDouble(p.gz);
+            b.writeVarInt(p.marks.size());
+            for (MapMark m : p.marks) {
+                b.writeUtf(m.quest, 96);
+                b.writeUtf(clip(m.label, 256), 256);
+                b.writeDouble(m.x);
+                b.writeDouble(m.z);
+                b.writeVarInt(m.number);
+                b.writeBoolean(m.followed);
+            }
         }, b -> {
             int region = b.readVarInt();
             int nr = Math.min(b.readVarInt(), 8);
@@ -227,9 +246,18 @@ public final class ClanPayloads {
             int np = Math.min(b.readVarInt(), 512);
             List<MapPoi> pois = new ArrayList<>(np);
             for (int i = 0; i < np; i++) pois.add(new MapPoi(b.readUtf(96), b.readVarInt(), b.readInt(), b.readDouble(), b.readDouble()));
-            return new MapData(region, regions, minX, minZ, cell, size, cells, shade, legend, pois, b.readBoolean(),
-                    b.readDouble(), b.readDouble(), b.readFloat(), b.readBoolean(), b.readUtf(256), b.readDouble(), b.readDouble());
+            boolean here = b.readBoolean();
+            double px = b.readDouble(), pz = b.readDouble();
+            float yaw = b.readFloat();
+            int nm = Math.min(b.readVarInt(), 128);
+            List<MapMark> marks = new ArrayList<>(nm);
+            for (int i = 0; i < nm; i++) marks.add(new MapMark(b.readUtf(96), b.readUtf(256), b.readDouble(), b.readDouble(), b.readVarInt(), b.readBoolean()));
+            return new MapData(region, regions, minX, minZ, cell, size, cells, shade, legend, pois, here, px, pz, yaw, marks);
         });
+
+        private static String clip(String s, int max) {
+            return s.length() <= max ? s : s.substring(0, max - 1) + "…";
+        }
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

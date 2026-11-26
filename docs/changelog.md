@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.8
+
+- **Every quest is on your Clan map.** The camp you are looking for, each point of a border patrol (numbered), the cat to take a finished task back to, the walk to the Moonpool for nine lives, land where you could found a Clan, and tonight's Gathering or half-moon meeting all have their mark. The quest you are following is the gold star; the others are pale blue. Your story's step is followed until you choose another: press **Show on map** on a task's journal page, or click a mark on the big map.
+- **Your journal says what a task is worth.** Each task shows its reward, and once there is nothing left to do it says so and tells you whom to take it back to. The Clan page shows what your standing opens: at 40 trespassing patrols heed your warning, at 60 StarClan calls you trusted, at 120 you may be named deputy, and at 200 you may lead.
+- **Prey you hand in feeds your Clan.** Prey you bring for a task now goes onto the fresh-kill pile, where your Clanmates eat it, and in leaf-bare it keeps the elders, queens and kits well. If the pile is full, what will not fit stays with you. A founded Clan's hungry day now asks you to bring two pieces home.
+- **Storytellers keep their own pace.** Every storyteller used to settle to about one event every ten minutes for a Clan. Now Spottedleaf spaces them out, Tigerstar presses harder, and Midnight keeps a long calm and then sends them one on another's heels, with one warning for the whole storm.
+
 ## 0.1.7
 
 - **Who watches over your Clans?** A new Free Mode world asks you which cat will watch over it, and they shape what happens there. **Spottedleaf** is gentle: few attacks, more kits and ceremonies, and no cat dies of anything but old age. **Bluestar** is the books as written. **Yellowfang** brings hard seasons, with sickness, injuries and a leaf-bare that bites. **Tigerstar** brings war, and sends more of it the stronger you grow. **Midnight** keeps you waiting, then sends everything at once. Existing worlds are watched by Bluestar. Dedicated servers choose with `newWorldStoryteller` in `clanlands-common.toml`.

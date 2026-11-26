@@ -13,6 +13,9 @@ import com.ninjacat.greatjourney.clanlore.role.Roles;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.snowteb.warriorcats_events.block.entity.FreshkillPileBlockEntity;
 import net.snowteb.warriorcats_events.diseases.DiseaseTypes;
@@ -71,6 +74,51 @@ public final class Hunger {
             data.put("fed." + c.name(), day);
             meal(ow, c, t, pile);
         }
+    }
+
+    /** Puts as much of {@code prey} on the pile as it holds; returns what did not fit. */
+    static List<ItemStack> stock(IItemHandler pile, List<ItemStack> prey) {
+        List<ItemStack> left = new ArrayList<>();
+        for (ItemStack s : prey) {
+            ItemStack over = ItemHandlerHelper.insertItemStacked(pile, s.copy(), false);
+            if (!over.isEmpty()) left.add(over);
+        }
+        return left;
+    }
+
+    /**
+     * Prey a cat hands in goes on their Clan's pile: the camp's, or for a Clan players founded the nearest pile by
+     * them. Returns what a full pile could not hold. Where there is no pile to be reached, the cat it was handed to
+     * eats it, and nothing comes back.
+     */
+    public static List<ItemStack> stock(ServerPlayer p, List<ItemStack> prey) {
+        ServerLevel ow = p.getServer().overworld();
+        Clan c = LifeData.get(ow).clanOf(p.getData(net.snowteb.warriorcats_events.attachments.ModAttachments.PLAYER_WCE_DATA.get()).getCurrentClanUUID());
+        FreshkillPileBlockEntity pile = c == null || ClanWorld.current() == null ? nearPile(p) : pile(ow, c);
+        if (pile == null) return List.of();
+        List<ItemStack> left = stock(pile.getItemHandler(), prey);
+        pile.setChanged();
+        pile.getLevel().sendBlockUpdated(pile.getBlockPos(), pile.getBlockState(), pile.getBlockState(), 3);
+        return left;
+    }
+
+    private static FreshkillPileBlockEntity nearPile(ServerPlayer p) {
+        ServerLevel level = p.serverLevel();
+        FreshkillPileBlockEntity best = null;
+        double near = 48 * 48;
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                var chunk = level.getChunkSource().getChunkNow((p.getBlockX() >> 4) + dx, (p.getBlockZ() >> 4) + dz);
+                if (chunk == null) continue;
+                for (var e : chunk.getBlockEntities().entrySet()) {
+                    if (e.getValue() instanceof FreshkillPileBlockEntity pile && e.getKey().distSqr(p.blockPosition()) <= near) {
+                        near = e.getKey().distSqr(p.blockPosition());
+                        best = pile;
+                    }
+                }
+            }
+        }
+        return best;
     }
 
     private static void meal(ServerLevel ow, Clan c, Teller t, FreshkillPileBlockEntity pile) {

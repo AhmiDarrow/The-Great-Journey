@@ -1,5 +1,7 @@
 package com.ninjacat.greatjourney.clanlands.life.quests;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -40,18 +42,41 @@ public final class Bag {
 
     /** Takes {@code n} matching items from the player; false (and nothing taken) if they have too few. */
     public static boolean take(ServerPlayer p, String key, int n) {
-        if (count(p, key) < n) return false;
+        return !takeStacks(p, key, n).isEmpty() || n <= 0;
+    }
+
+    /** As {@link #take}, giving back what was taken; empty (and nothing taken) if the player has too few. */
+    static List<ItemStack> takeStacks(ServerPlayer p, String key, int n) {
+        List<ItemStack> taken = new ArrayList<>();
+        if (count(p, key) < n) return taken;
         var inv = p.getInventory();
         for (int i = 0; i < inv.getContainerSize() && n > 0; i++) {
             ItemStack s = inv.getItem(i);
             if (matches(s, key)) {
                 int t = Math.min(n, s.getCount());
-                s.shrink(t);
+                taken.add(s.split(t));
                 n -= t;
             }
         }
         inv.setChanged();
-        return true;
+        return taken;
+    }
+
+    /** Whether an item key asks for prey ({@link Tasks#ANY_PREY}). */
+    static boolean prey(String key) {
+        return key.contains(Tasks.PREY_TAG) || key.contains(Tasks.FISH_TAG);
+    }
+
+    /**
+     * What a task asks for changes paws. Prey goes onto the Clan's fresh-kill pile, where the Clan eats it (and in
+     * leaf-bare lives on it); what a full pile cannot hold stays with the player.
+     */
+    static void handOver(ServerPlayer p, Task.Objective o) {
+        List<ItemStack> taken = takeStacks(p, o.key, o.goal);
+        if (!prey(o.key)) return;
+        for (ItemStack left : com.ninjacat.greatjourney.clanlands.life.events.Hunger.stock(p, taken)) {
+            if (!p.getInventory().add(left)) p.drop(left, false);
+        }
     }
 
     public static void give(ServerPlayer p, String id, int n) {

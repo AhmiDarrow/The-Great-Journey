@@ -152,7 +152,7 @@ final class HalfMoon {
         return was;
     }
 
-    private static boolean medicine(ServerPlayer p) {
+    static boolean medicine(ServerPlayer p) {
         ClanData.ClanPlayerRank rank = Crowd.rank(p);
         return rank == ClanData.ClanPlayerRank.MEDICINE || rank == ClanData.ClanPlayerRank.MEDICINEAPP;
     }

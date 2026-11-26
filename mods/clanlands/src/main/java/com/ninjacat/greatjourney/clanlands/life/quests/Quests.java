@@ -104,6 +104,9 @@ public final class Quests {
                     Homestead.answer(c.getSource().getPlayerOrException(), what, IntegerArgumentType.getInteger(c, "cat")) ? 1 : 0)));
         }
         q.then(wanderer);
+        // "Show on map": the quest the Clan map's gold star follows (QuestMarks)
+        q.then(Commands.literal("follow").then(Commands.argument("quest", StringArgumentType.greedyString()).executes(c ->
+                QuestMarks.follow(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "quest")) ? 1 : 0)));
         q.then(Commands.literal("teller").then(Commands.argument("name", StringArgumentType.word()).executes(c ->
                 MoonDreams.choose(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "name")) ? 1 : 0)));
         // operators: who watches over this world, from anywhere

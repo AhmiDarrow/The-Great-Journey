@@ -146,6 +146,34 @@ public final class StoryGameTests {
         h.succeed();
     }
 
+    @GameTest(template = "empty")
+    public static void eachStorytellerKeepsItsOwnPace(GameTestHelper h) {
+        var level = h.getLevel();
+        StoryData data = StoryData.get(level);
+        CompoundTag before = data.save(new CompoundTag(), level.registryAccess());
+        long rest = 20L * 600;
+        try {
+            data.keep("omen", null);
+            data.setTeller(Teller.BLUESTAR);
+            h.assertTrue(Director.rest(level, rest) == rest, "Bluestar's Clans rest as long as is set");
+            data.setTeller(Teller.SPOTTEDLEAF);
+            h.assertTrue(Director.rest(level, rest) > rest, "Spottedleaf spaces events out");
+            data.setTeller(Teller.TIGERSTAR);
+            h.assertTrue(Director.rest(level, rest) < rest, "Tigerstar gives less rest");
+            data.setTeller(Teller.MIDNIGHT);
+            h.assertTrue(Director.rest(level, rest) > rest, "Midnight's calm is long");
+            data.put("burst", Director.STORM);
+            h.assertTrue(Director.rest(level, rest) == 0, "and her storm gives no rest at all: events bunch");
+            h.assertTrue(Director.forewarn(level, Clan.THUNDER, ClanEvents.Kind.BADGER), "her storm is warned of once");
+            h.assertFalse(Director.forewarn(level, Clan.THUNDER, ClanEvents.Kind.RAID), "and what else comes in it comes at once");
+            data.setTeller(Teller.BLUESTAR);
+            h.assertTrue(Director.forewarn(level, Clan.THUNDER, ClanEvents.Kind.RAID), "under the others no danger strikes beside a waiting warning");
+        } finally {
+            restore(data, before);
+        }
+        h.succeed();
+    }
+
     /** Puts the world's story back as it was before a test changed it. */
     static void restore(StoryData data, CompoundTag before) {
         for (String k : new String[] {"teller", "burst", "omen", "mournUntil", "calmSince", "prophecy"}) {

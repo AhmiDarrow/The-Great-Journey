@@ -19,6 +19,9 @@ public enum Teller {
     MIDNIGHT("Midnight", 0xC8C8D8, "Long calms, then everything at once. She warns early, and never plainly.",
             1.0, 24000, 6000, 0.20, 1.0);
 
+    /** The standing at which StarClan speaks of a cat as one their Clan trusts ({@link #judge}). */
+    public static final int TRUSTED = 60;
+
     /** What a warning is about. */
     public enum Danger { BEAST, ENEMY, PEST, SICKNESS, FIRE, WATER }
 
@@ -129,7 +132,7 @@ public enum Teller {
 
     /** What they say of a cat who has come to the Moonpool, by the way that cat has lived: honour kept, standing earned. */
     public String judge(String you, int honour, int standing) {
-        boolean kept = honour >= 2, broke = honour <= -2, trusted = standing >= 60;
+        boolean kept = honour >= 2, broke = honour <= -2, trusted = standing >= TRUSTED;
         return switch (this) {
             case SPOTTEDLEAF -> broke ? "You have made hard choices, " + you + ". It is never too late to choose gently."
                     : kept ? "You have been kind when it would have been easier not to be. I saw it, " + you + "."

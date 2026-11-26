@@ -682,6 +682,17 @@ public final class Starts {
                 lead != null && !lead.accompanying() ? plain(lead.cat()) : null);
     }
 
+    /** The camp a clanless cat is looking for. */
+    public record SeekPlace(String key, String title, double x, double z) {}
+
+    public static java.util.Optional<SeekPlace> seekPlace(ServerPlayer p) {
+        Info clan = seeking(p);
+        ClanWorld w = ClanWorld.current();
+        if (clan == null || w == null || Joining.clanOf(p) != null) return java.util.Optional.empty();
+        Landmark camp = Homeland.camp(w, clan.clan);
+        return java.util.Optional.of(new SeekPlace(clan.key(), clan.title, camp.x(), camp.z()));
+    }
+
     /** "Find the <Clan> camp", with which way and how far it lies from x, z, and who is leading the way (or null). */
     public static JournalView.Quest seekQuest(Info clan, Landmark camp, double x, double z, String guide) {
         double d = Math.hypot(camp.x() - x, camp.z() - z);

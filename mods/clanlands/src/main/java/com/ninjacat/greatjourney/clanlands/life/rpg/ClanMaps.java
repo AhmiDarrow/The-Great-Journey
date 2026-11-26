@@ -10,6 +10,7 @@ import com.ninjacat.greatjourney.clanlands.life.BookClans.Info;
 import com.ninjacat.greatjourney.clanlands.life.Homeland;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapData;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapLegend;
+import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark;
 import com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapPoi;
 import com.ninjacat.greatjourney.clanlands.world.ClanWorld;
 import java.util.ArrayList;
@@ -348,7 +349,7 @@ public final class ClanMaps {
     public static MapData preview(ClanWorld w, int region) {
         Base b = build(w, region);
         return new MapData(region, REGIONS, b.minX, b.minZ, b.cell, SIZE, b.cells, b.shade, b.legend, b.pois,
-                false, 0, 0, 0, false, "", 0, 0);
+                false, 0, 0, 0, List.of());
     }
 
     /** Which region the player is in (where the layout weighs most), else the one whose middle is nearest. */
@@ -377,14 +378,29 @@ public final class ClanMaps {
         return best;
     }
 
-    /** Where the player is going: set by the Campaign (its chapter's place) or a quest (a place to visit). */
-    public record Goal(String name, double x, double z) {}
+    /** The most marks a map carries. */
+    public static final int MARKS = 64;
 
-    private static volatile Function<ServerPlayer, Goal> goals = p -> null;
+    private static volatile Function<ServerPlayer, List<MapMark>> marks = p -> List.of();
 
-    /** Installs who decides the player's goal on the map (the Campaign, then quests). */
-    public static void goals(Function<ServerPlayer, Goal> f) {
-        goals = f;
+    /** Installs who lists the quests' places on the map (the Campaign, which adds its chapter to the quests'). */
+    public static void marks(Function<ServerPlayer, List<MapMark>> f) {
+        marks = f;
+    }
+
+    /** Every quest's place for this player, the followed quest's flagged. */
+    public static List<MapMark> marksFor(ServerPlayer p) {
+        try {
+            List<MapMark> all = marks.apply(p);
+            if (all.size() <= MARKS) return all;
+            List<MapMark> kept = new ArrayList<>(all);
+            kept.sort(java.util.Comparator.comparing(m -> !m.followed()));       // the followed quest is never cut
+            return List.copyOf(kept.subList(0, MARKS));
+        } catch (RuntimeException e) {
+            // a mark that cannot be worked out is not worth losing the map or the journal over, but is worth knowing of
+            org.slf4j.LoggerFactory.getLogger(ClanMaps.class).warn("Quest marks failed", e);
+            return List.of();
+        }
     }
 
     /** The map of {@code region} (or, for -1, the region the player is in) for this player. */
@@ -394,14 +410,7 @@ public final class ClanMaps {
         boolean here = p.level().dimension() == Level.OVERWORLD;
         if (region < 0 || region > 2) region = here ? regionAt(w, p.getX(), p.getZ()) : LAKE;
         Base b = base(w, region);
-        Goal g = null;
-        try {
-            g = goals.apply(p);
-        } catch (RuntimeException ignored) {
-            // a goal that cannot be worked out just isn't drawn
-        }
         return new MapData(region, REGIONS, b.minX, b.minZ, b.cell, SIZE, b.cells, b.shade, b.legend, b.pois,
-                here, p.getX(), p.getZ(), p.getYRot(),
-                g != null, g == null ? "" : g.name(), g == null ? 0 : g.x(), g == null ? 0 : g.z());
+                here, p.getX(), p.getZ(), p.getYRot(), marksFor(p));
     }
 }

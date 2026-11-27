@@ -11,7 +11,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "$(li)As a $(l)kittypet$() in a Twoleg garden at the edge of ThunderClan's woods, until a patrol found you.$(li)As an $(l)apprentice$() in the Clan of your choosing.$(li)As a $(l)loner$() by the lake, free to visit any camp and ask to join, or to stay free."
+      "text": "$(li)As a $(l)kittypet$() in a Twoleg garden at the edge of ThunderClan's woods, until a patrol found you.$(li)As an $(l)apprentice$() in the Clan of your choosing.$(li)As a $(l)loner$() (by the lake, or by the farm near Highstones in the Campaign), free to visit any camp and ask to join, or to stay free."
     },
     {
       "type": "patchouli:text",

@@ -167,7 +167,7 @@ public final class Gatherings {
     /**
      * Holds the night where it is: winds the clock of every level back to {@code at} (time of day) if it has passed
      * it, as {@code /time set} would, so the moon stays up while a cat is still walking to the meeting. The day's
-     * count (and so the moon's phase) is kept.
+     * count (and so the moon's phase) is kept. The seasons do not move: see {@link #windClock}.
      */
     static void holdNight(MinecraftServer server, long at) {
         ServerLevel ow = server.overworld();
@@ -175,8 +175,43 @@ public final class Gatherings {
         if (t <= at) return;
         long back = t - at;
         for (ServerLevel l : server.getAllLevels()) {
-            if (!l.dimensionType().hasFixedTime()) l.setDayTime(l.getDayTime() - back);
+            if (!l.dimensionType().hasFixedTime()) windClock(l, l.getDayTime() - back);
         }
+    }
+
+    /**
+     * Sets a level's clock. Serene Seasons takes any step back for the clock having gone round and counts nearly a whole
+     * day: holding a meeting's night once a second ran through seasons in minutes. So after a step back it is made to
+     * forget the last time it saw, and counts nothing.
+     */
+    public static void windClock(ServerLevel l, long time) {
+        boolean back = time < l.getDayTime();
+        l.setDayTime(time);
+        if (back) {
+            try {
+                ((java.util.Map<?, ?>) Class.forName("sereneseasons.season.SeasonHandler").getField("lastDayTimes").get(null)).remove(l);
+            } catch (ClassNotFoundException noSeasons) {
+                // without Serene Seasons the season is counted from the day itself
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                org.slf4j.LoggerFactory.getLogger(Gatherings.class).warn("Could not keep Serene Seasons still while the clock went back", e);
+            }
+        }
+    }
+
+    /** Quiet paws: the cat is no longer going to any meeting, so no night is held for them, and their guide goes. */
+    public static void leaveMeetings(ServerPlayer p) {
+        FullMoon.leave(p);
+        HalfMoon.leave(p);
+    }
+
+    /** A guide walking this player to or from a meeting stops and goes. */
+    static void dropGuide(ServerPlayer p, java.util.Map<java.util.UUID, java.util.UUID> guides) {
+        java.util.UUID guide = guides.get(p.getUUID());
+        var lead = com.ninjacat.greatjourney.clanlands.life.Lead.of(p);
+        if (guide == null || lead == null || lead.cat() == null || !guide.equals(lead.cat().getUUID())) return;
+        guides.remove(p.getUUID());
+        com.ninjacat.greatjourney.clanlands.life.Lead.stop(p);
+        Crowd.dismiss(p.serverLevel(), guide);
     }
 
     /** Players who said Go to a meeting and are still on their way to it (online, in the Clans' world, alive). */

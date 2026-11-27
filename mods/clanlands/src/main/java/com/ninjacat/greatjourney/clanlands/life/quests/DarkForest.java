@@ -44,7 +44,7 @@ final class DarkForest {
         if (e.updateLevel() || !(e.getEntity() instanceof ServerPlayer p) || Journey.stage(p) != Journey.Stage.PLAYING) return;
         var ow = p.getServer().overworld();
         Teller t = StoryData.active(ow);
-        if (t == null || Joining.clanOf(p) == null || Dialog.busy(p) || !noticed(p, t)) return;
+        if (t == null || Joining.clanOf(p) == null || Dialog.busy(p) || QuestState.quiet(p) || !noticed(p, t)) return;
         if (ow.getGameTime() < QuestState.root(p).getLong(NEXT) || p.getRandom().nextBoolean()) return;
         Ui.play(p, offer(p, ow.getGameTime()));
     }

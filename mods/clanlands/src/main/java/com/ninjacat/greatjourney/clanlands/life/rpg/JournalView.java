@@ -21,9 +21,17 @@ import net.minecraft.network.codec.StreamCodec;
  * @param clanmates "Name — Rank" lines for the player's Clan
  * @param starclan  cats who have gone to StarClan in this world ("Name of ThunderClan")
  * @param ladder    the standing that opens something in a book Clan, lowest first; empty outside one
+ * @param quiet     whether the player has quiet paws on
  */
 public record JournalView(String catName, String clan, String rank, int clanColour, int standing, String nextGoal,
-                          List<Quest> quests, List<Place> places, List<String> clanmates, List<String> starclan, List<Rung> ladder) {
+                          List<Quest> quests, List<Place> places, List<String> clanmates, List<String> starclan, List<Rung> ladder,
+                          boolean quiet) {
+
+    /** A view with quiet paws off. */
+    public JournalView(String catName, String clan, String rank, int clanColour, int standing, String nextGoal,
+                       List<Quest> quests, List<Place> places, List<String> clanmates, List<String> starclan, List<Rung> ladder) {
+        this(catName, clan, rank, clanColour, standing, nextGoal, quests, places, clanmates, starclan, ladder, false);
+    }
 
     /**
      * A story quest or a duty. {@code story} quests drive the apprentice path; duties are optional and repeatable.
@@ -106,6 +114,7 @@ public record JournalView(String catName, String clan, String rank, int clanColo
             b.writeVarInt(r.standing);
             b.writeUtf(r.what);
         }
+        b.writeBoolean(v.quiet);
     }
 
     private static JournalView read(RegistryFriendlyByteBuf b) {
@@ -129,7 +138,7 @@ public record JournalView(String catName, String clan, String rank, int clanColo
         int nr = b.readVarInt();
         List<Rung> ladder = new ArrayList<>(nr);
         for (int i = 0; i < nr; i++) ladder.add(new Rung(b.readVarInt(), b.readUtf()));
-        return new JournalView(cat, clan, rank, colour, standing, goal, quests, places, mates, stars, ladder);
+        return new JournalView(cat, clan, rank, colour, standing, goal, quests, places, mates, stars, ladder, b.readBoolean());
     }
 
     private static void writeStrings(FriendlyByteBuf b, List<String> s) {

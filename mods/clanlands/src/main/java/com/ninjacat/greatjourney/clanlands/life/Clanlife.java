@@ -34,6 +34,7 @@ public final class Clanlife {
         ChunkWait.init();
         Lead.init();
         Keepsakes.init();
+        Healing.init();
         LoreBridge.init();
         com.ninjacat.greatjourney.clanlands.life.gathering.Gatherings.init();
         Dream.init(modBus);
@@ -63,6 +64,7 @@ public final class Clanlife {
             if (e.getEntity() instanceof ServerPlayer p) Dialog.forget(p);
         });
         NeoForge.EVENT_BUS.addListener(Clanlife::tick);
+        NeoForge.EVENT_BUS.addListener(Clanlife::loggedIn);
         NeoForge.EVENT_BUS.addListener(Clanlife::chunkLoaded);
         NeoForge.EVENT_BUS.addListener(Clanlife::commands);
     }
@@ -101,6 +103,10 @@ public final class Clanlife {
             org.slf4j.LoggerFactory.getLogger(Clanlife.class).info("Great Journey: {} camp at {} {} is in {}", c,
                     (int) camp.x(), (int) camp.z(), biome.unwrapKey().map(k -> k.location().toString()).orElse("?"));
         }
+    }
+
+    private static void loggedIn(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent e) {
+        if (e.getEntity() instanceof ServerPlayer p) Starts.loggedIn(p);
     }
 
     private static void tick(ServerTickEvent.Post e) {

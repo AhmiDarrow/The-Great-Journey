@@ -141,6 +141,16 @@ final class Happenings {
         return ow.isPositionEntityTicking(out) ? out : end;
     }
 
+    private static final String RAIDER_TAG = "greatjourney_raider";
+
+    /** A raider saved with the world and loading after its raid was forgotten: gone, and off the enemy Clan's list. */
+    static boolean staleRaider(Entity e, boolean fromDisk) {
+        if (!fromDisk || !(e instanceof WCatEntity cat) || !cat.getTags().contains(RAIDER_TAG)
+                || ClanEvents.raiders.containsKey(cat.getUUID()) || !(cat.level() instanceof ServerLevel level)) return false;
+        net.snowteb.warriorcats_events.clan.ClanData.get(level.getServer().overworld()).removeClanCatFromAnyClan(cat);
+        return true;
+    }
+
     // 1: a badger blunders into camp
     private static boolean badger(ServerLevel ow, Clan c, List<WCatEntity> cats, RandomSource r) {
         Mob badger = ModEntities.BADGER.get().create(ow);
@@ -149,6 +159,8 @@ final class Happenings {
         badger.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, r.nextFloat() * 360, 0);
         badger.finalizeSpawn(ow, ow.getCurrentDifficultyAt(at), MobSpawnType.EVENT, null);
         badger.setCustomName(Component.literal("Badger"));
+        // saved with it, so one that unloads or outlasts a restart still goes; the event itself sends it off first
+        markFoe(badger, c, ow.getGameTime() + BADGER_TICKS + 100, "");
         ow.addFreshEntity(badger);
         List<WCatEntity> kits = Cats.withRank(cats, WCatEntity.Rank.KIT);
         if (!kits.isEmpty()) badger.setTarget(kits.get(0));
@@ -203,6 +215,7 @@ final class Happenings {
             WCatEntity cat = Cats.spawn(ow, enemy, WCatEntity.Rank.WARRIOR, name.prefix(), name.full(), r.nextInt(2), at, enemyHome, r);
             if (cat == null) continue;
             attackers.add(cat);
+            cat.addTag(RAIDER_TAG);
             ClanEvents.raiders.put(cat.getUUID(), enemy);
         }
         if (attackers.isEmpty()) return false;
@@ -254,7 +267,7 @@ final class Happenings {
         List<WCatEntity> well = cats.stream().filter(x -> !x.hasDisease(DiseaseTypes.WHITECOUGH) && !x.hasDisease(DiseaseTypes.GREENCOUGH)
                 && x.getRank() != WCatEntity.Rank.MEDICINE).toList();
         if (well.isEmpty()) return false;
-        int n = Math.min(well.size(), 1 + (leafBare ? r.nextInt(2) : 0));
+        int n = 1;                                      // one at a time: a 72-day leaf-bare brings plenty of coughs
         boolean green = leafBare && r.nextInt(3) == 0;
         List<String> sick = new ArrayList<>();
         for (int i = 0; i < n; i++) {
@@ -619,13 +632,19 @@ final class Happenings {
             finish();
             return;
         }
+        // whoever found it has left it: the next cat to come by may take it home
+        if (guide != null && !(ow.getServer().getPlayerList().getPlayer(guide) instanceof ServerPlayer had && had.level() == ow && had.distanceTo(kit) < 40)) {
+            guide = null;
+        }
         if (guide == null) {
             for (ServerPlayer p : ow.players()) {
                 if (p.distanceTo(kit) < 4) {
                     guide = p.getUUID();
-                    com.ninjacat.greatjourney.clanlands.life.Dialog.play(p,
+                    Line[] plea = {
                             Line.say(Cats.plainName(kit), info.colour, "I got lost chasing a butterfly... Will you take me home?"),
-                            Line.narrate("Lead " + Cats.plainName(kit) + " back to " + info.title + "'s camp. They will follow you."));
+                            Line.narrate("Lead " + Cats.plainName(kit) + " back to " + info.title + "'s camp. They will follow you.")};
+                    if (com.ninjacat.greatjourney.clanlands.life.quests.QuestState.quiet(p)) com.ninjacat.greatjourney.clanlands.life.Dialog.subtitle(p, plea);
+                    else com.ninjacat.greatjourney.clanlands.life.Dialog.play(p, plea);
                     break;
                 }
             }

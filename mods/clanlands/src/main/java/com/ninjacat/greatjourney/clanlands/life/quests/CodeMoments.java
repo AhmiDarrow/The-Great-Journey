@@ -68,7 +68,7 @@ final class CodeMoments {
     static void tick(ServerPlayer p) {
         ClanWorld w = ClanWorld.current();
         Clan clan = w == null ? null : Kin.bookClan(p);
-        if (clan == null || Mode.of(p.getServer()) != Mode.FREE || Journey.stage(p) != Journey.Stage.PLAYING || !p.isAlive() || Dialog.busy(p)) return;
+        if (clan == null || Mode.of(p.getServer()) != Mode.FREE || Journey.stage(p) != Journey.Stage.PLAYING || !p.isAlive() || Dialog.busy(p) || QuestState.quiet(p)) return;
         CompoundTag root = QuestState.root(p);
         long day = p.level().getDayTime() / 24000L + 1;
         if (root.getLong(DAY) == day || !root.getString(PENDING).isEmpty() || p.getRandom().nextInt(ONE_IN) != 0) return;

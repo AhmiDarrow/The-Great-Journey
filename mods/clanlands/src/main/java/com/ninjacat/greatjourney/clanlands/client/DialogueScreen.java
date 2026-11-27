@@ -63,6 +63,12 @@ public final class DialogueScreen extends Screen {
 
     @Override
     public void removed() {
+        // replaced without being closed (the death screen, another window): the server must still hear, or every later
+        // scene waits behind this one for five minutes
+        if (!answered && minecraft != null && minecraft.getConnection() != null) {
+            answered = true;
+            PacketDistributor.sendToServer(new ClanPayloads.DialogueClosed(sceneId));
+        }
         Portrait.clear();
         super.removed();
     }

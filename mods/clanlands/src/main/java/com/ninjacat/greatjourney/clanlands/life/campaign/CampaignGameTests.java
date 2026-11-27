@@ -40,6 +40,39 @@ public final class CampaignGameTests {
     }
 
     @GameTest(template = "empty")
+    public static void aQuietCatIsToldOfTheSignWhereItStands(GameTestHelper h) {
+        var p = net.neoforged.neoforge.common.util.FakePlayerFactory.get(h.getLevel(),
+                new com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes("quiet_sign".getBytes()), "quiet_sign"));
+        com.ninjacat.greatjourney.clanlands.life.Dialog.forget(p);
+        h.assertTrue(!com.ninjacat.greatjourney.clanlands.life.quests.QuestState.quiet(p), "off until a cat asks for it");
+        com.ninjacat.greatjourney.clanlands.life.quests.Quiet.set(p, true);
+        try {
+            h.assertTrue(com.ninjacat.greatjourney.clanlands.life.quests.QuestState.quiet(p), "kept on the cat");
+            var where = p.level();
+            Campaign.sign(p);
+            h.assertTrue(p.level() == where && Campaign.chapter(p) == Chapter.SUN_DROWN, "the story moves on without carrying the cat off");
+            h.assertFalse(com.ninjacat.greatjourney.clanlands.life.Dialog.busy(p), "and no window waits to be answered");
+        } finally {
+            com.ninjacat.greatjourney.clanlands.life.quests.Quiet.set(p, false);
+            com.ninjacat.greatjourney.clanlands.life.Dialog.forget(p);
+        }
+        h.assertTrue(!com.ninjacat.greatjourney.clanlands.life.quests.QuestState.quiet(p), "and off again");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void aPlayersOwnCatIsNotLeftInTheForest(GameTestHelper h) {
+        var cat = net.snowteb.warriorcats_events.entity.ModEntities.WCAT.get().create(h.getLevel());
+        h.assertFalse(ForestClans.playersOwn(cat, Clan.THUNDER), "a wild cat is the Clan's");
+        cat.setTame(true, false);
+        cat.setOwnerUUID(com.ninjacat.greatjourney.clanlands.life.BookClans.standInLeader(Clan.THUNDER));
+        h.assertFalse(ForestClans.playersOwn(cat, Clan.THUNDER), "one owned by the Clan's stand-in leader travels with the Clan");
+        cat.setOwnerUUID(java.util.UUID.randomUUID());
+        h.assertTrue(ForestClans.playersOwn(cat, Clan.THUNDER), "a player's cat stays where it is, and theirs");
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
     public static void lateCatsStartWhereTheStoryIs(GameTestHelper h) {
         h.assertTrue(Chapter.startFor(1, false, false, false) == Chapter.APPRENTICE, "act 1: an apprentice of the old forest");
         h.assertTrue(Chapter.startFor(2, false, false, false) == Chapter.DARK_TIMES, "act 2 before the sign: dark times");

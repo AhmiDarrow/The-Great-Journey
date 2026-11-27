@@ -27,6 +27,8 @@ public final class ClanMapScreen extends Screen {
         this.back = back;
     }
 
+    private int keyScroll;
+
     @Override
     public boolean isPauseScreen() {
         return false;
@@ -74,8 +76,16 @@ public final class ClanMapScreen extends Screen {
             }
             y += 4;
         }
-        MapPainter.legend(g, font, d, px, y, pw);
         String[] hints = {"Wheel: zoom. Drag: move.", "Click a mark to follow it", back == null ? "Esc: close" : "Esc: back to the journal"};
+        // the key keeps clear of the hints: on a small screen it is cut off above them and scrolls
+        int top = y, bottom = Math.max(top, py + side() - hints.length * (font.lineHeight + 1) - 3);
+        g.enableScissor(px - 4, top, px + pw + 4, bottom);
+        int end = MapPainter.legend(g, font, d, px, y - keyScroll, pw);
+        g.disableScissor();
+        int max = Math.max(0, end + keyScroll - bottom);
+        keyScroll = Math.min(keyScroll, max);
+        if (keyScroll > 0) g.drawString(font, "▲", px + pw - 4, top, UiStyle.argb(UiStyle.BARK, 0.8f), false);
+        if (keyScroll < max) g.drawString(font, "▼", px + pw - 4, bottom - font.lineHeight, UiStyle.argb(UiStyle.BARK, 0.8f), false);
         for (int i = 0; i < hints.length; i++) {
             g.drawString(font, hints[i], px, py + side() - (hints.length - i) * (font.lineHeight + 1) - 1, UiStyle.argb(UiStyle.INK_SOFT, 1f), false);
         }
@@ -138,6 +148,10 @@ public final class ClanMapScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
+        if (mx >= panelX() - 6 && sy != 0) {
+            keyScroll = Math.max(0, keyScroll - (int) (sy * 12));
+            return true;
+        }
         if (!onMap(mx, my) || sy == 0) return super.mouseScrolled(mx, my, sx, sy);
         view = view.zoomAt(sy > 0 ? 1.25 : 0.8, (mx - mapX()) / side(), (my - mapY()) / side());
         return true;

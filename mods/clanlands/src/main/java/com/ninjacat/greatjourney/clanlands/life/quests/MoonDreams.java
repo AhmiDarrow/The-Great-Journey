@@ -39,7 +39,7 @@ final class MoonDreams {
     /** StarClan speaks to a cat once in this long: a moon, the eight nights of Minecraft's own. */
     static final long MOON = 24000L * 8;
     private static final int STAR_COLOUR = 0xCFE3FF;
-    private static final String KEY = "moonDream";
+    private static final String KEY = "moonDream", OFFERED = "tellerOffered";
 
     /** Once a second. */
     static void tick(MinecraftServer server) {
@@ -49,7 +49,7 @@ final class MoonDreams {
         if (pool == null) return;
         for (ServerPlayer p : ow.players()) {
             if (p.isSpectator() || !p.isAlive() || Math.hypot(p.getX() - pool.x(), p.getZ() - pool.z()) > Ranks.STAR_REACH) continue;
-            if (Journey.stage(p) != Journey.Stage.PLAYING || Dialog.busy(p)) continue;
+            if (Journey.stage(p) != Journey.Stage.PLAYING || Dialog.busy(p) || QuestState.quiet(p)) continue;
             CompoundTag root = QuestState.root(p);
             if (root.getBoolean("nineLives") || !due(root, ow.getGameTime())) continue;
             root.putLong(KEY, ow.getGameTime());
@@ -66,6 +66,7 @@ final class MoonDreams {
 
     /** The storyteller's word on the dreamer, and the choice of who watches from now on. */
     static List<Line> watcher(ServerPlayer p, Teller t) {
+        QuestState.root(p).putBoolean(OFFERED, true);
         List<Choice> choices = new ArrayList<>();
         for (Teller o : Teller.values()) if (o != t) choices.add(new Choice(o.title, "greatjourney quest teller " + o.key(), o.colour));
         if (DarkForest.silenced(p)) choices.add(DarkForest.wayBack(p));
@@ -81,11 +82,13 @@ final class MoonDreams {
         ServerLevel ow = p.getServer().overworld();
         Landmark pool = Ranks.starPlace();
         Dialog.clear(p);
-        if (t == null || Mode.of(p.getServer()) != Mode.FREE || !QuestState.root(p).contains(KEY) || p.level() != ow || !Tasks.night(ow)
+        // one choice for each time the dream puts it, so the world's watcher cannot be flipped back and forth
+        if (t == null || Mode.of(p.getServer()) != Mode.FREE || !QuestState.root(p).getBoolean(OFFERED) || t == StoryData.get(ow).teller() || p.level() != ow || !Tasks.night(ow)
                 || pool == null || Math.hypot(p.getX() - pool.x(), p.getZ() - pool.z()) > Ranks.STAR_REACH) {
             Ui.subtitle(p, List.of(Line.narrate("StarClan hears such things only at the Moonpool, by night.")));
             return false;
         }
+        QuestState.root(p).remove(OFFERED);
         watchedBy(ow, t, Joining.catName(p));
         return true;
     }

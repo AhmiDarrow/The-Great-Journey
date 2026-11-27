@@ -137,7 +137,9 @@ public final class Hunger {
         List<Line> lines = new ArrayList<>();
         lines.add(Line.narrate(got == 0 ? "The fresh-kill pile is bare. The elders and queens go to their nests hungry."
                 : "There was not enough on the fresh-kill pile to feed every elder, queen and kit."));
-        if (sickens(t, got, wanted)) {
+        // hunger starts a cough only when none of them has one already, not one more each day of a long leaf-bare
+        boolean coughing = first.stream().anyMatch(x -> x.hasDisease(DiseaseTypes.WHITECOUGH) || x.hasDisease(DiseaseTypes.GREENCOUGH));
+        if (sickens(t, got, wanted) && !coughing) {
             first.removeIf(x -> x.hasDisease(DiseaseTypes.WHITECOUGH) || x.hasDisease(DiseaseTypes.GREENCOUGH));
             if (!first.isEmpty()) {
                 WCatEntity weak = first.get(ow.getRandom().nextInt(first.size()));

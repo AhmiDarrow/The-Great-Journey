@@ -113,7 +113,7 @@ public final class ClanEvents {
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent e) -> reset());
         NeoForge.EVENT_BUS.addListener((EntityJoinLevelEvent e) -> {
             if (e.getLevel().isClientSide()) return;
-            if (Happenings.overdueFoe(e.getEntity()) || Skirmish.stale(e.getEntity())) {
+            if (Happenings.overdueFoe(e.getEntity()) || Skirmish.stale(e.getEntity()) || Happenings.staleRaider(e.getEntity(), e.loadedFromDisk())) {
                 e.setCanceled(true);                          // an event's fox or eagle whose time ran out while it was unloaded
                 return;
             }
@@ -150,6 +150,9 @@ public final class ClanEvents {
         Skirmish.everySecond(ow);
         Hunger.everySecond(ow);
         if (server.getTickCount() % 1200 == 0) for (Clan c : Clan.values()) keepMedicineCat(ow, c);
+        if (server.getTickCount() % CARE_EVERY == 0) {
+            for (Clan c : Clan.values()) if (Cats.campActive(ow, c) && Cats.campCatsLoaded(ow, c)) tendCoughs(ow, c, Cats.atCamp(ow, c));
+        }
         if (!EventsConfig.ENABLED.get()) return;
         long now = server.getTickCount();
         RandomSource r = ow.getRandom();
@@ -225,8 +228,8 @@ public final class ClanEvents {
         if (BookEvents.playerInCamp(ow, c)) w.put(Kind.STORY, 3);       // a scene: only worth it with someone there to hear it
         w.put(Kind.PREDATOR, 3);
         w.put(Kind.INJURY, 4);
-        w.put(Kind.SICKNESS, leafBare ? 6 : 2);
-        w.put(Kind.KITS, leafBare ? 1 : 3);
+        w.put(Kind.SICKNESS, leafBare ? 3 : 2);
+        w.put(Kind.KITS, leafBare ? 2 : 3);
         w.put(Kind.CEREMONY, 3);
         w.put(Kind.HUNT, (leafBare ? 5 : 3) + (Weather.frozen(ow) ? 4 : 0));
         int weather = EventsConfig.WEATHER_WEIGHT.get();
@@ -262,6 +265,32 @@ public final class ClanEvents {
      * loaded: the land loads first, and a camp half full of cats (the medicine cat's den not in yet) would otherwise
      * have been given a second medicine cat.
      */
+    /** How often a Clan's own medicine cat gets a whitecough better. */
+    private static final int CARE_EVERY = 20 * 60 * 10;
+
+    /**
+     * The Clan's medicine cat cures one whitecough among its cats. Left alone a cough turned to greencough and killed,
+     * and through a long leaf-bare a Clan lost more cats than were born. Greencough is still the players' to cure, and
+     * so is a patient a player has been asked to treat.
+     */
+    static boolean tendCoughs(ServerLevel ow, Clan c, List<WCatEntity> cats) {
+        if (cats.stream().noneMatch(x -> x.isAlive() && x.getRank() == WCatEntity.Rank.MEDICINE
+                && !x.hasDisease(net.snowteb.warriorcats_events.diseases.DiseaseTypes.GREENCOUGH))) return false;
+        for (WCatEntity cat : cats) {
+            if (!cat.isAlive() || !cat.hasDisease(net.snowteb.warriorcats_events.diseases.DiseaseTypes.WHITECOUGH)) continue;
+            String patient = "@" + cat.getUUID();
+            if (ow.getServer().getPlayerList().getPlayers().stream().anyMatch(p -> com.ninjacat.greatjourney.clanlands.life.quests.QuestState
+                    .active(p).stream().anyMatch(t -> t.objectives.stream().anyMatch(o -> o.key.endsWith(patient))))) continue;
+            cat.removeDisease(net.snowteb.warriorcats_events.diseases.DiseaseTypes.WHITECOUGH);
+            for (net.minecraft.server.level.ServerPlayer p : Announce.audience(ow, c, cat.blockPosition())) {
+                com.ninjacat.greatjourney.clanlands.life.Dialog.subtitle(p, com.ninjacat.greatjourney.clanlands.life.Dialog.Line.narrate(
+                        Info.of(c).title + "'s medicine cat has tended " + Cats.plainName(cat) + ", and the cough is gone."));
+            }
+            return true;
+        }
+        return false;
+    }
+
     static void keepMedicineCat(ServerLevel ow, Clan c) {
         if (!Cats.campLoaded(ow, c) || !Cats.campCatsLoaded(ow, c)) return;
         List<WCatEntity> cats = Cats.atCamp(ow, c);

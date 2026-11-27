@@ -169,6 +169,18 @@ public final class Dialog {
         STATES.clear();
     }
 
+    /**
+     * Whether a right-click with this in the paw means talk: an empty paw, or a book. With anything else (a herb, a
+     * poultice, prey) the click is left to Warrior Cats Events, so any cat can be treated.
+     */
+    public static boolean talksWith(net.minecraft.world.item.ItemStack held) {
+        if (held.isEmpty()) return true;
+        var id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(held.getItem());
+        return id.equals(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("patchouli", "guide_book"))
+                || id.equals(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("clanlands", "journal"))
+                || held.is(net.minecraft.world.item.Items.BOOK) || held.is(net.minecraft.world.item.Items.WRITTEN_BOOK);
+    }
+
     /** Whether the player has lines waiting or a scene open. */
     public static boolean busy(ServerPlayer player) {
         State s = STATES.get(player.getUUID());
@@ -268,7 +280,9 @@ public final class Dialog {
     }
 
     private static boolean hasClient(ServerPlayer p) {
-        return p.connection != null && p.connection.hasChannel(ClanPayloads.OpenDialogue.TYPE);
+        // a fake player (a machine, a test) has a connection with nothing behind it: asking it for channels crashes
+        return !(p instanceof net.neoforged.neoforge.common.util.FakePlayer) && p.connection != null
+                && p.connection.hasChannel(ClanPayloads.OpenDialogue.TYPE);
     }
 
     /** A line as chat text (the fallback when a player has no dialogue window). */

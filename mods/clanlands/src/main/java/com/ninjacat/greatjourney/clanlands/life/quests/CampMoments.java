@@ -64,7 +64,12 @@ final class CampMoments {
     static void tongues(ServerPlayer p, WCatEntity cat) {
         CompoundTag root = QuestState.root(p);
         long day = p.level().getDayTime() / 24000L + 1;
-        p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0, false, false));
+        if (!Talk.clanmate(p, cat)) return;
+        long now = p.level().getGameTime();
+        if (!root.contains("tonguesAt") || now - root.getLong("tonguesAt") > 1200) {     // it soothes once a minute
+            root.putLong("tonguesAt", now);
+            p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0, false, false));
+        }
         List<Line> lines = new ArrayList<>();
         lines.add(Line.narrate("You settle beside " + Kin.name(cat) + " and share tongues, grooming the burrs from each other's fur while the camp goes quiet."));
         Ui.play(p, lines);

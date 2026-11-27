@@ -38,6 +38,24 @@ public final class QuestState {
         return mine;
     }
 
+    static void paidThrough(ServerPlayer p, int step) {
+        if (step > root(p).getInt("paidStep")) root(p).putInt("paidStep", step);
+    }
+
+    /** Whether training step {@code step} has not paid yet (and now has): changing path starts the steps again. */
+    static boolean payStep(ServerPlayer p, int step) {
+        if (step <= root(p).getInt("paidStep")) return false;
+        root(p).putInt("paidStep", step);
+        return true;
+    }
+
+    // --- quiet paws
+
+    /** Whether the cat has asked not to be interrupted (see {@link Quiet}). */
+    public static boolean quiet(ServerPlayer p) {
+        return root(p).getBoolean("quiet");
+    }
+
     // --- the apprentice path
 
     public static int storyStep(ServerPlayer p) {

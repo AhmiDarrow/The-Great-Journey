@@ -66,12 +66,15 @@ public final class Tour {
     private static final TicketType<ChunkPos> TICKET = TicketType.create("greatjourney_tour", Comparator.comparingLong(ChunkPos::toLong));
     private static final int AHEAD = 2, PREFETCH_RADIUS = 144;
 
+    private static final double STRAY = 96;
+
     private static final class Run {
         final List<TourStops.Planned> stops;
         int index = -1;
         int lastHeard;
         int arrivedAt;
         int monsterTries;
+        Vec3 at;
         /** The highest stop whose land has been asked for, and the chunks held for each stop still held. */
         int requested = -1;
         final Map<Integer, List<ChunkPos>> held = new HashMap<>();
@@ -124,7 +127,7 @@ public final class Tour {
             return false;
         }
         if (touring(p) || p.getPersistentData().contains(TAG)) {
-            p.sendSystemMessage(Component.literal("You are already on the tour. /greatjourney tour stop ends it."));
+            p.sendSystemMessage(Component.literal("You are already on the tour. Press any key to move to the next stop."));
             return false;
         }
         if (p.connection == null || !p.connection.hasChannel(ClanPayloads.TourStart.TYPE)) {
@@ -132,6 +135,10 @@ public final class Tour {
             return false;
         }
         if (p.isSleeping() || !p.isAlive()) return false;
+        if (com.ninjacat.greatjourney.clanlands.life.Starts.inDanger(p)) {
+            p.sendSystemMessage(Component.literal("Not while you are in danger. Get somewhere safe, then take the tour."));
+            return false;
+        }
         List<TourStops.Planned> stops = TourStops.build(w);
         if (stops.isEmpty()) return false;
         p.stopRiding();
@@ -177,6 +184,7 @@ public final class Tour {
         double dx = look[0] - cam[0], dy = look[1] - y, dz = look[2] - cam[2];
         float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz)), pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
         p.teleportTo(ow, cam[0], y, cam[2], yaw, pitch);
+        run.at = new Vec3(cam[0], y, cam[2]);
         run.index = i;
         run.arrivedAt = p.server.getTickCount();
         run.lastHeard = run.arrivedAt;
@@ -187,7 +195,8 @@ public final class Tour {
     /** The client has shown stop {@code index}: on to the next, or (after the last) wait for the closing card. */
     public static void onNext(ServerPlayer p, int index) {
         Run run = RUNS.get(p.getUUID());
-        if (run == null || index != run.index) return;
+        // (the client shows black for longer than this before any stop: a faster answer is not the tour's)
+        if (run == null || index != run.index || p.server.getTickCount() - run.arrivedAt < 10) return;
         run.lastHeard = p.server.getTickCount();
         if (index + 1 < run.stops.size()) goTo(p, run, index + 1);
         else run.index = run.stops.size();
@@ -208,7 +217,8 @@ public final class Tour {
                 drop(e.getKey());
                 continue;
             }
-            if (now - run.lastHeard > SILENCE_TICKS) {
+            if (now - run.lastHeard > SILENCE_TICKS || run.at != null && now - run.arrivedAt > 20
+                    && (p.level() != run.level || p.position().distanceToSqr(run.at) > STRAY * STRAY)) {
                 restore(p);
                 continue;
             }
@@ -323,6 +333,8 @@ public final class Tour {
 
     /** Puts the player back as they were before the tour: place, facing, world and game mode. */
     static void restore(ServerPlayer p) {
+        Run was = RUNS.get(p.getUUID());
+        boolean shield = was == null || was.index >= 1;         // none: a player who left or crashed mid-tour
         drop(p.getUUID());
         CompoundTag t = p.getPersistentData().getCompound(TAG);
         p.getPersistentData().remove(TAG);
@@ -335,7 +347,7 @@ public final class Tour {
         p.teleportTo(level, at.x, at.y, at.z, t.getFloat("yRot"), t.getFloat("xRot"));
         p.setGameMode(GameType.byId(t.getInt("mode")));
         p.fallDistance = 0;
-        protect(p);
+        if (shield) protect(p);
         if (t.getBoolean("nv")) p.removeEffect(MobEffects.NIGHT_VISION);
         if (p.connection != null && p.connection.hasChannel(ClanPayloads.TourEnd.TYPE)) {
             PacketDistributor.sendToPlayer(p, new ClanPayloads.TourEnd());

@@ -59,6 +59,9 @@ public final class RpgUiGameTests {
                 List.of("Mossheart — Warrior", "Sorrelleaf — Medicine cat"),
                 List.of("Oakstripe of WindClan"), JournalView.LADDER);
         h.assertTrue(roundTrip(h, JournalView.STREAM_CODEC, view).equals(view), "a full journal");
+        var quiet = new JournalView(view.catName(), view.clan(), view.rank(), view.clanColour(), view.standing(), view.nextGoal(),
+                view.quests(), view.places(), view.clanmates(), view.starclan(), view.ladder(), true);
+        h.assertTrue(roundTrip(h, JournalView.STREAM_CODEC, quiet).quiet(), "quiet paws reaches the journal");
         var open = new ClanPayloads.OpenJournal(view);
         h.assertTrue(roundTrip(h, ClanPayloads.OpenJournal.STREAM_CODEC, open).equals(open), "the open-journal message");
         var empty = JournalView.empty("Loner");

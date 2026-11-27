@@ -52,7 +52,7 @@ final class SubtitleOverlay implements LayeredDraw.Layer {
         Font font = mc.font;
         Style style = current.narration() ? Style.EMPTY.withItalic(true) : Style.EMPTY;
         List<String> wrapped = UiStyle.wrap(font, current.text(), MAX_W - 20, style);
-        if (wrapped.size() > 3) wrapped = wrapped.subList(0, 3);
+        if (wrapped.size() > 6) wrapped = wrapped.subList(0, 6);
         int textW = 0;
         for (String w : wrapped) textW = Math.max(textW, font.width(w));
         boolean named = !current.narration() && !current.speaker().isEmpty();

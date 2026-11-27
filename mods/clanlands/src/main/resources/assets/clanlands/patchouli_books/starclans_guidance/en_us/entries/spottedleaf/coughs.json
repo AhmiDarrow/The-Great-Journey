@@ -20,6 +20,7 @@
       "item": "warriorcats_events:juniper_berries",
       "text": "Juniper berries help with whitecough and with chills. They are not as tasty as catmint, but they work.",
       "title": "Juniper"
-    }
+    },
+    {"type": "patchouli:text", "title": "Treating a Cat", "text": "Hold the right herb in your paw and use it on a sick cat: a Clanmate, a stranger, or another player.$(br2)A Clan's own medicine cat can tend a whitecough in time. Greencough is for you to cure."}
   ]
 }

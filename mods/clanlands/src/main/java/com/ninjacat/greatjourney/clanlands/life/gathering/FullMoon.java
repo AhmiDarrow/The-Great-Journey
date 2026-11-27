@@ -14,6 +14,7 @@ import com.ninjacat.greatjourney.clanlands.life.Journey;
 import com.ninjacat.greatjourney.clanlands.life.Lead;
 import com.ninjacat.greatjourney.clanlands.life.LifeData;
 import com.ninjacat.greatjourney.clanlands.life.Starts;
+import com.ninjacat.greatjourney.clanlands.life.quests.QuestState;
 import com.ninjacat.greatjourney.clanlands.world.ClanWorld;
 import com.ninjacat.greatjourney.clanlore.moon.Moon;
 import java.util.ArrayList;
@@ -174,7 +175,7 @@ final class FullMoon {
             if (Journey.stage(p) != Journey.Stage.PLAYING || p.isSpectator()) continue;
             Clan c = Crowd.clanOf(p);
             if (c != null) {
-                if (Journey.stamped(p, INVITED) != r.id && Crowd.rank(p) != ClanData.ClanPlayerRank.KIT
+                if (!QuestState.quiet(p) && Journey.stamped(p, INVITED) != r.id && Crowd.rank(p) != ClanData.ClanPlayerRank.KIT
                         // (a mentor out with their own apprentice is still called: the apprentice goes home)
                         && (Lead.of(p) == null || com.ninjacat.greatjourney.clanlands.life.quests.Pupils.isPupil(Lead.of(p).cat()))
                         && !com.ninjacat.greatjourney.clanlands.life.tour.Tour.touring(p) && !Gatherings.storyBusy(p)) invite(p, c, r);
@@ -275,10 +276,11 @@ final class FullMoon {
         String leader = voice(life, c);
         Landmark camp = Homeland.camp(w, c);
         boolean inCamp = Math.hypot(p.getX() - camp.x(), p.getZ() - camp.z()) < camp.radius() + 24;
-        Choice go = Choice.of("Go", "greatjourney gathering go"), no = new Choice("Not tonight", "greatjourney gathering stay", 0xAAAAAA);
+        Choice go = Choice.of("Go", "greatjourney gathering go"), no = new Choice("Not tonight", "greatjourney gathering stay", 0xAAAAAA),
+                never = new Choice("Don't call me again", "greatjourney quest quiet on", 0xAAAAAA);
         List<Line> lines = new ArrayList<>();
         if (!inCamp) lines.add(Line.narrate("A Clanmate finds you, out of breath, with word from " + leader + "."));
-        lines.add(Line.say(leader, info.colour, "Tonight is the full moon, " + Joining.catName(p) + ". You will come to the Gathering.").withChoices(go, no));
+        lines.add(Line.say(leader, info.colour, "Tonight is the full moon, " + Joining.catName(p) + ". You will come to the Gathering.").withChoices(go, no, never));
         Dialog.play(p, lines);
     }
 
@@ -329,6 +331,12 @@ final class FullMoon {
         return true;
     }
 
+    /** Quiet paws chosen: off tonight's list of those going (so no night is held for them), and the guide goes. */
+    static void leave(ServerPlayer p) {
+        if (run != null) run.going.remove(p.getUUID());
+        Gatherings.dropGuide(p, GUIDES);
+    }
+
     /** "Not tonight": the player stays home, and hears the news when the Clan comes back. */
     static boolean stay(ServerPlayer p) {
         Clan c = Crowd.clanOf(p);
@@ -376,6 +384,7 @@ final class FullMoon {
             } else if (!p.hasDisconnected()) {
                 // too late: the leaders have spoken and the Clans are leaving
                 Dialog.play(p, Line.say(Crowd.plain(cat), Info.of(c).colour, "We're too late. The Gathering is over, and the Clans are going home.").speakerEntity(cat));
+                GUIDES.put(p.getUUID(), cat.getUUID());             // the end cleared it: the walk home is still offered
                 offerHome(p);
                 Crowd.fade(cat, 20L * 60 * 4);
             }
@@ -459,6 +468,8 @@ final class FullMoon {
                 : "Cats call farewells across the hollow as each Clan gathers itself and climbs out between the oaks, toward its own territory."));
         Set<UUID> heard = new HashSet<>();
         for (ServerPlayer p : witnesses(ow, g)) {
+            // a quiet cat only passing by gets the line from home, not the whole Gathering in a window
+            if (QuestState.quiet(p) && !g.on(p.getX(), p.getZ())) continue;
             heard.add(p.getUUID());
             Dialog.play(p, lines);
             offerHome(p);
@@ -474,6 +485,10 @@ final class FullMoon {
         Clan c = Crowd.clanOf(p);
         // a guide still walking its player over (they will be asked when they arrive) is left to its walk
         if (gid == null || c == null || !(p.serverLevel().getEntity(gid) instanceof WCatEntity cat) || cat.distanceTo(p) > 40 || Lead.leading(cat)) return;
+        if (QuestState.quiet(p)) {                              // no question for a quiet cat: the guide goes home
+            linger(p);
+            return;
+        }
         Dialog.play(p, Line.say(Crowd.plain(cat), Info.of(c).colour, "Ready to go home? I'll lead the way.").speakerEntity(cat).withChoices(
                 Choice.of("Lead the way home", "greatjourney gathering home"),
                 new Choice("I'll stay a while", "greatjourney gathering linger", 0xAAAAAA)));

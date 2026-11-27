@@ -194,6 +194,11 @@ public final class Director {
         Prophecy pr = Prophecy.of(data);
         // (counted by the day's clock, which a night slept through moves on: "two or three days later")
         long now = ow.getDayTime();
+        long longest = com.ninjacat.greatjourney.clanlands.life.quests.Riddles.SOONEST + com.ninjacat.greatjourney.clanlands.life.quests.Riddles.SPREAD;
+        if (pr != null && pr.due() - now > longest) {          // the clock was set far back: it keeps its "two or three days"
+            Prophecy.keep(data, new Prophecy(pr.clan(), pr.meaning(), now + com.ninjacat.greatjourney.clanlands.life.quests.Riddles.SOONEST, pr.solved()));
+            return;
+        }
         if (pr == null || now < pr.due() || StoryData.active(ow) == null) return;
         if (now > pr.due() + PROPHECY_WAIT) {
             Prophecy.keep(data, null);

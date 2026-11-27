@@ -58,6 +58,9 @@ public final class Quests {
         q.then(withCat("clan", Talk::tellAboutClan));
         q.then(withCat("accept", Talk::accept));
         q.then(withCat("give", Talk::handIn));
+        q.then(Commands.literal("quiet")
+                .then(Commands.literal("on").executes(c -> Quiet.set(c.getSource().getPlayerOrException(), true) ? 1 : 0))
+                .then(Commands.literal("off").executes(c -> Quiet.set(c.getSource().getPlayerOrException(), false) ? 1 : 0)));
         q.then(Commands.literal("bye").executes(c -> {
             Dialog.clear(c.getSource().getPlayerOrException());
             return 1;
@@ -140,7 +143,7 @@ public final class Quests {
             if (i >= d.size()) return 0;
             Task gone = d.remove(i);
             QuestState.setDuties(p, d);
-            p.sendSystemMessage(Component.literal("You set aside: " + gone.title));
+            Ui.subtitle(p, List.of(com.ninjacat.greatjourney.clanlands.life.Dialog.Line.narrate("You set aside: " + gone.title)));
             Ui.push(p);
             return 1;
         })));

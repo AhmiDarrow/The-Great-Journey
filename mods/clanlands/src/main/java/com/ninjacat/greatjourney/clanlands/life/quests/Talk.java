@@ -35,7 +35,7 @@ final class Talk {
 
     static void onInteract(PlayerInteractEvent.EntityInteract e) {
         if (e.getHand() != InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer p)) return;
-        if (!talksWith(p.getMainHandItem()) || p.isShiftKeyDown()) return;
+        if (!Dialog.talksWith(p.getMainHandItem()) || p.isShiftKeyDown()) return;
         Strangers.Kind stranger = Strangers.kind(e.getTarget(), p);
         if (stranger != null) {                              // a kittypet, a loner, a rogue (Strangers)
             e.setCanceled(true);
@@ -82,14 +82,6 @@ final class Talk {
      * A cat can be talked to with an empty paw, or while carrying StarClan's Guidance or the journal: new players start
      * holding the guide, and the playtest harness found right-clicks then did nothing at all.
      */
-    private static boolean talksWith(net.minecraft.world.item.ItemStack held) {
-        if (held.isEmpty()) return true;
-        var id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(held.getItem());
-        return id.equals(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("patchouli", "guide_book"))
-                || id.equals(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("clanlands", "journal"))
-                || held.is(net.minecraft.world.item.Items.BOOK) || held.is(net.minecraft.world.item.Items.WRITTEN_BOOK);
-    }
-
     static void greet(ServerPlayer p, WCatEntity cat, LifeData life) {
         Role role = Kin.role(cat, life);
         String name = Kin.name(cat);
@@ -217,7 +209,7 @@ final class Talk {
     }
 
     /** Whether this cat belongs to the player's own Clan: no other takes their orders. */
-    private static boolean clanmate(ServerPlayer p, WCatEntity cat) {
+    static boolean clanmate(ServerPlayer p, WCatEntity cat) {
         ClanData.Clan wc = Joining.clanOf(p);
         return wc != null && wc.clanUUID.equals(cat.getClanUUID());
     }
@@ -339,6 +331,17 @@ final class Talk {
         String name = Kin.name(cat);
         int colour = Kin.colour(p);
         long day = p.level().getDayTime() / 24000L;
+        if (QuestState.duties(p).size() >= QuestState.MAX_DUTIES) {
+            List<Choice> aside = new java.util.ArrayList<>();
+            List<Task> held = QuestState.duties(p);
+            for (int i = 0; i < held.size(); i++) {
+                aside.add(new Choice("Set aside: " + held.get(i).title, "greatjourney quest drop " + (i + 1), 0xAAAAAA));
+            }
+            aside.add(Choice.of("I'll keep my promises", "greatjourney quest bye"));
+            Dialog.play(p, Line.say(name, colour, "You already have your paws full. Finish what you've promised first.").speakerEntity(cat)
+                    .withChoices(aside.toArray(Choice[]::new)));
+            return;
+        }
         Task duty = dutyFor(p, role, name, cat, day);
         if (duty == null) {
             Dialog.play(p, Line.say(name, colour, switch (role) {
@@ -354,10 +357,6 @@ final class Talk {
                     ? (Kin.grown(Kin.role(p)) ? "At this hour, " + Joining.catName(p) + "? It will keep until dawn. Even you must sleep."
                     : "At this hour? The Clan is asleep, " + Joining.catName(p) + ". Go to your nest, and ask me again at dawn.")
                     : "In this rain? The scents are washed out and the prey has gone to ground. Ask me again when it clears.").speakerEntity(cat));
-            return;
-        }
-        if (QuestState.duties(p).size() >= QuestState.MAX_DUTIES) {
-            Dialog.play(p, Line.say(name, colour, "You already have your paws full. Finish what you've promised first.").speakerEntity(cat));
             return;
         }
         if (QuestState.completedToday(p, cat.getUUID(), day)) {
@@ -376,11 +375,12 @@ final class Talk {
     }
 
     static void accept(ServerPlayer p, WCatEntity cat) {
+        if (!clanmate(p, cat)) return;                  // the command can be typed at any cat: only your own Clan asks
         LifeData life = LifeData.get(p.serverLevel().getServer().overworld());
         String name = Kin.name(cat);
         long day = p.level().getDayTime() / 24000L;
         Task duty = dutyFor(p, Kin.role(cat, life), name, cat, day);
-        if (duty == null || QuestState.duties(p).size() >= QuestState.MAX_DUTIES) return;
+        if (duty == null || QuestState.duties(p).size() >= QuestState.MAX_DUTIES || QuestState.completedToday(p, cat.getUUID(), day)) return;
         if (Tasks.keptIn(p.serverLevel().getServer().overworld(), duty.kind)) return;      // night fell, or rain, since it was offered
         List<Task> d = QuestState.duties(p);
         for (Task t : d) if (cat.getUUID().equals(t.giverId)) return;
@@ -396,11 +396,12 @@ final class Talk {
 
     /** Hands in whatever the player owes this cat (a duty, or the apprentice path's current step). */
     static void handIn(ServerPlayer p, WCatEntity cat) {
+        Task waiting = null;
         for (Task t : QuestState.active(p)) {
             if (!Story.answers(p, cat, t)) continue;
             if (!hasDeliveries(p, t)) {
-                Dialog.play(p, Line.say(Kin.name(cat), Kin.colour(p), remind(t, Kin.role(p))).speakerEntity(cat));
-                return;
+                if (waiting == null) waiting = t;                  // another task for this cat may be ready
+                continue;
             }
             for (Task.Objective o : t.objectives) {
                 if (o.type == Task.Objective.Type.BRING) Bag.handOver(p, o);
@@ -410,7 +411,8 @@ final class Talk {
             Rewards.complete(p, t, cat);
             return;
         }
-        Dialog.play(p, Line.say(Kin.name(cat), Kin.colour(p), "I didn't ask you for anything... did I?").speakerEntity(cat));
+        Dialog.play(p, Line.say(Kin.name(cat), Kin.colour(p), waiting != null ? remind(waiting, Kin.role(p))
+                : "I didn't ask you for anything... did I?").speakerEntity(cat));
     }
 
     static void tellAboutClan(ServerPlayer p, WCatEntity cat) {

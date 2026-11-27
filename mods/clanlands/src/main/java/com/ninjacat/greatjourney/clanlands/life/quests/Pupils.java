@@ -388,7 +388,11 @@ public final class Pupils {
                     break;
                 }
             }
-            line = Line.say(paw, colour, "What are we learning today, " + you + "?").withChoices(walk, bye);
+            // a duty this cat set before becoming an apprentice of the player's can still be handed in
+            boolean owed = QuestState.duties(p).stream().anyMatch(d -> cat.getUUID().equals(d.giverId) && d.readyToHandIn() && Talk.hasDeliveries(p, d));
+            line = Line.say(paw, colour, "What are we learning today, " + you + "?").withChoices(owed
+                    ? new Choice[] {Choice.of("I did what you asked", "greatjourney quest give " + cat.getId()), walk, bye}
+                    : new Choice[] {walk, bye});
             Ui.play(p, List.of(line.speakerEntity(cat), Line.narrate(lesson.title + ". " + (next.isEmpty() ? "" : next + "."))));
             return true;
         }

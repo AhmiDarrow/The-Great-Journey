@@ -14,6 +14,8 @@ final class DreamScript {
 
     static final Choice CONTINUE = new Choice("Continue", "greatjourney tutorial next", 0x55FF55);
     static final Choice SKIP = new Choice("Skip the dream", "greatjourney tutorial skip", 0xAAAAAA);
+    /** Closes the window, so the dreamer can go and do what was asked. */
+    static final Choice TRY = new Choice("I'll try!", "greatjourney quest bye", 0x55FF55);
     static final Choice NEW_MOUSE = new Choice("It got away!", "greatjourney tutorial mouse", 0xFFAA00);
 
     static Line bluestar(String t) { return Line.say("Bluestar", BLUE, t); }
@@ -33,11 +35,11 @@ final class DreamScript {
                     lionheart("A new face! I'm Lionheart. I was ThunderClan's deputy, and I mentored more apprentices than I can count."),
                     lionheart("Every warrior feeds their Clan, and that begins with the hunting crouch. Weight in your haunches, tail low and still."),
                     lionheart("Pad lightly. Prey feels your pawsteps through the ground long before it hears you. Then pounce! A strike at a run or a leap lands hardest."),
-                    lionheart("There's a mouse in the grass by me. Go on, catch it!").withChoices(NEW_MOUSE, SKIP));
+                    lionheart("There's a mouse in the grass by me. Go on, catch it!").withChoices(TRY, NEW_MOUSE, SKIP));
             case 3 -> List.of(
                     spottedleaf("Well hunted! I'm Spottedleaf. I was ThunderClan's medicine cat, and herbs were my whole world."),
                     spottedleaf("Do you see the patch beside me? Every one of those herbs eases a sick or hurt cat in its own way."),
-                    spottedleaf("Pick any herb you like, and I'll tell you what it's for.").withChoices(SKIP));
+                    spottedleaf("Pick any herb you like, and I'll tell you what it's for.").withChoices(TRY, SKIP));
             case 4 -> List.of(
                     yellowfang("Hmph. So you're the new one. I'm Yellowfang. My bones are too old for long speeches, so listen well."),
                     yellowfang("The forest isn't all mice and sunshine. Badgers, foxes and dogs will kill a careless cat. Never face one alone if you can help it."),

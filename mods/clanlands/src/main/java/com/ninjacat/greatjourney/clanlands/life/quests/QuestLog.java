@@ -82,7 +82,7 @@ public final class QuestLog {
             quests.set(i, q.withMap(marked.contains(q.id()), q.id().equals(followed)));
         }
         return new JournalView(Joining.catName(p), wc == null ? "" : wc.name, rank, colour, QuestState.standing(p),
-                nextGoal(p, wc), quests, places, mates, starclan, book == null ? List.of() : JournalView.LADDER);
+                nextGoal(p, wc), quests, places, mates, starclan, book == null ? List.of() : JournalView.LADDER, QuestState.quiet(p));
     }
 
     private static String rank(ServerPlayer p, ClanData.Clan wc) {

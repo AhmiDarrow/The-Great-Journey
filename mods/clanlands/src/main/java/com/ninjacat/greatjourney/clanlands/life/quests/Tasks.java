@@ -119,7 +119,7 @@ public final class Tasks {
                         giver, giverId, false, list(Objective.bring("Bring 4 moss to " + giver, MOSS, 4)), 3, 15, "", 0)
                         : new Task(Kind.FEED_ELDER, "Fresh-kill for " + giver,
                         "Elders eat first after the queens. Bring " + giver + " something tasty from the fresh-kill pile or your own hunting.",
-                        giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 3, 15, "", 0);
+                        giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 1, 15, "", 0);
             }
             case WARRIOR -> {
                 if (!grown) yield r.nextBoolean()
@@ -136,7 +136,7 @@ public final class Tasks {
                             giver + " dares you: the highest branch near camp, at least sixteen blocks above the camp floor. \"Unless you've grown too slow for it.\"");
                     default -> new Task(Kind.SHARE_PREY, "Prey for " + giver,
                             giver + " is just back from a long patrol, too footsore to hunt. Bring them something from your own hunting, as they would for you.",
-                            giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 3, 25, "", 0);
+                            giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 1, 25, "", 0);
                 };
             }
             case APPRENTICE -> grown
@@ -153,17 +153,17 @@ public final class Tasks {
             case KIT -> r.nextBoolean()
                     ? new Task(Kind.PLAY, "A real mouse for " + giver,
                     giver + " has never seen fresh-kill up close, only scraps. Bring one piece of prey to show them (they will want to pounce on it).",
-                    giver, giverId, false, list(Objective.bring("Bring 1 prey to " + giver, ANY_PREY, 1)), 2, 10, "", 0)
+                    giver, giverId, false, list(Objective.bring("Bring 1 prey to " + giver, ANY_PREY, 1)), 1, 10, "", 0)
                     : new Task(Kind.PLAY, "A moss-ball for " + giver,
                     giver + " has lost the nursery's moss-ball down a hole, and is very sorry about it. Make another and bring it to them.",
-                    giver, giverId, false, list(Objective.bring("Bring a moss-ball to " + giver, MOSS_BALL, 1)), 2, 10, "", 0);
+                    giver, giverId, false, list(Objective.bring("Bring a moss-ball to " + giver, MOSS_BALL, 1)), 1, 10, "", 0);
             case QUEEN -> r.nextBoolean()
                     ? new Task(Kind.FEED_QUEEN, "Food for the nursery",
                     giver + " is nursing kits and can't hunt. Bring her prey so the kits grow strong.",
-                    giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 3, 15, "", 0)
+                    giver, giverId, false, list(Objective.bring("Bring 2 prey to " + giver, ANY_PREY, 2)), 1, 15, "", 0)
                     : new Task(Kind.MOSS_BALL, "A moss-ball for the kits",
                     "The kits are bouncing off the nursery walls. Make them a moss-ball to play with and bring it to " + giver + ".",
-                    giver, giverId, false, list(Objective.bring("Bring a moss-ball to " + giver, MOSS_BALL, 1)), 2, 10, "", 0);
+                    giver, giverId, false, list(Objective.bring("Bring a moss-ball to " + giver, MOSS_BALL, 1)), 1, 10, "", 0);
         };
     }
 
@@ -236,6 +236,7 @@ public final class Tasks {
     }
 
     public static boolean keptIn(boolean night, boolean wet, Kind kind) {
+        if (kind == Kind.TEND) return false;                    // a sick cat is seen to at any hour, in any weather
         return night || (wet && outing(kind));
     }
 
@@ -272,17 +273,17 @@ public final class Tasks {
             case WARRIOR, APPRENTICE -> new Task(Kind.TEND, "Cracked pads",
                     giver + "'s pads are cracked and sore from the stony ground. "
                             + (role == Role.APPRENTICE ? "Training will have to wait until they're seen to." : "A warrior who can't walk can't patrol."),
-                    giver, giverId, false, list(Patients.plan("Treat " + giver + "'s sore pads", Patients.Who.SELF, net.snowteb.warriorcats_events.diseases.DiseaseTypes.SORE_PADS, 1)), 3, 25, "", 0);
+                    giver, giverId, false, list(Patients.plan("Treat " + giver + "'s sore pads", Patients.Who.SELF, net.snowteb.warriorcats_events.diseases.DiseaseTypes.SORE_PADS, 1)), 2, 25, "", 0);
             case ELDER -> r.nextBoolean()
                     ? new Task(Kind.ELDER_HERBS, "Aching joints",
                     giver + "'s old joints ache with the cold. Daisy leaves, chewed to a pulp, will ease them.",
-                    giver, giverId, false, list(Objective.bring("Bring 2 daisy leaves to " + giver, "warriorcats_events:daisy_leaves|warriorcats_events:daisy", 2)), 3, 15, "", 0)
+                    giver, giverId, false, list(Objective.bring("Bring 2 daisy leaves to " + giver, "warriorcats_events:daisy_leaves|warriorcats_events:daisy", 2)), 2, 15, "", 0)
                     : new Task(Kind.ELDER_HERBS, "A sleepless elder",
                     giver + " hasn't slept for the ache in their bones. A few poppy seeds will let them rest (craft them from a poppy).",
-                    giver, giverId, false, list(Objective.bring("Bring 2 poppy seeds to " + giver, "warriorcats_events:poppy_seeds", 2)), 3, 15, "", 0);
+                    giver, giverId, false, list(Objective.bring("Bring 2 poppy seeds to " + giver, "warriorcats_events:poppy_seeds", 2)), 2, 15, "", 0);
             case QUEEN -> new Task(Kind.TEND, "A feverish kit",
                     "One of " + giver + "'s kits is hot and won't stop mewling. " + giver + " is frightened: see to the kit.",
-                    giver, giverId, false, list(Patients.plan("Cure the sick kit", Patients.Who.KIT, net.snowteb.warriorcats_events.diseases.DiseaseTypes.FEVER, 1)), 3, 15, "", 0);
+                    giver, giverId, false, list(Patients.plan("Cure the sick kit", Patients.Who.KIT, net.snowteb.warriorcats_events.diseases.DiseaseTypes.FEVER, 1)), 2, 15, "", 0);
             default -> null;
         };
     }

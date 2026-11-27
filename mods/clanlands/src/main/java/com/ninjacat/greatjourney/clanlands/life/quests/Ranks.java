@@ -104,7 +104,10 @@ public final class Ranks {
         ClanData.get(ow).changeMemberRank(p.getUUID(), wc.clanUUID, ClanPlayerRank.DEPUTY);
         for (WCatEntity c : Cats.atCamp(ow, clan)) if (c.getRank() == WCatEntity.Rank.DEPUTY) c.setRank(WCatEntity.Rank.WARRIOR);
         QuestState.root(p).putLong("deputySince", ow.getGameTime());
-        QuestState.addStanding(p, 10);
+        if (!QuestState.root(p).getBoolean("deputyPaid")) {      // once: stepping down and up again earns nothing
+            QuestState.root(p).putBoolean("deputyPaid", true);
+            QuestState.addStanding(p, 10);
+        }
         BookClans.Info info = BookClans.Info.of(clan);
         String you = Joining.catName(p);
         EventNews.record(clan, you + " is the new deputy of " + info.title + ".");

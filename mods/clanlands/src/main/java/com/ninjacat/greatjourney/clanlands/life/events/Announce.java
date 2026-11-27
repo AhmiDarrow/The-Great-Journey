@@ -45,7 +45,7 @@ final class Announce {
         if (!lines.isEmpty()) ClanEvents.noticed(LifeData.get(level).clanId(c), where, lines.get(0).text(), level.getServer().overworld().getGameTime());
         for (ServerPlayer p : audience(level, c, where)) {
             boolean witness = where != null && p.level() == level && p.blockPosition().distSqr(where) <= WITNESS * WITNESS;
-            if (witness) Dialog.play(p, lines);
+            if (witness && !com.ninjacat.greatjourney.clanlands.life.quests.QuestState.quiet(p)) Dialog.play(p, lines);
             else Dialog.subtitle(p, lines);
         }
     }
@@ -57,7 +57,9 @@ final class Announce {
     /** A scene only for those there to see it (an elder's story): played to witnesses, and no news to anyone else. */
     static void witnesses(ServerLevel level, BlockPos where, List<Line> lines) {
         for (ServerPlayer p : level.players()) {
-            if (p.blockPosition().distSqr(where) <= WITNESS * WITNESS) Dialog.play(p, lines);
+            if (p.blockPosition().distSqr(where) > WITNESS * WITNESS) continue;
+            if (com.ninjacat.greatjourney.clanlands.life.quests.QuestState.quiet(p)) Dialog.subtitle(p, lines);
+            else Dialog.play(p, lines);
         }
     }
 }

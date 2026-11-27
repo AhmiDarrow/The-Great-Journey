@@ -36,6 +36,8 @@ public final class CampaignData extends SavedData {
     /** Each Clan's cats when they left the forest: "Name|RANK|gender" lines, to arrive with them at the lake. */
     final Map<Clan, List<String>> roster = new EnumMap<>(Clan.class);
     boolean complete;
+    /** Players' own cats among the forest Clans, noted as they load and unload, for one out of reach at the leaving. */
+    final Set<java.util.UUID> ownCats = new java.util.HashSet<>();
 
     public static CampaignData get(ServerLevel overworld) {
         return overworld.getDataStorage().computeIfAbsent(new Factory<>(CampaignData::new, CampaignData::load), ID);
@@ -56,6 +58,7 @@ public final class CampaignData extends SavedData {
         d.departed = tag.getBoolean("departed");
         d.lakeFounded = tag.getBoolean("lakeFounded");
         d.complete = tag.getBoolean("complete");
+        for (Tag t : tag.getList("ownCats", Tag.TAG_INT_ARRAY)) d.ownCats.add(net.minecraft.nbt.NbtUtils.loadUUID(t));
         for (Clan c : Clan.values()) {
             CompoundTag ct = tag.getCompound(c.name());
             if (ct.getBoolean("forestPopulated")) d.forestPopulated.add(c);
@@ -81,6 +84,9 @@ public final class CampaignData extends SavedData {
         tag.putBoolean("departed", departed);
         tag.putBoolean("lakeFounded", lakeFounded);
         tag.putBoolean("complete", complete);
+        ListTag own = new ListTag();
+        for (java.util.UUID id : ownCats) own.add(net.minecraft.nbt.NbtUtils.createUUID(id));
+        tag.put("ownCats", own);
         for (Clan c : Clan.values()) {
             CompoundTag ct = new CompoundTag();
             ct.putBoolean("forestPopulated", forestPopulated.contains(c));

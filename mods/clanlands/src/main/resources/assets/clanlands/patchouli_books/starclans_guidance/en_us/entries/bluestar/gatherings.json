@@ -12,6 +12,7 @@
     {
       "type": "patchouli:text",
       "text": "During a Gathering there is no fighting. Ever. If clouds cover the moon, it is a sign that StarClan is angry. $(br2)Look up on a clear night. Every star you see is a warrior watching over you."
-    }
+    },
+    {"type": "patchouli:text", "title": "Quiet Paws", "text": "Don't want to be called away? Press the $(l)Quiet paws$() bookmark under your journal. No calls to meetings, no Moonpool dreams, and no surprise visitors, border patrols or hard choices out in the land.$(br2)Press it again whenever you like."}
   ]
 }

@@ -196,6 +196,12 @@ final class Weather {
                 case "drought" -> over |= !d.forced && ow.isRaining();
                 default -> { }
             }
+            // a fire is put out only where it can be reached: with its land unloaded it waits, so no flame is left behind
+            if (over && d.kind.equals("fire") && d.fireCentre != 0) {
+                BlockPos at = BlockPos.of(d.fireCentre);
+                int reach = d.fireRadius + 6;
+                over = ow.hasChunksAt(at.offset(-reach, 0, -reach), at.offset(reach, 0, reach));
+            }
             if (over) end(ow, d);
         }
         if (!d.changes.isEmpty() && !d.active()) {

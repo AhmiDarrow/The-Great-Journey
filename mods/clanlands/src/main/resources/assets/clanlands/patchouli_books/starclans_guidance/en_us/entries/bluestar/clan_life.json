@@ -26,6 +26,7 @@
       "type": "patchouli:text",
       "title": "Cats of No Clan",
       "text": "Not every cat is a Clan cat. Kittypets, loners and rogues will talk if you greet them with an empty paw. A kittypet knows the Twolegplace; a loner hears news from every border. $(br2)A rogue has only threats. Do not turn your back on one. $(br2)If you have no Clan yourself, a loner may ask a favour of you. Keep your word, and even the Clans will hear of it."
-    }
+    },
+    {"type": "patchouli:text", "title": "Your Duties", "text": "You can hold three duties at once. If your paws are full, any Clanmate you ask for work will let you $(l)set aside$() one of your old duties."}
   ]
 }

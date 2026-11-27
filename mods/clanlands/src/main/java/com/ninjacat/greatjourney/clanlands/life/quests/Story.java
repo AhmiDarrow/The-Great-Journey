@@ -82,8 +82,10 @@ final class Story {
             return;
         }
         long now = p.level().getGameTime();
-        if (step == QuestState.CEREMONY && toCamp < camp.radius() + 6 && now - QuestState.root(p).getLong("ceremonyAt") > 600) {
-            QuestState.root(p).putLong("ceremonyAt", now);     // asked again at most every 30 s if the window is closed
+        // asked again if the window is closed: every 30 s, or every 5 minutes for a quiet cat
+        if (step == QuestState.CEREMONY && toCamp < camp.radius() + 6
+                && now - QuestState.root(p).getLong("ceremonyAt") > (QuestState.quiet(p) ? 6000 : 600)) {
+            QuestState.root(p).putLong("ceremonyAt", now);
             ceremony(p, clan);
         }
         // a named cat is full-grown, however they came by the name (their cat drawn again as a kit, an older world)
@@ -292,7 +294,7 @@ final class Story {
     }
 
     /** A step is handed in: on to the next, or ready for the ceremony after the assessment. */
-    static void stepDone(ServerPlayer p, Task done, WCatEntity mentor) {
+    static void stepDone(ServerPlayer p, Task done, WCatEntity mentor, boolean paid) {
         Clan clan = Kin.bookClan(p);
         int colour = Kin.colour(p);
         String name = mentor != null ? Kin.name(mentor) : QuestState.mentorName(p);
@@ -317,7 +319,9 @@ final class Story {
                 lines.add(say(name, colour, "You're ready. Go back to camp: " + leader + " will give you your warrior name.", mentor));
             }
         }
-        lines.add(Line.narrate("Your standing in the Clan grows (+" + done.standing + ")."));
+        if (paid) {
+            lines.add(Line.narrate("Your standing in the Clan grows (+" + done.standing + ")."));
+        }
         Dialog.play(p, lines);
     }
 

@@ -101,7 +101,7 @@ public final class Skirmish {
 
     /** The Clan whose land the player is out in (their own, away from its camp), or null. */
     static Clan outIn(ServerLevel ow, ClanWorld w, ServerPlayer p) {
-        if (p.isSpectator() || !p.isAlive() || Dialog.busy(p)) return null;
+        if (p.isSpectator() || !p.isAlive() || Dialog.busy(p) || com.ninjacat.greatjourney.clanlands.life.quests.QuestState.quiet(p)) return null;
         UUID mine = p.getData(net.snowteb.warriorcats_events.attachments.ModAttachments.PLAYER_WCE_DATA.get()).getCurrentClanUUID();
         Clan c = LifeData.get(ow).clanOf(mine);
         if (c == null || Homeland.territoryAt(w, p.getX(), p.getZ()) != c) return null;
@@ -261,6 +261,7 @@ public final class Skirmish {
     /** Right-clicking a trespasser brings the choice back (a window closed, or a warning that was not heeded). */
     static void onInteract(PlayerInteractEvent.EntityInteract e) {
         if (e.getHand() != InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer p) || !e.getTarget().getTags().contains(TAG)) return;
+        if (!com.ninjacat.greatjourney.clanlands.life.Dialog.talksWith(p.getMainHandItem())) return;
         if (p.isShiftKeyDown()) return;
         e.setCanceled(true);
         e.setCancellationResult(InteractionResult.SUCCESS);

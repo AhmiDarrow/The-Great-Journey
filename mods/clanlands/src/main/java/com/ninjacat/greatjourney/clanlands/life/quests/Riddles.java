@@ -19,11 +19,11 @@ import net.minecraft.util.RandomSource;
  * words, and they puzzle it out with their Clan's medicine cat. One guess a day; a right one before its time has the
  * Clan ready for what comes ({@code Director}).
  */
-final class Riddles {
+public final class Riddles {
     private Riddles() {}
 
     /** A prophecy comes true between two and three days after it is given. */
-    static final long SOONEST = 48000L, SPREAD = 24000L;
+    public static final long SOONEST = 48000L, SPREAD = 24000L;
     private static final String GUESSED = "riddleDay", ASKING = "riddleAsking";
     private static final int STAR = 0xCFE3FF;
 

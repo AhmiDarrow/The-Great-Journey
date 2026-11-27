@@ -14,12 +14,13 @@ final class Rewards {
     static void complete(ServerPlayer p, Task t, WCatEntity giver) {
         String name = giver != null ? Kin.name(giver) : t.giverName;
         int colour = Kin.colour(p);
-        QuestState.addStanding(p, t.standing);
+        boolean pays = !t.story || QuestState.payStep(p, QuestState.storyStep(p));
+        if (pays) QuestState.addStanding(p, t.standing);
         QuestState.countCompleted(p, t.kind);
-        if (t.xp > 0) p.giveExperiencePoints(t.xp);
-        Bag.give(p, t.rewardItem, t.rewardCount);
+        if (pays && t.xp > 0) p.giveExperiencePoints(t.xp);
+        if (pays) Bag.give(p, t.rewardItem, t.rewardCount);
         if (t.story) {
-            Story.stepDone(p, t, giver);
+            Story.stepDone(p, t, giver, pays);
         } else if (t.kind == Task.Kind.LESSON) {
             Pupils.lessonDone(p, giver);
         } else {

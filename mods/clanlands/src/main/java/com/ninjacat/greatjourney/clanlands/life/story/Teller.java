@@ -15,7 +15,7 @@ public enum Teller {
     YELLOWFANG("Yellowfang", 0xB8B090, "Hard seasons. Sickness and injuries come often and leaf-bare bites deep. A medicine cat's life.",
             1.0, 12000, 2400, 0.10, 1.5),
     TIGERSTAR("Tigerstar", 0xD06040, "War. Raids, rogues and border fights, worse the stronger you grow. He will offer you things.",
-            0.8, 0, 1200, 0.45, 1.0),
+            0.8, 0, 1200, 0.25, 1.0),
     MIDNIGHT("Midnight", 0xC8C8D8, "Long calms, then everything at once. She warns early, and never plainly.",
             1.0, 24000, 6000, 0.20, 1.0);
 

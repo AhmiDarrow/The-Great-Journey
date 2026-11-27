@@ -151,7 +151,9 @@ public final class QuestGameTests {
     public static void nobodyIsSentOutAtNightOrInTheRain(GameTestHelper h) {
         h.assertFalse(Tasks.night(6000) || Tasks.keptIn(false, false, Task.Kind.BORDER_PATROL), "a dry noon: patrols go out");
         h.assertTrue(Tasks.night(18000) && Tasks.night(24000L * 5 + 13000), "midnight and dusk are night, on any day");
-        for (Task.Kind k : Task.Kind.values()) h.assertTrue(Tasks.keptIn(true, false, k), "nothing is asked at night: " + k);
+        for (Task.Kind k : Task.Kind.values()) {
+            h.assertTrue(k == Task.Kind.TEND || Tasks.keptIn(true, false, k), "nothing but the sick is asked at night: " + k);
+        }
         h.assertFalse(Tasks.night(23500) || Tasks.night(1000), "the dawn patrol's hour is day");
         for (Task.Kind k : List.of(Task.Kind.BORDER_PATROL, Task.Kind.HUNT, Task.Kind.FISH, Task.Kind.STORY_PATROL, Task.Kind.STORY_HUNT,
                 Task.Kind.STORY_PLACES, Task.Kind.STORY_ASSESSMENT)) {

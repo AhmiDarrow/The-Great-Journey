@@ -236,18 +236,25 @@ final class ForestClans {
             ClanData.Clan wc = id == null ? null : data.getClan(id);
             if (wc == null) continue;
             List<String> roster = new ArrayList<>();
-            for (ClanData.ClanCat cat : wc.clanCats.values()) {
+            java.util.Set<UUID> kept = new java.util.HashSet<>();
+            for (var entry : wc.clanCats.entrySet()) {
+                var loaded = ow.getEntity(entry.getKey());
+                if (loaded instanceof WCatEntity own ? playersOwn(own, c) : cd.ownCats.contains(entry.getKey())) {
+                    kept.add(entry.getKey());                          // a player's own cat stays theirs, on the list
+                    continue;
+                }
+                ClanData.ClanCat cat = entry.getValue();
                 String n = cat.catName == null ? "" : cat.catName.getString().replace(" ♂", "").replace(" ♀", "").trim();
                 if (n.isEmpty()) continue;
                 roster.add(n + "|" + (cat.catRank == null ? "WARRIOR" : cat.catRank) + "|" + cat.catGenderValue);
             }
             cd.roster.put(c, roster);
-            wc.clanCats.clear();
+            wc.clanCats.keySet().retainAll(kept);
         }
         ClanWorld w = ClanWorld.current();
         if (w != null) {
             for (Entity e : ow.getAllEntities()) {
-                if (leftBehind(e, w, life)) e.discard();
+                if (leftBehind(e, w, life)) remove(data, (WCatEntity) e);
             }
         }
         cd.departed = true;
@@ -255,10 +262,21 @@ final class ForestClans {
         data.setDirty();
     }
 
-    /** A forest Clan cat still in the old forest after the Clans have left (travelling companions excepted). */
+    /** Takes a cat out of the world and off its Clan's list. */
+    static void remove(ClanData data, WCatEntity cat) {
+        data.removeClanCatFromAnyClan(cat);
+        cat.discard();
+    }
+
+    /** A forest Clan cat still in the old forest after the Clans have left (travelling companions and players' own cats excepted). */
     static boolean leftBehind(Entity e, ClanWorld w, LifeData life) {
-        return e instanceof WCatEntity cat && !cat.getTags().contains(ESCORT_TAG) && life.clanOf(cat.getClanUUID()) != null
-                && w.forest.covers(cat.getX(), cat.getZ());
+        if (!(e instanceof WCatEntity cat) || cat.getTags().contains(ESCORT_TAG) || !w.forest.covers(cat.getX(), cat.getZ())) return false;
+        var clan = life.clanOf(cat.getClanUUID());
+        return clan != null && !playersOwn(cat, clan);
+    }
+
+    static boolean playersOwn(WCatEntity cat, Clan clan) {
+        return cat.isTame() && cat.getOwnerUUID() != null && !cat.getOwnerUUID().equals(BookClans.standInLeader(clan));
     }
 
     /** The Clans reach the lake: they give up the forest, claim the lake territories and settle their camps. */
@@ -284,7 +302,7 @@ final class ForestClans {
         int claims = claim(w.lake, w.lake::territoryAt, w.lake::camp, data, life);
         // the travelling companions join their Clanmates in the new camps
         for (Entity e : ow.getAllEntities()) {
-            if (e instanceof WCatEntity cat && cat.getTags().contains(ESCORT_TAG)) cat.discard();
+            if (e instanceof WCatEntity cat && cat.getTags().contains(ESCORT_TAG)) remove(data, cat);
         }
         cd.lakeFounded = true;
         cd.setDirty();

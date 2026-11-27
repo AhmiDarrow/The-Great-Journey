@@ -11,6 +11,7 @@ import com.ninjacat.greatjourney.clanlands.life.Joining;
 import com.ninjacat.greatjourney.clanlands.life.Journey;
 import com.ninjacat.greatjourney.clanlands.life.Lead;
 import com.ninjacat.greatjourney.clanlands.life.Starts;
+import com.ninjacat.greatjourney.clanlands.life.quests.QuestState;
 import com.ninjacat.greatjourney.clanlands.world.ClanWorld;
 import com.ninjacat.greatjourney.clanlore.moon.Moon;
 import java.util.ArrayList;
@@ -121,7 +122,9 @@ final class HalfMoon {
         if (r.spawned) {
             for (ServerPlayer p : ow.players()) {
                 if (!p.isSpectator() && Crowd.near(p, sh.x(), sh.z(), SEE) && !Gatherings.storyChapter(p) && r.seen.add(p.getUUID())) {
-                    Dialog.play(p, scene(ow, p, r, sh));
+                    List<Line> seen = scene(ow, p, r, sh);
+                    if (QuestState.quiet(p)) Dialog.subtitle(p, seen.get(0));
+                    else Dialog.play(p, seen);
                 }
             }
         }
@@ -162,7 +165,7 @@ final class HalfMoon {
         Journey.stamp(p, ASKED, r.id);
         Info info = Info.of(c);
         String healer = r.healers.get(c);
-        if (!medicine(p)) {
+        if (!medicine(p) || QuestState.quiet(p)) {
             Dialog.subtitle(p, Line.narrate(healer + " has set off for " + shrineName() + " beneath the half moon, to share tongues with StarClan."));
             return;
         }
@@ -170,7 +173,8 @@ final class HalfMoon {
         Dialog.play(p, Line.say(healer, info.colour, apprentice
                         ? "It is the half moon, " + Joining.catName(p) + ". Tonight the medicine cats share tongues with StarClan at " + shrineName() + ". Will you walk with me?"
                         : "It is the half moon. The other medicine cats will be waiting at " + shrineName() + ". Shall we go together?")
-                .withChoices(Choice.of("Go", "greatjourney halfmoon go"), new Choice("Not tonight", "greatjourney halfmoon stay", 0xAAAAAA)));
+                .withChoices(Choice.of("Go", "greatjourney halfmoon go"), new Choice("Not tonight", "greatjourney halfmoon stay", 0xAAAAAA),
+                        new Choice("Don't call me again", "greatjourney quest quiet on", 0xAAAAAA)));
     }
 
     /** "Go": the player's own medicine cat walks them up into the hills to the Moonpool, or out to the Highstones. */
@@ -211,6 +215,11 @@ final class HalfMoon {
         Dialog.play(p, Line.say(name, info.colour, sh.pool() ? "Come, then. We follow the stream up into the hills."
                 : "Come, then. It's a long way: across the moor and up to the Highstones.").speakerEntity(guide));
         return true;
+    }
+
+    static void leave(ServerPlayer p) {
+        if (run != null) run.going.remove(p.getUUID());
+        Gatherings.dropGuide(p, GUIDES);
     }
 
     static boolean stay(ServerPlayer p) {

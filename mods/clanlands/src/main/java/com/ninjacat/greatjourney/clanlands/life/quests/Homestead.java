@@ -125,10 +125,14 @@ final class Homestead {
                 WCatEntity cat = cat(ow, near(ow, p, r, 7), r, false);
                 if (cat == null) return false;
                 cat.addTag(WANDERER_TAG);
+                cat.getPersistentData().putUUID(CAME_TO, p.getUUID());
                 VISITORS.put(cat.getUUID(), ow.getGameTime() + STAYS);
                 ow.addFreshEntity(cat);
-                Ui.play(p, List.of(Line.narrate("A thin cat with no Clan scent waits at the edge of your camp, not daring to come closer.")));
-                Ui.play(p, asks(cat));
+                List<Line> there = List.of(Line.narrate("A thin cat with no Clan scent waits at the edge of your camp, not daring to come closer."));
+                if (QuestState.quiet(p)) Ui.subtitle(p, there);
+                else Ui.play(p, there);
+                // a quiet cat is left to go and greet the wanderer when it suits them
+                if (!QuestState.quiet(p)) Ui.play(p, asks(cat));
             }
             case KITS -> {
                 WCatEntity mother = cats.stream().filter(c -> !c.isBaby() && c.getGender() == 1).findFirst().orElse(null);
@@ -217,12 +221,19 @@ final class Homestead {
         cat.updateClanCatData();
     }
 
+    private static final String CAME_TO = "greatjourney_for";
+
+    /** Whether this wanderer came to this founder: no other may take them or send them off. */
+    static boolean cameTo(WCatEntity cat, ServerPlayer p) {
+        return !cat.getPersistentData().hasUUID(CAME_TO) || cat.getPersistentData().getUUID(CAME_TO).equals(p.getUUID());
+    }
+
     /** "welcome" or "turn" to a wanderer still waiting. */
     static boolean answer(ServerPlayer p, String what, int entityId) {
         Dialog.clear(p);
         ClanData.Clan wc = com.ninjacat.greatjourney.clanlands.life.Joining.clanOf(p);
         if (!(p.serverLevel().getEntity(entityId) instanceof WCatEntity cat) || !cat.getTags().contains(WANDERER_TAG)
-                || !Founding.founder(p, wc) || cat.distanceTo(p) > 32) return false;
+                || !Founding.founder(p, wc) || cat.distanceTo(p) > 32 || !cameTo(cat, p)) return false;
         return settle(p, cat, wc.clanUUID, wc.name, what);
     }
 
@@ -242,7 +253,8 @@ final class Homestead {
 
     static void onInteract(PlayerInteractEvent.EntityInteract e) {
         if (e.getHand() != InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer p)) return;
-        if (p.isShiftKeyDown() || !(e.getTarget() instanceof WCatEntity cat) || !cat.getTags().contains(WANDERER_TAG)) return;
+        if (!Dialog.talksWith(p.getMainHandItem())) return;
+        if (p.isShiftKeyDown() || !(e.getTarget() instanceof WCatEntity cat) || !cat.getTags().contains(WANDERER_TAG) || !cameTo(cat, p)) return;
         e.setCanceled(true);
         e.setCancellationResult(InteractionResult.SUCCESS);
         if (!Dialog.busy(p) && Founding.founder(p, com.ninjacat.greatjourney.clanlands.life.Joining.clanOf(p))) Dialog.play(p, asks(cat));

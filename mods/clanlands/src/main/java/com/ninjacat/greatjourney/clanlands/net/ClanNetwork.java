@@ -22,7 +22,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 public final class ClanNetwork {
     private ClanNetwork() {}
 
-    public static final String VERSION = "4";
+    public static final String VERSION = "5";
 
     public static void register(IEventBus modBus) {
         modBus.addListener(ClanNetwork::payloads);

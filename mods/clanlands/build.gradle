@@ -34,6 +34,8 @@ dependencies {
     localRuntime 'curse.maven:craftedcore-923377:7575403'
     localRuntime 'curse.maven:geckolib-388172:8893490'
     localRuntime 'curse.maven:patchouli-306770:7730942'
+    // Serene Seasons as the pack ships it, so the game tests see the real season clock
+    localRuntime files('../../pack/mods/SereneSeasons-neoforge-1.21.1-10.1.0.3.jar', '../../pack/mods/GlitchCore-neoforge-1.21.1-2.1.0.2.jar')
 }
 
 neoForge {

@@ -20,6 +20,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -65,12 +66,24 @@ public final class Keepsakes {
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, Keepsakes::onDeath);
         NeoForge.EVENT_BUS.addListener(Keepsakes::onClone);
         NeoForge.EVENT_BUS.addListener(Keepsakes::onTick);
+        // a frame or a stand would take the keepsake, and a new one come two seconds later: it stays in the paw
+        NeoForge.EVENT_BUS.addListener((PlayerInteractEvent.EntityInteract e) -> {
+            if (givesTo(e.getTarget(), e.getItemStack())) e.setCanceled(true);
+        });
+        NeoForge.EVENT_BUS.addListener((PlayerInteractEvent.EntityInteractSpecific e) -> {
+            if (givesTo(e.getTarget(), e.getItemStack())) e.setCanceled(true);
+        });
         NeoForge.EVENT_BUS.addListener(Keepsakes::onToss);
         NeoForge.EVENT_BUS.addListener(Keepsakes::onClose);
         NeoForge.EVENT_BUS.addListener((ServerStoppedEvent e) -> KEPT.clear());
     }
 
     /** Whether a stack is one of the things a cat always carries. */
+    static boolean givesTo(net.minecraft.world.entity.Entity target, ItemStack held) {
+        return (target instanceof net.minecraft.world.entity.decoration.ItemFrame
+                || target instanceof net.minecraft.world.entity.decoration.ArmorStand) && isKeepsake(held);
+    }
+
     public static boolean isKeepsake(ItemStack s) {
         if (s.isEmpty()) return false;
         for (Keepsake k : ALL) if (k.is().test(s)) return true;

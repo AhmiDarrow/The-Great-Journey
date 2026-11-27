@@ -107,6 +107,7 @@ public final class JournalScreen extends Screen {
         // the vanilla render draws the blurred background (and any widgets) first; the book goes on top of it
         super.render(g, mouseX, mouseY, partial);
         drawTabs(g, mouseX, mouseY);
+        drawQuiet(g, mouseX, mouseY);
         // the cover, then the two pages and the spine between them
         UiStyle.panel(g, bookX, bookY, bookW, bookH, 0x5C3A22, 0x3E2614, 0x2A190C, 1f);
         int lx = leftX(), rx = rightX(), py = pageY(), pw = pageW(), ph = pageH();
@@ -123,6 +124,43 @@ public final class JournalScreen extends Screen {
             case STARCLAN -> drawStarClan(g);
             case MAP -> drawMap(g, mouseX, mouseY);
         }
+        quietTip(g, mouseX, mouseY);
+    }
+
+    /** The quiet paws switch, a bookmark hanging below the book. */
+    private String quietLabel() {
+        return view.quiet() ? "Quiet paws: ON" : "Quiet paws: off";
+    }
+
+    private int quietW() {
+        return font.width(quietLabel()) + 16;
+    }
+
+    private int quietX() {
+        return bookX + bookW - 14 - quietW();
+    }
+
+    private int quietY() {
+        return Math.min(bookY + bookH, height - 12);
+    }
+
+    private boolean overQuiet(double mx, double my) {
+        return UiStyle.over(mx, my, quietX(), quietY(), quietW(), 12);
+    }
+
+    private void drawQuiet(GuiGraphics g, int mouseX, int mouseY) {
+        int x = quietX(), y = quietY();
+        UiStyle.rounded(g, x, y, quietW(), 12, 3, UiStyle.argb(view.quiet() ? 0x3F6B3A : overQuiet(mouseX, mouseY) ? 0x7A4A2E : 0x5E4030, 1f));
+        g.drawString(font, quietLabel(), x + 8, y + 2, UiStyle.argb(0xF6E8C8, 1f), false);
+    }
+
+    private void quietTip(GuiGraphics g, int mouseX, int mouseY) {
+        if (!overQuiet(mouseX, mouseY)) return;
+        g.renderComponentTooltip(font, java.util.List.of(Component.literal("Quiet paws"),
+                Component.literal("No calls to the Gathering or half moon,"),
+                Component.literal("no Moonpool dreams or surprise visitors,"),
+                Component.literal("no border patrols or hard choices."),
+                Component.literal("Click to turn it " + (view.quiet() ? "off." : "on."))), mouseX, mouseY);
     }
 
     /** The map's square on the right page. */
@@ -398,6 +436,10 @@ public final class JournalScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
+        if (button == 0 && overQuiet(mx, my) && minecraft.player != null) {
+            minecraft.player.connection.sendCommand("greatjourney quest quiet " + (view.quiet() ? "off" : "on"));
+            return true;
+        }
         Tab t = tabAt(mx, my);
         if (t != null) {
             setTab(t);

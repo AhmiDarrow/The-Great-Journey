@@ -94,6 +94,9 @@ public final class Campaign {
         });
         NeoForge.EVENT_BUS.addListener(Campaign::chunkLoaded);
         NeoForge.EVENT_BUS.addListener(Campaign::entityJoined);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent e) -> {
+            if (!e.getLevel().isClientSide() && ClanWorld.current() != null) noteOwn(e.getEntity());   // tamed since it loaded
+        });
         // the journal shows the story's chapter first in a Campaign world
         Journals.provider(p -> decorate(p, QuestLog.view(p)));
         // the Clan map marks every quest's place, the Campaign's chapter among them
@@ -243,6 +246,8 @@ public final class Campaign {
         Dialog.clear(p);
         p.removeEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);   // the Gathering's (see faceRock)
         boolean lake = cd.lakeFounded;
+        if (start == Journey.Start.CLAN && clan == null) return false;
+        Starts.markArriving(p);
         switch (start) {
             case CLAN -> {
                 if (clan == null) return false;
@@ -250,7 +255,10 @@ public final class Campaign {
                 Journey.setStage(p, Journey.Stage.PLAYING);
                 data(p).putBoolean("journal", true);              // the guide below brings the journal
                 Starts.giveGuide(p);
-                if (!join(p, clan)) setChapter(p, Chapter.OUTSIDER);
+                if (!join(p, clan)) {
+                    p.getPersistentData().remove("greatjourney.arriving");
+                    setChapter(p, Chapter.OUTSIDER);
+                }
                 return true;
             }
             case KITTYPET -> {
@@ -334,7 +342,7 @@ public final class Campaign {
         if (level.getServer().getPlayerCount() <= 1 && level.dimension() == Level.OVERWORLD) {
             long day = level.getDayTime() / DAY;
             long fullMoon = ((day + 7) / 8) * 8;                    // the next full moon (phase 0 every eight days)
-            level.setDayTime(fullMoon * DAY + 14000);
+            com.ninjacat.greatjourney.clanlands.life.gathering.Gatherings.windClock(level, fullMoon * DAY + 14000);
         }
         Landmark ft = w.forest.landmarks().stream().filter(l -> l.kind() == Landmark.Kind.FOURTREES).findFirst().orElse(null);
         double ring = ft == null ? 30 : ft.radius() - 14;
@@ -693,6 +701,9 @@ public final class Campaign {
         if (cd.departed && Errands.current(p).startsWith("dark.")) {
             Errands.drop(p, "There is no time for that now: the Clans are leaving the forest.");
         }
+        if (cd.lakeFounded && Errands.current(p).startsWith("pass.")) {
+            Errands.drop(p, "The journey is over, and your companions are home with the rest of the Clan.");
+        }
         String id = errandFor(ch, healer(p));
         if (id == null || Errands.busy(p) || Errands.given(p, id)) return;
         StoryTasks.Def def = switch (id.substring(0, id.indexOf('.'))) {
@@ -719,10 +730,11 @@ public final class Campaign {
     }
 
     /** StarClan's sign: a dream under the stars, then back to the forest with a task. */
-    private static void sign(ServerPlayer p) {
+    static void sign(ServerPlayer p) {
         CompoundTag d = data(p);
         d.putBoolean("signDone", true);
-        ServerLevel dream = p.getServer().getLevel(DreamClearing.DREAM);
+        boolean quiet = com.ninjacat.greatjourney.clanlands.life.quests.QuestState.quiet(p);
+        ServerLevel dream = quiet ? null : p.getServer().getLevel(DreamClearing.DREAM);
         if (dream != null) {
             d.putDouble("returnX", p.getX());
             d.putDouble("returnY", p.getY());
@@ -734,6 +746,12 @@ public final class Campaign {
             p.teleportTo(dream, a.getX() + 0.5, a.getY(), a.getZ() + 0.5, 180, 0);
         }
         setChapter(p, Chapter.SUN_DROWN);
+        if (quiet) {
+            Dialog.subtitle(p,
+                    Line.say("Bluestar", STARCLAN, "Dark times have come to the forest, " + Joining.catName(p) + "."),
+                    Line.say("Spottedleaf", STARCLAN, "Go to where the sun drowns, far to the " + seaward() + ". Listen to the one you meet there."));
+            return;
+        }
         Dialog.play(p,
                 Line.narrate("That night you dream. You stand in a clearing under a sky crowded with stars."),
                 Line.say("Bluestar", STARCLAN, "Dark times have come to the forest, " + Joining.catName(p) + ". The Twolegs will not stop."),
@@ -761,7 +779,8 @@ public final class Campaign {
                 .withChoices(Choice.of("Wake up", "greatjourney campaign wake")));
     }
 
-    static void wake(ServerPlayer p) {
+    /** Back from StarClan's sign (does nothing for a cat not in it). */
+    public static void wake(ServerPlayer p) {
         CompoundTag d = data(p);
         if (!d.getBoolean("inSign")) return;
         d.putBoolean("inSign", false);
@@ -859,7 +878,18 @@ public final class Campaign {
         ForestClans.populateIfDue(level, e.getChunk().getPos(), CampaignData.get(level));
     }
 
+    /** Notes a forest Clan cat that is a player's own (or no longer is), while the Clans are still in the forest. */
+    private static void noteOwn(net.minecraft.world.entity.Entity e) {
+        if (!(e instanceof net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity cat) || !(cat.level() instanceof ServerLevel level)
+                || Mode.of(level.getServer()) != Mode.CAMPAIGN) return;
+        CampaignData cd = CampaignData.get(level.getServer().overworld());
+        Clan clan = LifeData.get(level.getServer().overworld()).clanOf(cat.getClanUUID());
+        if (cd.departed || clan == null) return;
+        if (ForestClans.playersOwn(cat, clan) ? cd.ownCats.add(cat.getUUID()) : cd.ownCats.remove(cat.getUUID())) cd.setDirty();
+    }
+
     private static void entityJoined(EntityJoinLevelEvent e) {
+        if (!e.getLevel().isClientSide() && ClanWorld.current() != null) noteOwn(e.getEntity());
         if (!(e.getLevel() instanceof ServerLevel level) || level.dimension() != Level.OVERWORLD || ClanWorld.current() == null) return;
         if (e.getEntity().getTags().contains(SCENE_TAG) && !e.loadedFromDisk()) return;
         if (e.getEntity().getTags().contains(SCENE_TAG)) {
@@ -868,9 +898,16 @@ public final class Campaign {
         }
         if (Mode.of(level.getServer()) != Mode.CAMPAIGN) return;
         CampaignData cd = CampaignData.get(level);
-        if (cd.departed && ForestClans.leftBehind(e.getEntity(), ClanWorld.current(), LifeData.get(level))) e.setCanceled(true);
+        boolean gone = cd.departed && ForestClans.leftBehind(e.getEntity(), ClanWorld.current(), LifeData.get(level));
         // a travelling companion whose chunk was unloaded when the Clans settled has already arrived with its Clan
-        if (cd.lakeFounded && e.loadedFromDisk() && e.getEntity().getTags().contains(ForestClans.ESCORT_TAG)) e.setCanceled(true);
+        gone |= cd.lakeFounded && e.loadedFromDisk() && e.getEntity().getTags().contains(ForestClans.ESCORT_TAG);
+        if (gone) {
+            e.setCanceled(true);
+            // loading put it back on its Clan's list
+            if (e.getEntity() instanceof net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity cat) {
+                net.snowteb.warriorcats_events.clan.ClanData.get(level.getServer().overworld()).removeClanCatFromAnyClan(cat);
+            }
+        }
     }
 
     // --- per-player data and the journal
@@ -946,7 +983,7 @@ public final class Campaign {
             followed = m.followed();
         }
         quests.set(0, quests.get(0).withMap(marked, followed));
-        return new JournalView(v.catName(), v.clan(), v.rank(), v.clanColour(), v.standing(), goal, quests, v.places(), v.clanmates(), v.starclan(), v.ladder());
+        return new JournalView(v.catName(), v.clan(), v.rank(), v.clanColour(), v.standing(), goal, quests, v.places(), v.clanmates(), v.starclan(), v.ladder(), v.quiet());
     }
 
     // --- commands

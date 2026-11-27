@@ -67,6 +67,8 @@ public final class Starts {
         ServerLevel ow = p.serverLevel().getServer().overworld();
         if (Mode.of(ow) == Mode.CAMPAIGN) return com.ninjacat.greatjourney.clanlands.life.campaign.Campaign.beginStart(p, start, clan);
         Dialog.clear(p);
+        if (start == Journey.Start.CLAN && clan == null) return false;
+        markArriving(p);
         switch (start) {
             case KITTYPET -> {
                 Landmark home = w.lake.kittypetHome();
@@ -102,6 +104,20 @@ public final class Starts {
         return true;
     }
 
+    private static final String ARRIVING = "greatjourney.arriving";
+
+    /** A start is chosen and the cat is on the way to it, until {@link #arrive} sets them down. */
+    public static void markArriving(ServerPlayer p) {
+        p.getPersistentData().putBoolean(ARRIVING, true);
+    }
+
+    /** A cat who left before the land of their start had loaded was never set down there: they are asked again. */
+    public static void loggedIn(ServerPlayer p) {
+        if (!p.getPersistentData().getBoolean(ARRIVING)) return;
+        p.getPersistentData().remove(ARRIVING);
+        Journey.setStage(p, Journey.Stage.CHOOSING);
+    }
+
     /** How long after arriving the dialogue waits, so the camp has drawn on the client when the window opens. */
     static final int ARRIVAL_HOLD = 40;
 
@@ -123,6 +139,7 @@ public final class Starts {
             q.teleportTo(ow, at.getX() + 0.5, at.getY() + 0.1, at.getZ() + 0.5, q.getYRot(), 0);
             q.setRespawnPosition(Level.OVERWORLD, at, 0, true, false);
             Dialog.hold(q, ARRIVAL_HOLD);               // the client draws the land and the cats before any window opens
+            q.getPersistentData().remove(ARRIVING);
             if (then != null) then.accept(q);
         });
     }
@@ -391,13 +408,30 @@ public final class Starts {
         return true;
     }
 
+    /** Hurt lately, burning or falling: no cat is whisked away from that (by a seek or a tour). */
+    public static boolean inDanger(ServerPlayer p) {
+        return p.isOnFire() || p.fallDistance > 3 || p.hurtTime > 0
+                || p.getLastHurtByMob() != null && p.tickCount - p.getLastHurtByMobTimestamp() < 200;
+    }
+
+    /** Between one long way to a camp and the next. */
+    private static final long WENT_AGAIN = 20L * 60;
+
     /** The player has chosen a Clan: a cat of that Clan will find them (see {@link #guideIfDue}). */
     public static boolean seek(ServerPlayer p, Info clan) {
         if (clan == null || !canSeek(p)) return false;
+        long now = p.level().getGameTime(), went = Journey.stamped(p, "seek.went");
+        if (inDanger(p) || went != 0 && now - went < WENT_AGAIN) {
+            Dialog.subtitle(p, Line.narrate(inDanger(p) ? "Not now: see to your own safety first." : "You have only just set out. Catch your breath first."));
+            return false;
+        }
         if (seeking(p) != clan) {
             Lead.stop(p);
+            WCatEntity old = guideOf(p);
+            if (old != null) sendHome(old);
             setSeeking(p, clan);
         }
+        Journey.stamp(p, "seek.went", now);
         Journey.stamp(p, "seek.asked", p.level().getGameTime());
         Journals.push(p);
         toCamp(p, clan);

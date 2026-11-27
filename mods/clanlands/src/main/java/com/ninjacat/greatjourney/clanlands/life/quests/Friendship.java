@@ -104,7 +104,7 @@ final class Friendship {
         }
         ClanWorld w = ClanWorld.current();
         Clan mine = w == null ? null : Kin.bookClan(p);
-        if (mine == null || Mode.of(p.getServer()) != Mode.FREE || Journey.stage(p) != Journey.Stage.PLAYING || !p.isAlive() || Dialog.busy(p)
+        if (mine == null || Mode.of(p.getServer()) != Mode.FREE || Journey.stage(p) != Journey.Stage.PLAYING || !p.isAlive() || Dialog.busy(p) || QuestState.quiet(p)
                 || p.getRandom().nextInt(ONE_IN) != 0 || now < state(p).getLong("next") || Homeland.territoryAt(w, p.getX(), p.getZ()) != mine) return;
         Clan other = across(w, mine, p.getX(), p.getZ());
         Clan known = clanOfFriend(p);
@@ -158,6 +158,7 @@ final class Friendship {
 
     static void onInteract(PlayerInteractEvent.EntityInteract e) {
         if (e.getHand() != InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer p) || !e.getTarget().getTags().contains(TAG)) return;
+        if (!Dialog.talksWith(p.getMainHandItem())) return;
         if (p.isShiftKeyDown()) return;
         e.setCanceled(true);
         e.setCancellationResult(InteractionResult.SUCCESS);

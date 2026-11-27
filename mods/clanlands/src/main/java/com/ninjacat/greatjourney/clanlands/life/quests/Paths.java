@@ -138,6 +138,7 @@ public final class Paths {
         var ow = p.serverLevel().getServer().overworld();
         Lead lead = Lead.of(p);
         if (lead != null && lead.cat().getUUID().equals(QuestState.mentorId(p))) Lead.stop(p);     // the old mentor's walk ends
+        QuestState.paidThrough(p, QuestState.storyStep(p) - 1);     // a save from before steps were counted
         QuestState.setPath(p, path);
         QuestState.setStoryStep(p, 0);
         QuestState.setStory(p, null);

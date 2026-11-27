@@ -53,6 +53,26 @@ public final class HealerGameTests {
         h.succeed();
     }
 
+    @GameTest(template = "empty")
+    public static void aPlannedCureNamesItsPatient(GameTestHelper h) {
+        ServerPlayer p = player(h, "healer_plan");
+        for (var disease : Patients.MILD) {
+            WCatEntity cat = ModEntities.WCAT.get().create(h.getLevel());
+            h.assertTrue(cat != null, "a Warrior Cats Events cat can be made");
+            BlockPos at = h.absolutePos(new BlockPos(4, 2, 4));
+            cat.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+            cat.setCustomName(Component.literal("Sorepaw"));
+            h.getLevel().addFreshEntity(cat);
+            Task duty = new Task(Task.Kind.TEND, "Tend", "Tend them", "Sorepaw", cat.getUUID(), false,
+                    List.of(Patients.plan("Treat them", Patients.Who.SELF, disease, 1)), 2, 10, "", 0);
+            Task ready = Patients.prepare(p, cat, duty);
+            h.assertTrue(ready.objectives.size() == 1 && ready.objectives.get(0).key.equals(disease.getID() + "@" + cat.getUUID()),
+                    disease.getID() + ": the plan becomes a real patient, ill with what was planned");
+            cat.discard();
+        }
+        h.succeed();
+    }
+
     @GameTest(template = "empty", timeoutTicks = 200)
     public static void aSickCatIsCuredTheWceWay(GameTestHelper h) {
         WCatEntity cat = ModEntities.WCAT.get().create(h.getLevel());

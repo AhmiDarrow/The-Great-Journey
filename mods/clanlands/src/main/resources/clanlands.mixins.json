@@ -14,7 +14,8 @@
     "NoiseRouterMixin",
     "RangeChoiceMixin",
     "LevelStorageSourceMixin",
-    "NamespacedSurfaceRuleMixin"
+    "NamespacedSurfaceRuleMixin",
+    "ClaimGroundMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.11
+
+- **The old leader comes to you.** Earn your place and you no longer have to know to ask for it. When a warrior of a lake or forest Clan has trained an apprentice and reached standing 120, the leader offers them the deputy's place when they are in camp (if no other player holds it). A deputy who has served three days and reached standing 200 is asked to lead: the old leader retires to the elders' den, and you travel to the Moonpool (Mothermouth in the old forest) for your nine lives. Say "Not yet" and you are asked again a day later, or ask yourself whenever you like.
+- **Fixed: claiming land from among plants.** A claim was refused wherever you stood in ferns or most other plants. The plant underfoot is now cleared and the claim goes ahead. Water, built blocks and bare air above nothing are still refused.
+- **Your first camp.** Claiming a camp costs 450 experience, more than a new founder usually has. A founder with no camp is now given it once, including founders from before this update who are still without one.
+- **Fixed: "unmarked" land that was taken.** A Clan's claims can reach a little past its border on the map, so the founding steps and the map mark could send you to ground where the claim was refused. They now check the real claims. If you give up all your land, your journal no longer says you have a camp.
+- **Fixed: duties to tend the sick.** Saying "I'll do it" to a duty that meant curing a sick cat did nothing. These duties can now be taken on.
+
 ## 0.1.10
 
 - **Fixed: seasons racing by.** While the Gathering or a half-moon meeting waited for you, the seasons ran ahead by almost a day every second, so one walk to the island could take a world through several seasons. Waiting no longer moves them. A season still lasts 72 days. A world keeps the season it has reached.

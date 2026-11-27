@@ -4,9 +4,12 @@ import com.ninjacat.greatjourney.clanlands.landmark.CampPlan.DenKind;
 import com.ninjacat.greatjourney.clanlands.layout.Landmark;
 import com.ninjacat.greatjourney.clanlands.layout.Sectors.Clan;
 import com.ninjacat.greatjourney.clanlands.life.BookClans;
+import com.ninjacat.greatjourney.clanlands.life.Dialog;
+import com.ninjacat.greatjourney.clanlands.life.Dialog.Choice;
 import com.ninjacat.greatjourney.clanlands.life.Dialog.Line;
 import com.ninjacat.greatjourney.clanlands.life.Homeland;
 import com.ninjacat.greatjourney.clanlands.life.Joining;
+import com.ninjacat.greatjourney.clanlands.life.Journey;
 import com.ninjacat.greatjourney.clanlands.life.LifeData;
 import com.ninjacat.greatjourney.clanlands.life.Nests;
 import com.ninjacat.greatjourney.clanlands.life.events.Cats;
@@ -52,6 +55,8 @@ public final class Ranks {
     public static final int DEPUTY_STANDING = 120, LEADER_STANDING = 200;
     /** How long a deputy serves before the old leader will step down for them (three days). */
     static final long DEPUTY_SERVICE = 24000L * 3;
+    /** An offer of the deputy's or leader's place, turned away, is made again after a day. */
+    static final long OFFER_AGAIN = 24000L;
     /** How near the Moonpool (or Mothermouth) StarClan comes to a new leader. */
     static final double STAR_REACH = 24;
 
@@ -94,6 +99,45 @@ public final class Ranks {
         int s = QuestState.standing(p);
         if (s < LEADER_STANDING) needs.add("earn the Clan's trust through your duties (standing " + s + " of " + LEADER_STANDING + ")");
         return needs;
+    }
+
+    // --- the offer
+
+    /**
+     * The place the Clan's leader would offer this player now: "deputy" for a warrior who has earned it, "leader" for a
+     * deputy the old leader would step down for, else null.
+     */
+    static String offerDue(ServerPlayer p, Clan clan, ClanData.Clan wc, LifeData life) {
+        if (QuestState.storyStep(p) != QuestState.WARRIOR || life.leaderPlayer(clan) != null) return null;
+        ClanPlayerRank rank = wc.members.get(p.getUUID());
+        if (rank == ClanPlayerRank.DEPUTY) return leaderNeeds(p).isEmpty() ? "leader" : null;
+        return rank == ClanPlayerRank.WARRIOR && deputyPlayer(wc, life, clan) == null && deputyNeeds(p).isEmpty() ? "deputy" : null;
+    }
+
+    /**
+     * The old leader comes to a player in camp who has earned their next place: they need not know to ask for it.
+     * Asked for after play (2026-11-27): Free Mode seemed to have no way to leader.
+     */
+    private static void offerPlace(ServerPlayer p, Clan clan, ClanData.Clan wc, Landmark camp, double toCamp) {
+        ServerLevel ow = p.getServer().overworld();
+        if (p.level() != ow || toCamp >= camp.radius() + 6 || Dialog.busy(p)) return;
+        LifeData life = LifeData.get(ow);
+        String what = offerDue(p, clan, wc, life);
+        if (what == null) return;
+        long now = ow.getGameTime(), asked = Journey.stamped(p, "offered." + what);
+        if (asked != 0 && now - asked < OFFER_AGAIN) return;
+        String leader = life.leader(clan);
+        WCatEntity cat = Story.catNamed(p, clan, leader);
+        if (cat == null || !cat.isAlive()) return;
+        Journey.stamp(p, "offered." + what, now);
+        boolean retire = what.equals("leader");
+        String you = Joining.catName(p), title = BookClans.Info.of(clan).title;
+        Ui.play(p, List.of(Line.say(leader, BookClans.Info.of(clan).colour, retire
+                        ? you + ", walk with me. I am old, and it is time I went to the elders' den. Will you lead " + title + " after me?"
+                        : you + ", you have trained an apprentice, and the Clan trusts you. Will you serve as my deputy?")
+                .speakerEntity(cat)
+                .withChoices(Choice.of(retire ? "I will lead the Clan" : "I will serve as deputy", "greatjourney quest role " + what),
+                        new Choice("Not yet", "greatjourney quest bye", 0xAAAAAA))));
     }
 
     // --- deputy
@@ -279,6 +323,7 @@ public final class Ranks {
             root.remove("nineLives");
             if (rank != ClanPlayerRank.DEPUTY) {
                 root.remove("deputySince");
+                offerPlace(p, clan, wc, camp, toCamp);
                 return;
             }
             if (!root.contains("deputySince")) root.putLong("deputySince", now);          // made deputy some other way
@@ -286,6 +331,7 @@ public final class Ranks {
             if (now % 200 < 20 && toCamp < camp.radius() + 40) {
                 for (WCatEntity c : Cats.atCamp(ow, clan)) if (c.getRank() == WCatEntity.Rank.DEPUTY) c.setRank(WCatEntity.Rank.WARRIOR);
             }
+            offerPlace(p, clan, wc, camp, toCamp);
             return;
         }
         BookClans.Info info = BookClans.Info.of(clan);

@@ -22,6 +22,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
 import net.snowteb.warriorcats_events.clan.ClanData;
 import net.snowteb.warriorcats_events.clan.ClanData.ClanPlayerRank;
 import net.snowteb.warriorcats_events.entity.custom.wcat.WCatEntity;
@@ -48,6 +49,8 @@ public final class Founding {
     static final double FOLLOW_REACH = 48;
     /** The founding is offered again at most this often. */
     static final long ASK_AGAIN = 20L * 60 * 5;
+    /** What Warrior Cats Events takes to claim a Clan's first land. */
+    static final int CAMP_XP = 450;
 
     // --- the loner
 
@@ -66,7 +69,23 @@ public final class Founding {
         ClanWorld w = ClanWorld.current();
         ServerLevel ow = p.getServer().overworld();
         if (w == null || p.level() != ow) return "This is no place for a camp.";
-        return siteProblem(w, p.getX(), p.getZ());
+        String problem = siteProblem(w, p.getX(), p.getZ());
+        if (problem == null && marked(ClanData.get(ow), p.getX(), p.getZ())) return "A Clan's scent marks this ground already. Walk a little further out.";
+        return problem;
+    }
+
+    /**
+     * Whether any Clan holds the chunk at x, z. Warrior Cats Events claims a chunk with its neighbours, so a Clan's
+     * land reaches a little past the border on the map, and a claim there is refused.
+     */
+    static boolean marked(ClanData data, double x, double z) {
+        ChunkPos at = new ChunkPos((int) Math.floor(x) >> 4, (int) Math.floor(z) >> 4);
+        return data.isChunkClaimedByOtherClan(at, ClanData.EMPTY_UUID);
+    }
+
+    /** Whether the Clan holds its camp (Warrior Cats Events keeps the core's place after every claim is given up). */
+    static boolean hasCamp(ClanData.Clan wc) {
+        return wc.coreTerritory != null && wc.claimedTerritory.containsKey(wc.coreTerritory);
     }
 
     /** What stands in the way of a camp at x, z, or null where one could be founded. */
@@ -88,10 +107,14 @@ public final class Founding {
 
     /** The nearest land to x, z that is no Clan's and far enough from every camp, or null. */
     static double[] siteNear(ClanWorld w, double x, double z) {
+        return siteNear(w, x, z, (sx, sz) -> true);
+    }
+
+    private static double[] siteNear(ClanWorld w, double x, double z, java.util.function.BiPredicate<Double, Double> open) {
         for (int ring = 0; ring <= SITE_RINGS; ring++) {
             for (int i = 0; i < (ring == 0 ? 1 : SITE_WAYS); i++) {
                 double a = i * Math.PI * 2 / SITE_WAYS, sx = x + Math.cos(a) * ring * SITE_STEP, sz = z + Math.sin(a) * ring * SITE_STEP;
-                if (siteProblem(w, sx, sz) == null) return new double[] {sx, sz};
+                if (siteProblem(w, sx, sz) == null && open.test(sx, sz)) return new double[] {sx, sz};
             }
         }
         return null;
@@ -102,14 +125,15 @@ public final class Founding {
         if (quest(p) == null || p.level() != p.getServer().overworld()) return null;
         ClanData.Clan wc = Joining.clanOf(p);
         if (wc == null) {
-            double[] at = siteNear(w, p.getX(), p.getZ());
+            ClanData data = ClanData.get(p.getServer().overworld());
+            double[] at = siteNear(w, p.getX(), p.getZ(), (x, z) -> !marked(data, x, z));
             return at == null ? null : com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("founding", "Land where a Clan could be founded", at[0], at[1]);
         }
         if (stands(wc)) {
             Landmark pool = Ranks.starPlace();
             return pool == null ? null : com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("founding", "Receive your nine lives at " + Ranks.starPlaceName(), pool.x(), pool.z());
         }
-        return wc.coreTerritory == null ? null : com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("founding", wc.name + "'s camp",
+        return !hasCamp(wc) ? null : com.ninjacat.greatjourney.clanlands.net.ClanPayloads.MapMark.at("founding", wc.name + "'s camp",
                 wc.coreTerritory.getMiddleBlockX(), wc.coreTerritory.getMiddleBlockZ());
     }
 
@@ -180,7 +204,7 @@ public final class Founding {
 
     /** The Clan stands: a camp, enough cats, a deputy and a medicine cat. */
     private static boolean stands(ClanData.Clan wc) {
-        return wc.coreTerritory != null && wc.clanCats.size() >= CLAN_CATS && hasRank(wc, WCatEntity.Rank.DEPUTY) && hasRank(wc, WCatEntity.Rank.MEDICINE);
+        return hasCamp(wc) && wc.clanCats.size() >= CLAN_CATS && hasRank(wc, WCatEntity.Rank.DEPUTY) && hasRank(wc, WCatEntity.Rank.MEDICINE);
     }
 
     private static boolean named(ServerPlayer p) {
@@ -198,7 +222,7 @@ public final class Founding {
             } else {
                 // a Clan that stood already (a save from before this path, or one made by Warrior Cats Events' command):
                 // what it has is simply noted, with no ceremony for things done long ago
-                if (wc.coreTerritory != null) Journey.once(p, "found.camp");
+                if (hasCamp(wc)) Journey.once(p, "found.camp");
                 if (wc.clanCats.size() >= CLAN_CATS) Journey.once(p, "found.cats");
                 if (hasRank(wc, WCatEntity.Rank.DEPUTY)) Journey.once(p, "found.deputy");
                 if (hasRank(wc, WCatEntity.Rank.MEDICINE)) Journey.once(p, "found.medicine");
@@ -207,6 +231,13 @@ public final class Founding {
             Ui.push(p);
             return;
         }
+        // Claiming costs more experience than a new founder has (with no monsters it comes slowly): given once, also to
+        // a founder from before this who never could claim
+        if (!hasCamp(wc) && !named(p) && Journey.once(p, "found.campxp")) {
+            p.giveExperiencePoints(CAMP_XP);
+            Ui.subtitle(p, List.of(Line.narrate("StarClan lends you the strength to mark your first border: " + CAMP_XP
+                    + " experience, what claiming your camp costs. Stand on clear ground and claim it from the Clan screen.")));
+        }
         if (root.getBoolean("ownLifeLost")) {
             root.remove("ownLifeLost");
             int left = root.getInt("ownLives");
@@ -214,7 +245,7 @@ public final class Founding {
                     : "Your nine lives are spent. StarClan sends you back all the same: " + wc.name + " has no other leader.")));
             Ui.push(p);
         }
-        milestone(p, "found.camp", wc.coreTerritory != null, "Scent marks the borders of " + wc.name + "'s camp. This land is yours.");
+        milestone(p, "found.camp", hasCamp(wc), "Scent marks the borders of " + wc.name + "'s camp. This land is yours.");
         milestone(p, "found.cats", wc.clanCats.size() >= CLAN_CATS, wc.name + " has cats enough to hunt, to patrol and to guard the camp.");
         milestone(p, "found.deputy", hasRank(wc, WCatEntity.Rank.DEPUTY), wc.name + " has a deputy to send out the patrols.");
         milestone(p, "found.medicine", hasRank(wc, WCatEntity.Rank.MEDICINE), wc.name + " has a medicine cat to heal the sick and read StarClan's signs.");
@@ -278,7 +309,7 @@ public final class Founding {
                     + "borders, and found your Clan there." + (problem == null ? "" : " Here: " + problem), obj, true, false);
         }
         if (!founder(p, wc) || named(p)) return null;
-        obj.add(new JournalView.Objective("Claim your camp (the Clan screen, standing where it will be)", wc.coreTerritory != null ? 1 : 0, 1));
+        obj.add(new JournalView.Objective("Claim your camp (Clan screen, standing there; " + CAMP_XP + " experience)", hasCamp(wc) ? 1 : 0, 1));
         obj.add(new JournalView.Objective("Gather cats into the Clan", Math.min(CLAN_CATS, wc.clanCats.size()), CLAN_CATS));
         obj.add(new JournalView.Objective("Name a deputy among them", hasRank(wc, WCatEntity.Rank.DEPUTY) ? 1 : 0, 1));
         obj.add(new JournalView.Objective("Name a medicine cat among them", hasRank(wc, WCatEntity.Rank.MEDICINE) ? 1 : 0, 1));
@@ -286,6 +317,7 @@ public final class Founding {
         obj.add(way != null ? way.objectives().get(0) : new JournalView.Objective("Receive your nine lives at " + Ranks.starPlaceName(), 0, 1));
         return new JournalView.Quest("founding", "Build " + wc.name, "StarClan", "A Clan is more than a name. " + wc.name
                 + " needs a camp, cats to hunt and patrol, a deputy and a medicine cat (shift-click one of your cats with Whiskers to change its rank). "
+                + "To grow your land, claim again from the first unmarked chunk beside it (850 experience each time). "
                 + "Then StarClan will give its leader nine lives.", obj, true, false);
     }
 

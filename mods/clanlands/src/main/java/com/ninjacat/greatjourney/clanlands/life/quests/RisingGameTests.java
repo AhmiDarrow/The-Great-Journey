@@ -614,4 +614,59 @@ public final class RisingGameTests {
         }
         h.succeed();
     }
+
+    @GameTest(template = "empty")
+    public static void theLeaderOffersWhatAWarriorHasEarned(GameTestHelper h) {
+        ServerPlayer p = player(h, "rising_offer");
+        try {
+            LifeData life = new LifeData();
+            net.snowteb.warriorcats_events.clan.ClanData data = new net.snowteb.warriorcats_events.clan.ClanData();
+            var wc = data.createClan("OfferClan", 0xFFFFFF, UUID.randomUUID(), "Oldstar", "", 0);
+            wc.members.put(p.getUUID(), net.snowteb.warriorcats_events.clan.ClanData.ClanPlayerRank.WARRIOR);
+            QuestState.setStoryStep(p, QuestState.WARRIOR);
+            h.assertTrue(Ranks.offerDue(p, Clan.THUNDER, wc, life) == null, "nothing is offered before it is earned");
+            QuestState.root(p).putInt("pupilsTrained", 1);
+            QuestState.addStanding(p, Ranks.LEADER_STANDING);
+            h.assertTrue("deputy".equals(Ranks.offerDue(p, Clan.THUNDER, wc, life)), "an earned warrior is offered the deputy's place");
+            wc.members.put(p.getUUID(), net.snowteb.warriorcats_events.clan.ClanData.ClanPlayerRank.DEPUTY);
+            QuestState.root(p).putLong("deputySince", h.getLevel().getGameTime());
+            h.assertTrue(Ranks.offerDue(p, Clan.THUNDER, wc, life) == null, "a new deputy serves first");
+            QuestState.root(p).putLong("deputySince", h.getLevel().getGameTime() - Ranks.DEPUTY_SERVICE);
+            h.assertTrue("leader".equals(Ranks.offerDue(p, Clan.THUNDER, wc, life)), "then the old leader offers to step down");
+            life.setLeaderPlayer(Clan.THUNDER, UUID.randomUUID(), "Otherstar");
+            h.assertTrue(Ranks.offerDue(p, Clan.THUNDER, wc, life) == null, "never over a player who leads");
+        } finally {
+            QuestState.reset(p);
+        }
+        h.succeed();
+    }
+
+    @GameTest(template = "empty")
+    public static void aCampIsClaimedOnOpenGround(GameTestHelper h) {
+        var data = new net.snowteb.warriorcats_events.clan.ClanData();
+        var wc = data.createClan("GroundClan", 0xFFFFFF, UUID.randomUUID(), "Oldstar", "", 0);
+        net.minecraft.world.level.ChunkPos core = new net.minecraft.world.level.ChunkPos(100, 100);
+        h.assertFalse(Founding.marked(data, 100 * 16 + 8, 100 * 16 + 8), "unmarked ground is open");
+        data.claimChunk(wc.clanUUID, core, "Camp");
+        wc.coreTerritory = core;
+        h.assertTrue(Founding.marked(data, 101 * 16 + 8, 101 * 16 + 8), "a claim reaches the chunks round it");
+        h.assertFalse(Founding.marked(data, 102 * 16 + 8, 100 * 16 + 8), "and no further");
+        h.assertTrue(Founding.hasCamp(wc), "the camp is held");
+        wc.claimedTerritory.clear();
+        h.assertFalse(Founding.hasCamp(wc), "and not once every claim is given up");
+
+        try {
+            Class.forName("net.snowteb.warriorcats_events.network.packet.c2s.clan.CtSClaimTerritory");     // the mixin applies
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
+        BlockPos floor = new BlockPos(2, 1, 2), at = floor.above();
+        h.setBlock(floor, net.minecraft.world.level.block.Blocks.GRASS_BLOCK);
+        h.setBlock(at, net.minecraft.world.level.block.Blocks.FERN);
+        h.assertTrue(com.ninjacat.greatjourney.clanlands.life.ClaimGround.clearAt(h.getLevel(), h.absolutePos(at)), "a fern is cleared");
+        h.assertBlockPresent(net.minecraft.world.level.block.Blocks.AIR, at);
+        h.setBlock(at, net.minecraft.world.level.block.Blocks.OAK_PLANKS);
+        h.assertFalse(com.ninjacat.greatjourney.clanlands.life.ClaimGround.clearAt(h.getLevel(), h.absolutePos(at)), "a built block stays");
+        h.succeed();
+    }
 }

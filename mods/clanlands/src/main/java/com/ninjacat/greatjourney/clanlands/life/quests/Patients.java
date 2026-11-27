@@ -57,10 +57,12 @@ public final class Patients {
                 out.add(o);
                 continue;
             }
-            String[] part = o.key.split(":");
+            // "plan:WHO:<disease id>:count", and the id has a colon of its own ("warriorcats_events:fever")
+            String[] part = o.key.split(":", 3);
+            int last = part[2].lastIndexOf(':');
             Who who = Who.valueOf(part[1]);
-            DiseaseType<?> type = DiseaseRegistry.getByID(part[2]);
-            int count = Integer.parseInt(part[3]);
+            DiseaseType<?> type = DiseaseRegistry.getByID(part[2].substring(0, last));
+            int count = Integer.parseInt(part[2].substring(last + 1));
             List<WCatEntity> pool = candidates(p.serverLevel(), giver, who);
             List<Task.Objective> cures = sicken(pool, type == null ? DiseaseTypes.FEVER : type, count, now, p.getRandom());
             if (cures.isEmpty()) out.add(fallback(type == null ? DiseaseTypes.FEVER : type, giver));
